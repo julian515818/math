@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>微分與斜率互動示範</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    background: #f5f4ef;
+    color: #1a1a18;
+    margin: 0;
+    padding: 20px 14px 50px;
+    display: flex;
+    justify-content: center;
+  }
+  .wrap { width: 100%; max-width: 620px; }
+  h1 { font-size: 18px; font-weight: 500; margin: 0 0 4px; }
+  p.sub { font-size: 13px; color: #6b6a64; margin: 0 0 14px; line-height: 1.6; }
+  .fn-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .fn-btn {
+    padding: 7px 12px; font-size: 12.5px; border-radius: 8px;
+    border: 1px solid #c3c2b7; background: #fff; cursor: pointer;
+  }
+  .fn-btn.active { background: #0c447c; color: #fff; border-color: #0c447c; }
+  .plot-card { background: #fff; border: 1px solid #e1e0d9; border-radius: 12px; padding: 10px; }
+  svg { display: block; width: 100%; height: auto; touch-action: none; }
+  .legend { display: flex; gap: 16px; font-size: 12px; color: #52514e; margin: 10px 2px 0; flex-wrap: wrap; }
+  .legend span.sw { display: inline-block; width: 16px; height: 3px; margin-right: 5px; vertical-align: middle; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+  .stat-box { background: #fff; border: 1px solid #e1e0d9; border-radius: 10px; padding: 10px 12px; }
+  .stat-label { font-size: 11.5px; color: #6b6a64; margin-bottom: 3px; }
+  .stat-value { font-size: 16px; font-weight: 500; font-family: "SF Mono", Consolas, monospace; }
+  .stat-value.tan { color: #c0392b; }
+  .stat-value.sec { color: #185fa5; }
+  .ctrl-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+  .ctrl-row label { font-size: 13px; color: #52514e; min-width: 90px; }
+  .ctrl-row input[type=range] { flex: 1; }
+  .ctrl-row .val { font-size: 13px; font-weight: 500; min-width: 52px; text-align: right; }
+  .toggle-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; color: #52514e; }
+  .formula-box { background: #eef4fb; border-radius: 10px; padding: 12px 14px; margin-top: 16px; font-size: 14px; text-align: center; color: #0c447c; }
+  .note { font-size: 12px; color: #6b6a64; margin-top: 8px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>用切線斜率理解微分 (Derivative as Slope)</h1>
+  <p class="sub">拖曳曲線上的紅點改變 x₀,觀察「切線」(瞬間斜率,也就是導數)與「割線」(平均變化率)的關係——把 Δx 滑桿調到最小,割線就會貼合切線。</p>
+
+  <div class="fn-row" id="fn-row"></div>
+
+  <div class="plot-card">
+    <svg id="plot" viewBox="0 0 620 380" preserveAspectRatio="xMidYMid meet"></svg>
+  </div>
+
+  <div class="legend">
+    <span><span class="sw" style="background:#378add;"></span>函數曲線 f(x)</span>
+    <span><span class="sw" style="background:#c0392b;"></span>切線(導數 f&#39;(x₀))</span>
+    <span><span class="sw" style="background:#185fa5;border-top:2px dashed #185fa5;background:none;"></span>割線(平均變化率)</span>
+  </div>
+
+  <div class="stats">
+    <div class="stat-box">
+      <div class="stat-label">x₀ , f(x₀)</div>
+      <div class="stat-value" id="stat-point">(0.00, 0.00)</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">切線斜率 f&#39;(x₀)</div>
+      <div class="stat-value tan" id="stat-tangent">0.000</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">割線斜率 (Δx = <span id="stat-dx-inline">0.50</span>)</div>
+      <div class="stat-value sec" id="stat-secant">0.000</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Δy / Δx</div>
+      <div class="stat-value" id="stat-ratio">0.000 / 0.000</div>
+    </div>
+  </div>
+
+  <div class="ctrl-row">
+    <label>x₀ 位置</label>
+    <input type="range" id="x0-slider" min="-3.5" max="3.5" step="0.01" value="0">
+    <span class="val" id="x0-val">0.00</span>
+  </div>
+
+  <div class="ctrl-row">
+    <label>Δx (割線寬度)</label>
+    <input type="range" id="dx-slider" min="0" max="1" step="0.001" value="0.6">
+    <span class="val" id="dx-val">0.50</span>
+  </div>
+
+  <div class="toggle-row">
+    <input type="checkbox" id="show-secant" checked>
+    <label for="show-secant">顯示割線與 Δx / Δy 三角形</label>
+  </div>
+
+  <div class="formula-box">
+    f&#39;(x) = lim<tspan style="font-size:11px;">Δx→0</tspan> &nbsp; [ f(x+Δx) − f(x) ] / Δx
+  </div>
+  <p class="note">切線斜率就是「當 Δx 趨近於 0」時割線斜率的極限——這正是微分(導數)的定義。曲線在某點的斜率為正代表函數在該處遞增,為負代表遞減,接近 0 則可能是局部極大或極小值。</p>
+</div>
+
+<script>
+(function(){
+const FUNCS=[
+  {id:"quad", label:"x² / 2", xMin:-3.5, xMax:3.5, fn:function(x){ return x*x*0.5; }},
+  {id:"sin", label:"sin(x)", xMin:-6.5, xMax:6.5, fn:function(x){ return Math.sin(x)*1.6; }},
+  {id:"cubic", label:"x³/4 − x", xMin:-3.2, xMax:3.2, fn:function(x){ return (x*x*x)/4 - x; }}
+];
+let current=FUNCS[0];
+
+const svg=document.getElementById("plot");
+const svgNS="http://www.w3.org/2000/svg";
+function el(tag,attrs){
+  const e=document.createElementNS(svgNS,tag);
+  for(const k in attrs) e.setAttribute(k,attrs[k]);
+  return e;
+}
+
+const MARGIN={l:38,r:14,t:14,b:30};
+const PW=620-MARGIN.l-MARGIN.r, PH=380-MARGIN.t-MARGIN.b;
+let xMin,xMax,yMin,yMax;
+
+function toSX(x){ return MARGIN.l + (x-xMin)/(xMax-xMin)*PW; }
+function toSY(y){ return MARGIN.t + (yMax-y)/(yMax-yMin)*PH; }
+function toDX(sx){ return xMin + (sx-MARGIN.l)/PW*(xMax-xMin); }
+
+function niceStep(range,target){
+  const raw=range/target;
+  const mag=Math.pow(10,Math.floor(Math.log10(raw)));
+  const norm=raw/mag;
+  let step;
+  if(norm<1.5) step=1; else if(norm<3) step=2; else if(norm<7) step=5; else step=10;
+  return step*mag;
+}
+
+let x0=0, dx=0.5, showSecant=true;
+
+function computeYRange(){
+  let lo=Infinity, hi=-Infinity;
+  for(let i=0;i<=200;i++){
+    const x=xMin+(xMax-xMin)*i/200;
+    const y=current.fn(x);
+    if(y<lo) lo=y; if(y>hi) hi=y;
+  }
+  const pad=(hi-lo)*0.15 || 1;
+  yMin=lo-pad; yMax=hi+pad;
+}
+
+function deriv(x){
+  const h=0.0005;
+  return (current.fn(x+h)-current.fn(x-h))/(2*h);
+}
+
+function rebuild(){
+  svg.innerHTML="";
+  xMin=current.xMin; xMax=current.xMax;
+  computeYRange();
+
+  const bg=el("rect",{x:0,y:0,width:620,height:380,fill:"#ffffff"});
+  svg.appendChild(bg);
+
+  const gxStep=niceStep(xMax-xMin,8);
+  for(let gx=Math.ceil(xMin/gxStep)*gxStep; gx<=xMax; gx+=gxStep){
+    const sx=toSX(gx);
+    svg.appendChild(el("line",{x1:sx,y1:MARGIN.t,x2:sx,y2:MARGIN.t+PH,stroke:"#eeede6","stroke-width":1}));
+    svg.appendChild(el("text",{x:sx,y:MARGIN.t+PH+16,"font-size":10,fill:"#9a988f","text-anchor":"middle"})).textContent=(Math.round(gx*100)/100).toString();
+  }
+  const gyStep=niceStep(yMax-yMin,6);
+  for(let gy=Math.ceil(yMin/gyStep)*gyStep; gy<=yMax; gy+=gyStep){
+    const sy=toSY(gy);
+    svg.appendChild(el("line",{x1:MARGIN.l,y1:sy,x2:MARGIN.l+PW,y2:sy,stroke:"#eeede6","stroke-width":1}));
+    svg.appendChild(el("text",{x:MARGIN.l-6,y:sy+3,"font-size":10,fill:"#9a988f","text-anchor":"end"})).textContent=(Math.round(gy*100)/100).toString();
+  }
+
+  if(0>=yMin && 0<=yMax) svg.appendChild(el("line",{x1:MARGIN.l,y1:toSY(0),x2:MARGIN.l+PW,y2:toSY(0),stroke:"#c3c2b7","stroke-width":1.2}));
+  if(0>=xMin && 0<=xMax) svg.appendChild(el("line",{x1:toSX(0),y1:MARGIN.t,x2:toSX(0),y2:MARGIN.t+PH,stroke:"#c3c2b7","stroke-width":1.2}));
+
+  let d="";
+  for(let i=0;i<=200;i++){
+    const x=xMin+(xMax-xMin)*i/200;
+    const y=current.fn(x);
+    const sx=toSX(x), sy=toSY(Math.max(yMin,Math.min(yMax,y)));
+    d+=(i===0?"M":"L")+sx.toFixed(1)+","+sy.toFixed(1);
+  }
+  svg.appendChild(el("path",{d:d,fill:"none",stroke:"#378add","stroke-width":2.5}));
+
+  const g=el("g",{id:"dynamic"});
+  svg.appendChild(g);
+
+  window.__plot={g:g};
+}
+
+function clampX(x){ return Math.max(xMin, Math.min(xMax, x)); }
+
+function draw(){
+  const g=window.__plot.g;
+  g.innerHTML="";
+  x0=clampX(x0);
+  const y0=current.fn(x0);
+  const m=deriv(x0);
+
+  const halfSpan=(xMax-xMin)*0.18;
+  const tx1=clampX(x0-halfSpan), tx2=clampX(x0+halfSpan);
+  const ty1=y0+m*(tx1-x0), ty2=y0+m*(tx2-x0);
+  g.appendChild(el("line",{x1:toSX(tx1),y1:toSY(ty1),x2:toSX(tx2),y2:toSY(ty2),stroke:"#c0392b","stroke-width":2.5}));
+
+  let dxClamped=dx;
+  const maxForward=xMax-x0-0.001;
+  if(dxClamped>maxForward) dxClamped=Math.max(0.001,maxForward);
+  const x1s=x0+dxClamped;
+  const y1s=current.fn(x1s);
+  const secM=(y1s-y0)/dxClamped;
+
+  if(showSecant && dxClamped>0.0015){
+    const sx1=clampX(x0-halfSpan*0.3), sx2=clampX(x1s+halfSpan*0.3);
+    const sy1=y0+secM*(sx1-x0), sy2=y0+secM*(sx2-x0);
+    g.appendChild(el("line",{x1:toSX(sx1),y1:toSY(sy1),x2:toSX(sx2),y2:toSY(sy2),stroke:"#185fa5","stroke-width":2,"stroke-dasharray":"6,5"}));
+
+    g.appendChild(el("line",{x1:toSX(x0),y1:toSY(y0),x2:toSX(x1s),y2:toSY(y0),stroke:"#9a988f","stroke-width":1.3,"stroke-dasharray":"3,3"}));
+    g.appendChild(el("line",{x1:toSX(x1s),y1:toSY(y0),x2:toSX(x1s),y2:toSY(y1s),stroke:"#9a988f","stroke-width":1.3,"stroke-dasharray":"3,3"}));
+    const midX=(toSX(x0)+toSX(x1s))/2;
+    g.appendChild(el("text",{x:midX,y:toSY(y0)-6,"font-size":11,fill:"#77756c","text-anchor":"middle"})).textContent="Δx";
+    const midY=(toSY(y0)+toSY(y1s))/2;
+    g.appendChild(el("text",{x:toSX(x1s)+6,y:midY,"font-size":11,fill:"#77756c"})).textContent="Δy";
+
+    g.appendChild(el("circle",{cx:toSX(x1s),cy:toSY(y1s),r:4.5,fill:"#185fa5"}));
+  }
+
+  g.appendChild(el("circle",{cx:toSX(x0),cy:toSY(y0),r:6,fill:"#c0392b",stroke:"#fff","stroke-width":1.5,style:"cursor:grab"}));
+
+  document.getElementById("stat-point").textContent="("+x0.toFixed(2)+", "+y0.toFixed(2)+")";
+  document.getElementById("stat-tangent").textContent=m.toFixed(3);
+  document.getElementById("stat-secant").textContent = dxClamped>0.0015 ? secM.toFixed(3) : "—";
+  document.getElementById("stat-dx-inline").textContent=dxClamped.toFixed(2);
+  document.getElementById("stat-ratio").textContent = dxClamped>0.0015 ? ((y1s-y0).toFixed(3)+" / "+dxClamped.toFixed(3)) : "—";
+}
+
+const fnRow=document.getElementById("fn-row");
+FUNCS.forEach(function(f){
+  const b=document.createElement("button");
+  b.className="fn-btn"+(f===current?" active":"");
+  b.textContent="f(x) = "+f.label;
+  b.addEventListener("click",function(){
+    current=f;
+    x0=0;
+    document.getElementById("x0-slider").min=f.xMin;
+    document.getElementById("x0-slider").max=f.xMax;
+    document.getElementById("x0-slider").value=0;
+    document.getElementById("x0-val").textContent="0.00";
+    Array.from(fnRow.children).forEach(function(c){c.classList.remove("active");});
+    b.classList.add("active");
+    rebuild(); attachDrag(); draw();
+  });
+  fnRow.appendChild(b);
+});
+
+const x0Slider=document.getElementById("x0-slider");
+const x0Val=document.getElementById("x0-val");
+x0Slider.addEventListener("input",function(e){
+  x0=parseFloat(e.target.value);
+  x0Val.textContent=x0.toFixed(2);
+  draw();
+});
+
+const dxSlider=document.getElementById("dx-slider");
+const dxVal=document.getElementById("dx-val");
+function sliderToDx(t){ return 0.01+ (t*t)*1.99; }
+function dxToSlider(d){ return Math.sqrt(Math.max(0,(d-0.01)/1.99)); }
+dxSlider.value=dxToSlider(0.5);
+dxSlider.addEventListener("input",function(e){
+  dx=sliderToDx(parseFloat(e.target.value));
+  dxVal.textContent=dx.toFixed(2);
+  draw();
+});
+dxVal.textContent=dx.toFixed(2);
+
+document.getElementById("show-secant").addEventListener("change",function(e){
+  showSecant=e.target.checked;
+  draw();
+});
+
+function attachDrag(){
+  let dragging=false;
+  svg.addEventListener("pointerdown",function(e){
+    dragging=true;
+    svg.setPointerCapture(e.pointerId);
+  });
+  svg.addEventListener("pointermove",function(e){
+    if(!dragging) return;
+    const rect=svg.getBoundingClientRect();
+    const scaleX=620/rect.width;
+    const sx=(e.clientX-rect.left)*scaleX;
+    x0=clampX(toDX(sx));
+    x0Slider.value=x0;
+    x0Val.textContent=x0.toFixed(2);
+    draw();
+  });
+  svg.addEventListener("pointerup",function(){ dragging=false; });
+  svg.addEventListener("pointercancel",function(){ dragging=false; });
+}
+
+rebuild();
+attachDrag();
+draw();
+})();
+</script>
+</body>
+</html>
