@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RC 充放電電路：方波輸入響應</title>
+<style>
+  :root {
+    --surface-0: #f7f6f2;
+    --surface-1: #ffffff;
+    --surface-2: #ffffff;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #898781;
+    --border: rgba(11,11,11,0.10);
+    --accent: #2a78d6;
+    --grid: #e1e0d9;
+    box-sizing: border-box;
+  }
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --surface-0: #141413;
+      --surface-1: #1e1e1c;
+      --surface-2: #232321;
+      --text-primary: #f0efec;
+      --text-secondary: #c3c2b7;
+      --text-muted: #898781;
+      --border: rgba(255,255,255,0.12);
+      --accent: #6ea8f0;
+      --grid: #2c2c2a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --surface-0: #141413;
+    --surface-1: #1e1e1c;
+    --surface-2: #232321;
+    --text-primary: #f0efec;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+    --border: rgba(255,255,255,0.12);
+    --accent: #6ea8f0;
+    --grid: #2c2c2a;
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--surface-0);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Noto Sans TC", sans-serif;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .page {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 24px 20px 40px;
+  }
+  h1 {
+    font-size: 20px;
+    font-weight: 500;
+    margin: 0 0 6px;
+  }
+  .subtitle {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin: 0 0 24px;
+    line-height: 1.6;
+  }
+  .card {
+    background: var(--surface-1);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 16px;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .row:last-child { margin-bottom: 0; }
+  .row label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    width: 96px;
+    flex-shrink: 0;
+  }
+  input[type="range"] {
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--grid);
+    -webkit-appearance: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: none;
+    cursor: pointer;
+  }
+  .row span {
+    font-size: 13px;
+    min-width: 64px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .stats {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .stat {
+    flex: 1;
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 10px 14px;
+  }
+  .stat p:first-child {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin: 0;
+  }
+  .stat p:last-child {
+    font-size: 18px;
+    font-weight: 500;
+    margin: 2px 0 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .chart-wrap {
+    position: relative;
+    height: 300px;
+  }
+  .legend {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 10px;
+  }
+  .legend span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+  }
+  .formula {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.8;
+    margin-top: 16px;
+  }
+  .formula b { color: var(--text-primary); font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>RC 充放電電路：方波輸入響應</h1>
+  <p class="subtitle">調整電阻 R、電容 C、方波半週期與振幅，觀察電容電壓在兩個方波週期內的充放電曲線。</p>
+
+  <div class="card">
+    <div class="row">
+      <label for="rSlider">電阻 R</label>
+      <input type="range" min="1" max="100" value="10" step="1" id="rSlider">
+      <span id="rOut">10 kΩ</span>
+    </div>
+    <div class="row">
+      <label for="cSlider">電容 C</label>
+      <input type="range" min="1" max="100" value="10" step="1" id="cSlider">
+      <span id="cOut">10 μF</span>
+    </div>
+    <div class="row">
+      <label for="tSlider">方波半週期 T/2</label>
+      <input type="range" min="1" max="500" value="100" step="1" id="tSlider">
+      <span id="tOut">100 ms</span>
+    </div>
+    <div class="row">
+      <label for="vSlider">振幅 Vin</label>
+      <input type="range" min="1" max="10" value="5" step="1" id="vSlider">
+      <span id="vOut">5 V</span>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <p>時間常數 τ = RC</p>
+      <p id="tauOut">100 ms</p>
+    </div>
+    <div class="stat">
+      <p>T/2 相對於 τ</p>
+      <p id="ratioOut">1.0 τ</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="chart-wrap">
+      <canvas id="rcChart" role="img" aria-label="RC 充電電路在兩個方波週期內，輸入方波與電容輸出電壓隨時間變化的波形圖">顯示輸入方波電壓與電容充放電電壓曲線。</canvas>
+    </div>
+    <div class="legend">
+      <span><span class="swatch" style="background:#898781;"></span>輸入方波 Vin</span>
+      <span><span class="swatch" style="background:#2a78d6;"></span>電容電壓 Vc（輸出）</span>
+    </div>
+  </div>
+
+  <div class="formula">
+    充電：<b>Vc(t) = V + (Vc₀ − V)·e<sup>−t/τ</sup></b><br>
+    放電：<b>Vc(t) = Vc₀·e<sup>−t/τ</sup></b><br>
+    若 T/2 遠大於 τ，電容能充滿放盡，輸出近似方波；若 T/2 接近或小於 τ，電容充放不完全，波形趨向鋸齒狀，且第二週期起點電壓會偏移。
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const rSlider = document.getElementById('rSlider');
+const cSlider = document.getElementById('cSlider');
+const tSlider = document.getElementById('tSlider');
+const vSlider = document.getElementById('vSlider');
+const rOut = document.getElementById('rOut');
+const cOut = document.getElementById('cOut');
+const tOut = document.getElementById('tOut');
+const vOut = document.getElementById('vOut');
+const tauOut = document.getElementById('tauOut');
+const ratioOut = document.getElementById('ratioOut');
+
+function isDarkMode() {
+  const theme = document.documentElement.getAttribute('data-theme');
+  if (theme === 'dark') return true;
+  if (theme === 'light') return false;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
+const ctx = document.getElementById('rcChart');
+let chart = new Chart(ctx, {
+  type: 'line',
+  data: { datasets: [
+    { label: 'Vin', data: [], borderColor: '#898781', borderWidth: 1.5, borderDash: [4,3], pointRadius: 0, stepped: true, tension: 0 },
+    { label: 'Vc', data: [], borderColor: '#2a78d6', borderWidth: 2, pointRadius: 0, tension: 0 }
+  ]},
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    animation: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: (c)=> c.dataset.label + ': ' + c.parsed.y.toFixed(2) + ' V' } }
+    },
+    scales: {
+      x: {
+        type: 'linear',
+        title: { display: true, text: '時間 (ms)', font: { size: 11 } },
+        grid: { color: () => (isDarkMode() ? '#2c2c2a' : '#e1e0d9') },
+        ticks: { color: () => (isDarkMode() ? '#c3c2b7' : '#52514e') }
+      },
+      y: {
+        title: { display: true, text: '電壓 (V)', font: { size: 11 } },
+        grid: { color: () => (isDarkMode() ? '#2c2c2a' : '#e1e0d9') },
+        ticks: { color: () => (isDarkMode() ? '#c3c2b7' : '#52514e') }
+      }
+    }
+  }
+});
+
+function compute() {
+  const R = parseFloat(rSlider.value);
+  const C = parseFloat(cSlider.value);
+  const halfT = parseFloat(tSlider.value);
+  const V = parseFloat(vSlider.value);
+  const tau = R * C;
+
+  rOut.textContent = R + ' kΩ';
+  cOut.textContent = C + ' μF';
+  tOut.textContent = halfT + ' ms';
+  vOut.textContent = V + ' V';
+  tauOut.textContent = tau.toFixed(1) + ' ms';
+  ratioOut.textContent = (halfT / tau).toFixed(2) + ' τ';
+
+  const steps = 60;
+  const vinData = [];
+  const vcData = [];
+  let vc = 0;
+  let t = 0;
+
+  for (let period = 0; period < 2; period++) {
+    for (let phase = 0; phase < 2; phase++) {
+      const target = phase === 0 ? V : 0;
+      const segStart = t;
+      vinData.push({ x: t, y: target });
+      for (let i = 0; i <= steps; i++) {
+        const dt = (halfT * i) / steps;
+        const val = target + (vc - target) * Math.exp(-dt / tau);
+        vcData.push({ x: segStart + dt, y: val });
+      }
+      vc = target + (vc - target) * Math.exp(-halfT / tau);
+      t += halfT;
+      vinData.push({ x: t, y: target });
+    }
+  }
+
+  chart.data.datasets[0].data = vinData;
+  chart.data.datasets[1].data = vcData;
+  chart.options.scales.y.min = -0.5;
+  chart.options.scales.y.max = V + 0.5;
+  chart.update();
+}
+
+[rSlider, cSlider, tSlider, vSlider].forEach(s => s.addEventListener('input', compute));
+
+try {
+  compute();
+} catch (e) {
+  console.error(e);
+}
+</script>
+</body>
+</html>
