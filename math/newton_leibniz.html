@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>微分：牛頓觀點 vs. 萊布尼茲觀點</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&family=Noto+Serif+TC:wght@700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --paper:#f6f1e4; --paper2:#efe7d3; --card:#fffdf7;
+  --ink:#23303f; --muted:#6b6457; --grid:#e4dbc6; --grid2:#cfc2a4; --axis:#5a5140;
+  --nw:#1f5fa3; --nwbg:#e5eef8; --lb:#b3372b; --lbbg:#f8e6e1;
+  --gold:#c8871a; --green:#2f8a55; --violet:#8a3f9e;
+  --shadow:0 2px 0 #d8ccb0, 0 10px 30px rgba(80,60,20,.08);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#1b1f26; --paper2:#222731; --card:#242a35;
+    --ink:#ece6d6; --muted:#a39c8c; --grid:#2e3542; --grid2:#3d4555; --axis:#9e9786;
+    --nw:#7db4f0; --nwbg:#1f2c3d; --lb:#ff8a75; --lbbg:#3a2522;
+    --gold:#f2b64f; --green:#6ccf93; --violet:#d596ea;
+    --shadow:0 2px 0 #12151a, 0 10px 30px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#1b1f26; --paper2:#222731; --card:#242a35;
+  --ink:#ece6d6; --muted:#a39c8c; --grid:#2e3542; --grid2:#3d4555; --axis:#9e9786;
+  --nw:#7db4f0; --nwbg:#1f2c3d; --lb:#ff8a75; --lbbg:#3a2522;
+  --gold:#f2b64f; --green:#6ccf93; --violet:#d596ea;
+  --shadow:0 2px 0 #12151a, 0 10px 30px rgba(0,0,0,.3);
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0; color:var(--ink); background:var(--paper);
+  background-image:linear-gradient(var(--paper2) 1px,transparent 1px),linear-gradient(90deg,var(--paper2) 1px,transparent 1px);
+  background-size:28px 28px;
+  font-family:"LXGW WenKai TC","Noto Serif TC","PingFang TC","Microsoft JhengHei",serif; font-size:17px; line-height:1.7}
+.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace}
+.wrap{max-width:1120px; margin:0 auto; padding:28px 18px 60px}
+header{animation:rise .6s ease both}
+.kicker{color:var(--gold); font-weight:700; letter-spacing:.2em; font-size:.85rem}
+h1{font-family:"Noto Serif TC",serif; font-weight:900; font-size:clamp(1.9rem,5vw,3.1rem); line-height:1.15; margin:.2em 0 .4em}
+h1 .n{color:var(--nw)} h1 .l{color:var(--lb)} h1 .vs{font-size:.6em; color:var(--muted); font-style:italic; margin:0 .2em}
+.duel{display:grid; grid-template-columns:1fr auto 1fr; gap:0; align-items:stretch; margin-top:10px}
+@media (max-width:700px){ .duel{grid-template-columns:1fr} .duel .mid{display:none} }
+.side{padding:14px 18px; border:2px solid var(--ink); background:var(--card)}
+.side.n{border-radius:8px 0 0 8px; box-shadow:-4px 4px 0 var(--nw)}
+.side.l{border-radius:0 8px 8px 0; box-shadow:4px 4px 0 var(--lb); text-align:right}
+@media (max-width:700px){ .side.n,.side.l{border-radius:8px; text-align:left; margin-bottom:10px} }
+.side h3{margin:0; font-family:"Noto Serif TC",serif; font-size:1.2rem}
+.side.n h3{color:var(--nw)} .side.l h3{color:var(--lb)}
+.side .who{font-size:.85rem; color:var(--muted)}
+.side .big{font-size:1.7rem; font-weight:700; margin:4px 0}
+.side p{margin:.2em 0; font-size:.95rem}
+.mid{display:grid; place-items:center; background:var(--ink); color:var(--paper); padding:0 12px; font-family:"Noto Serif TC",serif; font-weight:900; border-top:2px solid var(--ink); border-bottom:2px solid var(--ink)}
+
+.tabs{display:flex; gap:6px; margin:28px 0 0; flex-wrap:wrap}
+.tab{font:inherit; font-weight:700; cursor:pointer; border:2px solid var(--ink); border-bottom:none; background:var(--card); color:var(--ink); padding:8px 16px; border-radius:6px 6px 0 0; opacity:.6; transition:opacity .2s,transform .2s}
+.tab:hover{opacity:.9}
+.tab.on{opacity:1; transform:translateY(-2px); color:#fff}
+.tab.on[data-c="n"]{background:var(--nw); border-color:var(--nw)}
+.tab.on[data-c="l"]{background:var(--lb); border-color:var(--lb)}
+.tab.on[data-c="c"]{background:var(--ink); color:var(--paper)}
+.panel{display:none; background:var(--card); border:2px solid var(--ink); border-radius:0 8px 8px 8px; padding:20px; box-shadow:var(--shadow); animation:rise .4s ease both}
+.panel.on{display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:24px}
+.panel.wide.on{display:block}
+@media (max-width:860px){ .panel.on{grid-template-columns:1fr} }
+#pN{border-top:6px solid var(--nw)} #pL{border-top:6px solid var(--lb)}
+
+svg.plot{width:100%; height:auto; display:block; touch-action:none; user-select:none; background:var(--card); border-radius:6px; border:1px solid var(--grid2)}
+.lbl{font-size:.85rem; font-weight:700; margin:8px 0 2px; color:var(--muted)}
+.hint{font-size:.88rem; color:var(--muted); margin-top:6px; text-align:center}
+h2{font-family:"Noto Serif TC",serif; font-size:1.3rem; margin:0 0 6px}
+h3.sub{font-family:"Noto Serif TC",serif; font-size:1.05rem; margin:16px 0 6px}
+.quote{border-left:4px solid currentColor; padding:4px 12px; margin:8px 0; font-size:.95rem}
+.qn{color:var(--nw); background:var(--nwbg)} .ql{color:var(--lb); background:var(--lbbg)}
+.quote span{color:var(--ink)}
+.btn{font:inherit; font-size:.92rem; cursor:pointer; border:2px solid var(--ink); background:var(--card); color:var(--ink); padding:4px 12px; border-radius:6px; box-shadow:2px 2px 0 var(--ink); transition:transform .1s,box-shadow .1s}
+.btn:hover{transform:translate(-1px,-1px); box-shadow:3px 3px 0 var(--ink)}
+.btn:active{transform:translate(2px,2px); box-shadow:0 0 0 var(--ink)}
+.btn.on{background:var(--ink); color:var(--paper)}
+.btn.goN{background:var(--nw); color:#fff; border-color:var(--nw); box-shadow:2px 2px 0 var(--ink)}
+.btn.goL{background:var(--lb); color:#fff; border-color:var(--lb); box-shadow:2px 2px 0 var(--ink)}
+.row{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:6px 0}
+.slider{margin:10px 0}
+.slider label{display:flex; justify-content:space-between; font-weight:700}
+input[type=range]{width:100%}
+#tS,#oS{accent-color:var(--nw)} #zS,#x0S{accent-color:var(--lb)}
+.calc{background:var(--paper); border-left:4px solid var(--gold); padding:10px 14px; border-radius:4px; margin:10px 0; overflow-x:auto}
+.calc div{margin:3px 0; white-space:nowrap}
+.strike{text-decoration:line-through; text-decoration-thickness:2px; opacity:.55}
+.hl{padding:0 3px; border-radius:3px}
+.hlN{background:var(--nwbg); color:var(--nw); font-weight:700}
+.hlL{background:var(--lbbg); color:var(--lb); font-weight:700}
+.gauge{display:flex; gap:10px; margin:8px 0}
+.gauge>div{flex:1; background:var(--paper); border-radius:6px; padding:8px; text-align:center}
+.gauge b{display:block; font-size:1.4rem; font-family:"JetBrains Mono",monospace}
+.gauge small{color:var(--muted)}
+.note{color:var(--muted); font-size:.93rem}
+
+/* compare */
+.tblwrap{overflow-x:auto; margin:10px 0}
+table{border-collapse:collapse; width:100%; min-width:620px}
+th,td{padding:8px 10px; border-bottom:1px solid var(--grid2); vertical-align:top; font-size:.95rem}
+th{text-align:left}
+th.n{color:var(--nw)} th.l{color:var(--lb)}
+td:first-child{font-weight:700; white-space:nowrap; color:var(--muted)}
+.trans{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:10px}
+@media (max-width:700px){ .trans{grid-template-columns:1fr} }
+.tcard{border:2px solid var(--grid2); border-radius:8px; padding:10px; text-align:center; background:var(--paper); transition:transform .25s}
+.tcard .t{font-size:.85rem; font-weight:700}
+.tcard .f{font-family:"JetBrains Mono",monospace; font-size:1.3rem; margin:8px 0; min-height:2.2em; display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:4px}
+.tcard.n{border-color:var(--nw)} .tcard.n .t{color:var(--nw)}
+.tcard.l{border-color:var(--lb)} .tcard.l .t{color:var(--lb)}
+.tcard.m .t{color:var(--muted)}
+.tcard .c{font-size:.85rem; color:var(--muted)}
+.flip{animation:flip .35s ease}
+.frac{display:inline-flex; flex-direction:column; align-items:center; vertical-align:middle; line-height:1.2}
+.frac>span:first-child{border-bottom:2px solid currentColor; padding:0 3px}
+.timeline{position:relative; margin:14px 0 0; padding-left:26px}
+.timeline::before{content:""; position:absolute; left:8px; top:4px; bottom:4px; width:3px; background:var(--grid2)}
+.ev{position:relative; margin:0 0 12px; cursor:pointer}
+.ev::before{content:""; position:absolute; left:-24px; top:6px; width:13px; height:13px; border-radius:50%; background:var(--card); border:3px solid var(--muted)}
+.ev.n::before{border-color:var(--nw)} .ev.l::before{border-color:var(--lb)} .ev.x::before{border-color:var(--gold)}
+.ev .y{font-family:"JetBrains Mono",monospace; font-weight:700}
+.ev.n .y{color:var(--nw)} .ev.l .y{color:var(--lb)} .ev.x .y{color:var(--gold)}
+.ev .d{display:none; color:var(--muted); font-size:.93rem}
+.ev.open .d{display:block}
+.two{display:grid; grid-template-columns:1fr 1fr; gap:24px}
+@media (max-width:860px){ .two{grid-template-columns:1fr} }
+footer{margin-top:28px; color:var(--muted); font-size:.9rem; text-align:center}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes flip{0%{transform:rotateX(80deg);opacity:.2}100%{transform:none;opacity:1}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">微積分互動筆記 · 導數的兩種誕生方式</div>
+    <h1><span class="n">牛頓</span><span class="vs">vs.</span><span class="l">萊布尼茲</span>：同一個導數，兩種想像</h1>
+    <div class="duel">
+      <div class="side n">
+        <div class="who">Isaac Newton · 英國 · 1665 年起</div>
+        <h3>流數法：萬物都在流動</h3>
+        <div class="big mono">ẋ</div>
+        <p>量隨「時間」連續變化，導數就是變化的<b>速度</b>。</p>
+      </div>
+      <div class="mid">VS</div>
+      <div class="side l">
+        <div class="who">Gottfried Leibniz · 德國 · 1675 年起</div>
+        <h3>微分法：無窮小的差</h3>
+        <div class="big mono">dy/dx</div>
+        <p>把曲線看成無限多段極短的直線，導數就是兩個<b>無窮小的比</b>。</p>
+      </div>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab on" data-tab="pN" data-c="n">① 牛頓：運動與流數</button>
+    <button class="tab" data-tab="pL" data-c="l">② 萊布尼茲：放大與無窮小</button>
+    <button class="tab" data-tab="pC" data-c="c">③ 比較與歷史</button>
+  </nav>
+
+  <!-- ================= Newton ================= -->
+  <section class="panel on" id="pN">
+    <div>
+      <div class="row" id="nSel"></div>
+      <div class="lbl">一個沿直線運動的點（位置 x 隨時間 t 流動）</div>
+      <svg class="plot" id="track" viewBox="0 0 520 110"></svg>
+      <div class="lbl">位置–時間圖：切線斜率 = 速度 ẋ</div>
+      <svg class="plot" id="xt" viewBox="0 0 520 300"></svg>
+      <div class="hint">可以在下圖拖曳，直接改變時刻 t</div>
+    </div>
+    <div>
+      <h2>牛頓怎麼想？</h2>
+      <p>牛頓把會變化的量稱為<b class="hlN hl">流量</b>（fluent）x，它變化的速度稱為<b class="hlN hl">流數</b>（fluxion），記作 <b class="mono">ẋ</b>。經過一段極短的時間 <b class="mono">o</b>，x 增加的量 <b class="mono">ẋ·o</b> 叫作「瞬」（moment）。</p>
+      <div class="slider">
+        <label><span>時刻 <span class="mono">t</span></span><span class="mono" id="tOut"></span></label>
+        <input type="range" id="tS" min="0" max="4" step="0.01" value="1.5">
+      </div>
+      <div class="slider">
+        <label><span>極短時間 <span class="mono">o</span></span><span class="mono" id="oOut"></span></label>
+        <input type="range" id="oS" min="0" max="100" step="1" value="70">
+      </div>
+      <div class="row">
+        <button class="btn goN" id="playN">▶ 播放運動</button>
+        <button class="btn" id="shrinkO">讓 o → 0</button>
+      </div>
+      <div class="gauge">
+        <div><small>位置 x</small><b id="gx"></b></div>
+        <div><small>平均速度 Δx / o</small><b id="gavg" style="color:var(--gold)"></b></div>
+        <div><small>瞬時速度 ẋ</small><b id="gv" style="color:var(--nw)"></b></div>
+      </div>
+      <h3 class="sub">牛頓的計算步驟</h3>
+      <div class="calc mono" id="calcN"></div>
+      <p class="note">關鍵的一步：先除以 o，再把剩下含 o 的項「捨去」。這一步在當時引起很大的爭議（見第 ③ 頁）。</p>
+    </div>
+  </section>
+
+  <!-- ================= Leibniz ================= -->
+  <section class="panel" id="pL">
+    <div>
+      <div class="row" id="lSel"></div>
+      <div class="lbl">把曲線上一點附近無限放大</div>
+      <svg class="plot" id="zoom" viewBox="0 0 520 420"></svg>
+      <div class="hint">右下角小圖顯示放大區域在整條曲線上的位置</div>
+    </div>
+    <div>
+      <h2>萊布尼茲怎麼想？</h2>
+      <p>萊布尼茲認為曲線由無限多段極短的直線組成。在一點取水平方向的無窮小增量 <b class="mono hlL hl">dx</b>，對應的鉛直增量是 <b class="mono hlL hl">dy</b>，兩者構成「<b>特徵三角形</b>」。導數就是比值 <b class="mono">dy/dx</b>。</p>
+      <div class="slider">
+        <label><span>位置 <span class="mono">x</span></span><span class="mono" id="x0Out"></span></label>
+        <input type="range" id="x0S" step="0.01">
+      </div>
+      <div class="slider">
+        <label><span>放大倍率</span><span class="mono" id="zOut"></span></label>
+        <input type="range" id="zS" min="0" max="100" step="0.5" value="0">
+      </div>
+      <div class="row">
+        <button class="btn goL" id="playL">🔍 一路放大</button>
+        <button class="btn" id="resetL">回到 1×</button>
+      </div>
+      <div class="gauge">
+        <div><small>dx</small><b id="gdx" style="color:var(--nw)"></b></div>
+        <div><small>dy</small><b id="gdy" style="color:var(--lb)"></b></div>
+        <div><small>dy / dx</small><b id="grat" style="color:var(--green)"></b></div>
+      </div>
+      <div class="note" id="straight"></div>
+      <h3 class="sub">萊布尼茲的計算步驟</h3>
+      <div class="calc mono" id="calcL"></div>
+      <p class="note">(dx)² 是「比 dx 更高階的無窮小」，相較於 dx 可以忽略。放大越多倍，(dx)² 佔 dy 的比例就越小。</p>
+    </div>
+  </section>
+
+  <!-- ================= Compare ================= -->
+  <section class="panel wide" id="pC">
+    <h2>兩種觀點並排比較</h2>
+    <div class="tblwrap"><table>
+      <tr><th></th><th class="n">牛頓（流數法）</th><th class="l">萊布尼茲（微分法）</th></tr>
+      <tr><td>出發點</td><td>物理與運動：行星、落體、速度</td><td>幾何與哲學：曲線、切線、面積，以及「單子」式的無窮小思想</td></tr>
+      <tr><td>基本對象</td><td>隨時間流動的量（流量）及其變化率（流數）</td><td>變數的無窮小差（微分 dx、dy）</td></tr>
+      <tr><td>導數是什麼</td><td>一個<b>速度</b>：ẋ</td><td>兩個無窮小的<b>比</b>：dy/dx</td></tr>
+      <tr><td>隱含的自變數</td><td>永遠是時間 t</td><td>任何變數都可以當自變數</td></tr>
+      <tr><td>記號</td><td class="mono">ẋ, ẍ, 積分用 x′ 或方框</td><td class="mono">dx, dy/dx, d²y/dx², ∫ y dx</td></tr>
+      <tr><td>記號的優點</td><td>簡潔，至今仍用於物理學表示時間導數</td><td>可以像分數一樣操作，連鎖律、換元積分一目了然</td></tr>
+      <tr><td>發表方式</td><td>多年未正式發表，以手稿在朋友間流傳</td><td>1684 年即在期刊發表，並積極與同行通信推廣</td></tr>
+      <tr><td>後續影響</td><td>英國數學家長期堅持點記號</td><td>歐陸學派（白努利家族、歐拉等）快速發展分析學</td></tr>
+    </table></div>
+
+    <div class="two">
+      <div>
+        <h2 style="margin-top:14px">記號翻譯機</h2>
+        <p class="note">選一個概念，看看同一件事用三種記號分別怎麼寫。</p>
+        <div class="row" id="conceptBtns"></div>
+        <div class="trans">
+          <div class="tcard n"><div class="t">牛頓</div><div class="f" id="tN"></div><div class="c" id="cN"></div></div>
+          <div class="tcard l"><div class="t">萊布尼茲</div><div class="f" id="tL"></div><div class="c" id="cL"></div></div>
+          <div class="tcard m"><div class="t">現代（拉格朗日）</div><div class="f" id="tM"></div><div class="c" id="cM"></div></div>
+        </div>
+        <p class="note" id="tNote" style="margin-top:10px"></p>
+      </div>
+      <div>
+        <h2 style="margin-top:14px">歷史時間軸</h2>
+        <p class="note">點選年份展開說明。</p>
+        <div class="timeline" id="tl"></div>
+      </div>
+    </div>
+
+    <h2 style="margin-top:18px">最後誰對？</h2>
+    <p>兩人其實算出<b>完全相同的結果</b>，但「o 或 dx 到底是不是零」這個問題兩人都沒有嚴格回答：除法時它不是零，最後又把它當成零捨去。19 世紀柯西、魏爾斯特拉斯用<b>極限</b>重新定義導數，</p>
+    <div class="calc mono" style="font-size:1.1rem">f′(x) = lim<sub>h→0</sub> [f(x+h) − f(x)] / h</div>
+    <p>不再需要「無窮小」，這就是今天課本的標準做法（也就是前一個割線到切線程式的內容）。到了 1960 年代，亞伯拉罕·羅賓遜的「非標準分析」又用嚴格的邏輯重建了無窮小，讓萊布尼茲的直覺也獲得正式的數學基礎。今天我們則是混用兩人的遺產：用極限定義導數，用萊布尼茲的 dy/dx 做計算，在物理中用牛頓的點記號表示時間導數。</p>
+  </section>
+
+  <footer>牛頓與萊布尼茲各自獨立發明了微積分，這是今日數學史界的共識。</footer>
+</div>
+
+<script>
+const NS="http://www.w3.org/2000/svg";
+const el=(t,a={},p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;};
+const fmt=(v,d=3)=>{ if(!isFinite(v)) return '—'; if(v!==0&&Math.abs(v)<Math.pow(10,-d)) return v.toExponential(1).replace('-','−'); let s=(+v.toFixed(d)).toString(); if(s==='-0')s='0'; return s.replace(/-/g,'−'); };
+const svgPt=(svg,e)=>{const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(svg.getScreenCTM().inverse());};
+function txt(g,x,y,s,color,anchor='middle',size=12){ const t=el('text',{x,y,'text-anchor':anchor,'font-size':size,'font-weight':700,fill:color,'font-family':'JetBrains Mono',stroke:'var(--card)','stroke-width':4,'paint-order':'stroke'},g); t.textContent=s; return t; }
+function frame(svg,win,W,H,pad,grid=true){
+  const [x0,x1,y0,y1]=win;
+  const X=x=>pad+(x-x0)/(x1-x0)*(W-2*pad), Y=y=>H-pad-(y-y0)/(y1-y0)*(H-2*pad), iX=px=>x0+(px-pad)/(W-2*pad)*(x1-x0);
+  svg.innerHTML='';
+  const cid=svg.id+'c', defs=el('defs',{},svg), cp=el('clipPath',{id:cid},defs); el('rect',{x:pad,y:pad,width:W-2*pad,height:H-2*pad},cp);
+  const g=el('g',{},svg);
+  if(grid){
+    const sx=niceStep(x1-x0), sy=niceStep(y1-y0);
+    for(let v=Math.ceil(x0/sx)*sx; v<=x1+1e-9; v+=sx){ el('line',{x1:X(v),y1:pad,x2:X(v),y2:H-pad,stroke:'var(--grid)'},g); txt(g,X(v),H-pad+14,fmt(v,Math.max(0,-Math.floor(Math.log10(sx)))),'var(--muted)','middle',9.5).setAttribute('font-weight',500); }
+    for(let v=Math.ceil(y0/sy)*sy; v<=y1+1e-9; v+=sy){ el('line',{x1:pad,y1:Y(v),x2:W-pad,y2:Y(v),stroke:'var(--grid)'},g); txt(g,pad-4,Y(v)+3,fmt(v,Math.max(0,-Math.floor(Math.log10(sy)))),'var(--muted)','end',9.5).setAttribute('font-weight',500); }
+    if(y0<0&&y1>0) el('line',{x1:pad,y1:Y(0),x2:W-pad,y2:Y(0),stroke:'var(--axis)','stroke-width':1.4},g);
+    if(x0<0&&x1>0) el('line',{x1:X(0),y1:pad,x2:X(0),y2:H-pad,stroke:'var(--axis)','stroke-width':1.4},g);
+  }
+  el('rect',{x:pad,y:pad,width:W-2*pad,height:H-2*pad,fill:'none',stroke:'var(--grid2)'},g);
+  return {X,Y,iX,c:el('g',{'clip-path':`url(#${cid})`},svg),g,win};
+}
+function niceStep(r){ const raw=r/7, p=Math.pow(10,Math.floor(Math.log10(raw))), m=raw/p; return (m<1.5?1:m<3.5?2:m<7.5?5:10)*p; }
+function curve(P,f,attrs,n=400){ const [x0,x1]=P.win; let d=''; for(let i=0;i<=n;i++){const x=x0+(x1-x0)*i/n; d+=(i?'L':'M')+P.X(x).toFixed(2)+','+P.Y(f(x)).toFixed(2);} return el('path',{d,fill:'none',...attrs},P.c); }
+
+/* ================= Newton ================= */
+const MOT={
+  acc:{name:'x = t²', f:t=>t*t, v:t=>2*t, xmax:16,
+    steps:(t,o)=>[
+      ['x(t+o) = (t+o)²','= t² + 2t·o + o²'],
+      ['Δx = x(t+o) − x(t)','= 2t·o + o²'],
+      ['Δx ÷ o','= 2t + o', `= ${fmt(2*t)} + ${fmt(o,4)} = ${fmt(2*t+o,4)}`],
+      ['捨去 o','<span class="hl hlN">ẋ = 2t</span>', `= ${fmt(2*t)}`]]},
+  up:{name:'x = 6t − t²', f:t=>6*t-t*t, v:t=>6-2*t, xmax:10,
+    steps:(t,o)=>[
+      ['x(t+o) = 6(t+o) − (t+o)²','= 6t + 6o − t² − 2t·o − o²'],
+      ['Δx = x(t+o) − x(t)','= 6o − 2t·o − o²'],
+      ['Δx ÷ o','= 6 − 2t − o', `= ${fmt(6-2*t)} − ${fmt(o,4)} = ${fmt(6-2*t-o,4)}`],
+      ['捨去 o','<span class="hl hlN">ẋ = 6 − 2t</span>', `= ${fmt(6-2*t)}`]]},
+  cub:{name:'x = t³ / 4', f:t=>t*t*t/4, v:t=>0.75*t*t, xmax:16,
+    steps:(t,o)=>[
+      ['x(t+o) = (t+o)³/4','= (t³ + 3t²o + 3t·o² + o³)/4'],
+      ['Δx = x(t+o) − x(t)','= (3t²o + 3t·o² + o³)/4'],
+      ['Δx ÷ o','= (3t² + 3t·o + o²)/4', `≈ ${fmt((3*t*t+3*t*o+o*o)/4,4)}`],
+      ['捨去 o','<span class="hl hlN">ẋ = 3t²/4</span>', `= ${fmt(0.75*t*t)}`]]},
+};
+let mK='acc', tN=1.5, oN=1, PN=null, nAnim=null, oAnim=null;
+const oFromS=v=>Math.pow(10,(v-100)/40); // 0→0.0032,100→1
+const sFromO=o=>100+40*Math.log10(o);
+function selN(k){ mK=k; stopN(); document.querySelectorAll('#nSel .btn').forEach(b=>b.classList.toggle('on',b.dataset.k===k)); renderN(); }
+document.getElementById('nSel').innerHTML=Object.keys(MOT).map(k=>`<button class="btn mono" data-k="${k}">${MOT[k].name}</button>`).join('');
+document.querySelectorAll('#nSel .btn').forEach(b=>b.onclick=()=>selN(b.dataset.k));
+
+function renderN(){
+  const M=MOT[mK], x=M.f(tN), xo=M.f(tN+oN), v=M.v(tN);
+  // track
+  const tr=document.getElementById('track'); tr.innerHTML='';
+  const TX=u=>30+u/M.xmax*460;
+  el('line',{x1:30,y1:60,x2:490,y2:60,stroke:'var(--axis)','stroke-width':2},tr);
+  for(let i=0;i<=M.xmax;i+=2){ el('line',{x1:TX(i),y1:55,x2:TX(i),y2:65,stroke:'var(--axis)'},tr); txt(tr,TX(i),82,String(i),'var(--muted)','middle',10).setAttribute('font-weight',500); }
+  for(let k=1;k<=6;k++){ const tt=tN-k*0.18; if(tt<0) break; el('circle',{cx:TX(M.f(tt)),cy:60,r:9-k,fill:'var(--nw)',opacity:.12*(7-k)/6},tr); }
+  if(xo<=M.xmax+1&&xo>=-1){ el('circle',{cx:TX(xo),cy:60,r:9,fill:'none',stroke:'var(--gold)','stroke-width':2,'stroke-dasharray':'3 2'},tr);
+    el('line',{x1:TX(x),y1:36,x2:TX(xo),y2:36,stroke:'var(--gold)','stroke-width':2},tr); txt(tr,(TX(x)+TX(xo))/2,30,'Δx（經過 o）','var(--gold)','middle',10); }
+  el('circle',{cx:TX(x),cy:60,r:10,fill:'var(--nw)'},tr);
+  // velocity arrow
+  const L=Math.max(-120,Math.min(120,v*8));
+  if(Math.abs(L)>3){ el('line',{x1:TX(x),y1:60,x2:TX(x)+L,y2:60,stroke:'var(--nw)','stroke-width':4,opacity:.55},tr);
+    el('path',{d:`M${TX(x)+L},${60} l${L>0?-8:8},-6 v12 z`,fill:'var(--nw)',opacity:.55},tr); }
+  txt(tr,TX(x),102,'ẋ = '+fmt(v,2),'var(--nw)','middle',11);
+  // x-t graph
+  const sv=document.getElementById('xt'), ymin=Math.min(0,...[0,1,2,3,4].map(M.f))-0.5;
+  PN=frame(sv,[0,4.4,ymin,M.xmax+1],520,300,34);
+  txt(PN.g,500,290,'t','var(--axis)','end',12); txt(PN.g,40,24,'x','var(--axis)','start',12);
+  curve(PN,M.f,{stroke:'var(--ink)','stroke-width':2.6});
+  const tl=(u)=>x+v*(u-tN);
+  el('line',{x1:PN.X(-1),y1:PN.Y(tl(-1)),x2:PN.X(6),y2:PN.Y(tl(6)),stroke:'var(--nw)','stroke-width':2.4},PN.c);
+  if(PN.X(tN+oN)-PN.X(tN)>6){
+    const ms=(xo-x)/oN; el('line',{x1:PN.X(-1),y1:PN.Y(x+ms*(-1-tN)),x2:PN.X(6),y2:PN.Y(x+ms*(6-tN)),stroke:'var(--gold)','stroke-width':1.8,'stroke-dasharray':'6 4'},PN.c);
+    el('path',{d:`M${PN.X(tN)},${PN.Y(x)} H${PN.X(tN+oN)} V${PN.Y(xo)}`,fill:'none',stroke:'var(--gold)','stroke-width':2},PN.c);
+    txt(PN.c,(PN.X(tN)+PN.X(tN+oN))/2,PN.Y(x)+(xo>=x?15:-6),'o','var(--gold)','middle',12);
+    el('circle',{cx:PN.X(tN+oN),cy:PN.Y(xo),r:4.5,fill:'var(--gold)'},PN.c);
+  }
+  el('circle',{cx:PN.X(tN),cy:PN.Y(x),r:6.5,fill:'var(--nw)',stroke:'var(--card)','stroke-width':2.5},PN.c);
+  // numbers
+  document.getElementById('tOut').textContent='t = '+fmt(tN,2);
+  document.getElementById('oOut').textContent='o = '+fmt(oN,4);
+  document.getElementById('gx').textContent=fmt(x,2);
+  document.getElementById('gavg').textContent=fmt((xo-x)/oN,4);
+  document.getElementById('gv').textContent=fmt(v,4);
+  const st=M.steps(tN,oN);
+  document.getElementById('calcN').innerHTML=st.map((s,i)=>`<div><span style="color:var(--muted)">${i+1}.</span> ${s[0]} <span>${s[1]}</span>${s[2]?` <span style="color:var(--muted)">${s[2]}</span>`:''}</div>`).join('');
+}
+const tS=document.getElementById('tS'), oS=document.getElementById('oS');
+tS.oninput=()=>{ stopN(); tN=+tS.value; renderN(); };
+oS.oninput=()=>{ stopO(); oN=oFromS(+oS.value); renderN(); };
+const xt=document.getElementById('xt'); let dragN=false;
+xt.addEventListener('pointerdown',e=>{ dragN=true; stopN(); xt.setPointerCapture(e.pointerId); moveN(e); });
+xt.addEventListener('pointermove',e=>{ if(dragN) moveN(e); });
+['pointerup','pointercancel'].forEach(ev=>xt.addEventListener(ev,()=>dragN=false));
+function moveN(e){ tN=Math.max(0,Math.min(4,PN.iX(svgPt(xt,e).x))); tS.value=tN; renderN(); }
+function stopN(){ if(nAnim){cancelAnimationFrame(nAnim);nAnim=null;} document.getElementById('playN').textContent='▶ 播放運動'; }
+function stopO(){ if(oAnim){cancelAnimationFrame(oAnim);oAnim=null;} }
+document.getElementById('playN').onclick=()=>{ if(nAnim){stopN();return;} if(tN>=3.99) tN=0; let last=null; document.getElementById('playN').textContent='⏸ 暫停';
+  const step=ts=>{ if(last!==null){ tN=Math.min(4,tN+(ts-last)/1000*0.6); tS.value=tN; renderN(); } last=ts; if(tN<4) nAnim=requestAnimationFrame(step); else stopN(); }; nAnim=requestAnimationFrame(step); };
+document.getElementById('shrinkO').onclick=()=>{ stopO(); const o0=oN<0.01?1:oN; let st=null;
+  const step=ts=>{ if(!st)st=ts; const u=Math.min(1,(ts-st)/3500); oN=o0*Math.pow(0.0032/o0,u); oS.value=sFromO(oN); renderN(); if(u<1) oAnim=requestAnimationFrame(step); else oAnim=null; }; oAnim=requestAnimationFrame(step); };
+
+/* ================= Leibniz ================= */
+const CUR={
+  sq:{name:'y = x²', f:x=>x*x, d:x=>2*x, win:[-2.5,2.5,-0.8,6], x0:1,
+    steps:(x,dx)=>[
+      'y + dy = (x + dx)²',
+      '      = x² + 2x·dx + (dx)²',
+      'dy = 2x·dx + <span class="strike">(dx)²</span>　← 高階無窮小，忽略',
+      `<span class="hl hlL">dy = 2x·dx</span>　⇒　dy/dx = 2x = ${fmt(2*x)}`]},
+  cub:{name:'y = x³', f:x=>x*x*x, d:x=>3*x*x, win:[-2,2,-6,6], x0:0.8,
+    steps:(x,dx)=>[
+      'y + dy = (x + dx)³',
+      '      = x³ + 3x²·dx + 3x·(dx)² + (dx)³',
+      'dy = 3x²·dx + <span class="strike">3x(dx)² + (dx)³</span>',
+      `<span class="hl hlL">dy = 3x²·dx</span>　⇒　dy/dx = 3x² = ${fmt(3*x*x)}`]},
+  inv:{name:'y = 1/x', f:x=>1/x, d:x=>-1/(x*x), win:[0.2,4,0,5], x0:1,
+    steps:(x,dx)=>[
+      'y + dy = 1/(x + dx)',
+      'dy = 1/(x+dx) − 1/x = −dx / (x² + x·dx)',
+      'x·dx 相對於 x² 是無窮小：<span class="strike">x·dx</span>',
+      `<span class="hl hlL">dy = −dx / x²</span>　⇒　dy/dx = −1/x² = ${fmt(-1/(x*x))}`]},
+};
+let cK='sq', xL=1, zL=1, lAnim=null;
+const x0S=document.getElementById('x0S'), zS=document.getElementById('zS');
+document.getElementById('lSel').innerHTML=Object.keys(CUR).map(k=>`<button class="btn mono" data-k="${k}">${CUR[k].name}</button>`).join('');
+document.querySelectorAll('#lSel .btn').forEach(b=>b.onclick=()=>selL(b.dataset.k));
+function selL(k){ cK=k; stopL(); const C=CUR[k]; xL=C.x0; x0S.min=C.win[0]+0.3; x0S.max=C.win[1]-0.3; x0S.value=xL; zS.value=0; zL=1;
+  document.querySelectorAll('#lSel .btn').forEach(b=>b.classList.toggle('on',b.dataset.k===k)); renderL(); }
+function renderL(){
+  const C=CUR[cK], [a,b,c,d]=C.win, y0=C.f(xL), m=C.d(xL);
+  const hw=(b-a)/2/zL, hh=(d-c)/2/zL*(420/520)*((b-a)/(d-c))*((d-c)/(b-a)); // keep same aspect as base window
+  const W=[xL-hw, xL+hw, y0-(d-c)/2/zL, y0+(d-c)/2/zL];
+  const sv=document.getElementById('zoom'), P=frame(sv,W,520,420,36);
+  curve(P,C.f,{stroke:'var(--ink)','stroke-width':3},600);
+  const dx=hw*0.45, yC=C.f(xL+dx), yT=y0+m*dx;
+  // tangent
+  el('line',{x1:P.X(W[0]-hw),y1:P.Y(y0+m*(W[0]-hw-xL)),x2:P.X(W[1]+hw),y2:P.Y(y0+m*(W[1]+hw-xL)),stroke:'var(--green)','stroke-width':1.6,'stroke-dasharray':'6 5'},P.c);
+  // triangle (on curve)
+  el('path',{d:`M${P.X(xL)},${P.Y(y0)} H${P.X(xL+dx)} V${P.Y(yC)} Z`,fill:'var(--lb)','fill-opacity':.08,stroke:'none'},P.c);
+  el('line',{x1:P.X(xL),y1:P.Y(y0),x2:P.X(xL+dx),y2:P.Y(y0),stroke:'var(--nw)','stroke-width':3},P.c);
+  el('line',{x1:P.X(xL+dx),y1:P.Y(y0),x2:P.X(xL+dx),y2:P.Y(yC),stroke:'var(--lb)','stroke-width':3},P.c);
+  el('line',{x1:P.X(xL),y1:P.Y(y0),x2:P.X(xL+dx),y2:P.Y(yC),stroke:'var(--gold)','stroke-width':1.5},P.c);
+  txt(P.c,(P.X(xL)+P.X(xL+dx))/2,P.Y(y0)+(yC>=y0?18:-8),'dx','var(--nw)','middle',14);
+  txt(P.c,P.X(xL+dx)+8,(P.Y(y0)+P.Y(yC))/2+5,'dy','var(--lb)','start',14);
+  el('circle',{cx:P.X(xL),cy:P.Y(y0),r:6,fill:'var(--lb)',stroke:'var(--card)','stroke-width':2.5},P.c);
+  // inset
+  const ix=520-36-120, iy=36+6, iw=114, ih=86, ig=el('g',{},sv);
+  el('rect',{x:ix,y:iy,width:iw,height:ih,fill:'var(--card)',stroke:'var(--grid2)',rx:4},ig);
+  const IX=x=>ix+4+(x-a)/(b-a)*(iw-8), IY=y=>iy+ih-4-(y-c)/(d-c)*(ih-8);
+  let pd=''; for(let i=0;i<=120;i++){const x=a+(b-a)*i/120, y=Math.max(c-5,Math.min(d+5,C.f(x))); pd+=(i?'L':'M')+IX(x).toFixed(1)+','+IY(y).toFixed(1);}
+  const icp=el('clipPath',{id:'insetc'},sv.querySelector('defs')); el('rect',{x:ix,y:iy,width:iw,height:ih},icp);
+  el('path',{d:pd,fill:'none',stroke:'var(--ink)','stroke-width':1.5,'clip-path':'url(#insetc)'},ig);
+  const bw=Math.max(3,IX(W[1])-IX(W[0])), bh=Math.max(3,IY(W[2])-IY(W[3]));
+  el('rect',{x:IX(xL)-bw/2,y:IY(y0)-bh/2,width:bw,height:bh,fill:'none',stroke:'var(--lb)','stroke-width':1.8},ig);
+  txt(ig,ix+iw/2,iy+ih+14,'全貌','var(--muted)','middle',10);
+  // readouts
+  const dy=yC-y0;
+  document.getElementById('x0Out').textContent='x = '+fmt(xL,2);
+  document.getElementById('zOut').textContent=(zL<10?zL.toFixed(1):Math.round(zL).toLocaleString())+'×';
+  document.getElementById('gdx').textContent=fmt(dx,6);
+  document.getElementById('gdy').textContent=fmt(dy,6);
+  document.getElementById('grat').textContent=fmt(dy/dx,5);
+  const devPx=Math.abs(P.Y(yC)-P.Y(yT));
+  document.getElementById('straight').innerHTML = devPx<0.8
+    ? `<b style="color:var(--green)">曲線已經和直線（切線）分不出差別了！</b>特徵三角形的斜邊就是曲線的一小段，dy/dx 趨近 ${fmt(m,4)}。`
+    : `曲線與切線在三角形處相差約 <b class="mono">${devPx.toFixed(1)}</b> 像素。繼續放大，曲線會越來越像直線。`;
+  document.getElementById('calcL').innerHTML=C.steps(xL,dx).map(s=>`<div>${s}</div>`).join('')+
+    `<div style="color:var(--muted);margin-top:6px">目前的 dx 下：(dx)² = ${fmt(dx*dx,6)}，只佔 dy 的 ${fmt(Math.abs(dx*dx/(dy||1))*100,4)}%</div>`;
+}
+x0S.oninput=()=>{ xL=+x0S.value; renderL(); };
+zS.oninput=()=>{ stopL(); zL=Math.pow(10,+zS.value/25); renderL(); };
+function stopL(){ if(lAnim){cancelAnimationFrame(lAnim);lAnim=null;} document.getElementById('playL').textContent='🔍 一路放大'; }
+document.getElementById('playL').onclick=()=>{ if(lAnim){stopL();return;} let s=+zS.value>=99?0:+zS.value, last=null; document.getElementById('playL').textContent='⏸ 暫停';
+  const step=ts=>{ if(last!==null){ s=Math.min(100,s+(ts-last)/1000*16); zS.value=s; zL=Math.pow(10,s/25); renderL(); } last=ts; if(s<100) lAnim=requestAnimationFrame(step); else stopL(); }; lAnim=requestAnimationFrame(step); };
+document.getElementById('resetL').onclick=()=>{ stopL(); zS.value=0; zL=1; renderL(); };
+
+/* ================= Compare ================= */
+const fr=(a,b)=>`<span class="frac"><span>${a}</span><span>${b}</span></span>`;
+const CONCEPTS={
+  '導數':{n:'ẋ',cn:'x 對時間的流數',l:fr('dy','dx'),cl:'dy 與 dx 的比',m:"f′(x)",cm:'f 的導函數',
+    note:'牛頓的點記號永遠隱含「對時間 t」；萊布尼茲記號清楚寫出是對哪個變數求導。'},
+  '二階導數':{n:'ẍ',cn:'流數的流數（加速度）',l:fr('d²y','dx²'),cl:'對 x 微分兩次',m:"f″(x)",cm:'',
+    note:'物理中的 F = mẍ 就是牛頓記號的經典用法，至今仍在力學課本中使用。'},
+  '連鎖律':{n:'ẏ = f′(u)·u̇',cn:'各自對時間求流數再相乘',l:`${fr('dy','dx')} = ${fr('dy','du')}·${fr('du','dx')}`,cl:'看起來像分數約分',m:"(f∘g)′ = f′(g)·g′",cm:'函數合成',
+    note:'萊布尼茲記號最大的優勢：du 彷彿可以「約掉」。雖然嚴格來說不是真的分數，但這個直覺幾乎永遠給出正確答案。'},
+  '乘積律':{n:'(xy)˙ = ẋy + xẏ',cn:'',l:'d(uv) = u dv + v du',cl:'萊布尼茲 1675 年手稿中推出',m:"(uv)′ = u′v + uv′",cm:'',
+    note:'萊布尼茲推導時把 (u+du)(v+dv) − uv 展開，再把 du·dv 當成高階無窮小捨去，和第 ② 頁的方法完全一樣。'},
+  '積分':{n:'x′ 或 x 上加方框',cn:'由流數求回流量',l:'∫ y dx',cl:'把無限多個 y·dx 加總',m:'∫ f(x) dx',cm:'今天沿用萊布尼茲',
+    note:'∫ 是拉長的 S，代表拉丁文 summa（總和）。牛頓的積分記號沒有流傳下來，今天全世界都用萊布尼茲的 ∫。'},
+  '微小變化':{n:'ẋ·o',cn:'「瞬」：極短時間 o 內的增量',l:'dx',cl:'無窮小的差',m:'Δx → 0',cm:'以極限處理',
+    note:'兩人都需要一個「非零但可忽略」的量，這正是後來被批評的邏輯漏洞。'},
+};
+const cb=document.getElementById('conceptBtns');
+cb.innerHTML=Object.keys(CONCEPTS).map(k=>`<button class="btn" data-k="${k}">${k}</button>`).join('');
+function showC(k){ const C=CONCEPTS[k];
+  cb.querySelectorAll('.btn').forEach(b=>b.classList.toggle('on',b.dataset.k===k));
+  [['tN',C.n],['tL',C.l],['tM',C.m]].forEach(([id,v])=>{ const e=document.getElementById(id); e.innerHTML=v; const card=e.parentElement; card.classList.remove('flip'); void card.offsetWidth; card.classList.add('flip'); });
+  document.getElementById('cN').textContent=C.cn; document.getElementById('cL').textContent=C.cl; document.getElementById('cM').textContent=C.cm;
+  document.getElementById('tNote').textContent=C.note; }
+cb.querySelectorAll('.btn').forEach(b=>b.onclick=()=>showC(b.dataset.k));
+showC('連鎖律');
+
+const TL=[
+  ['n','1665–66','牛頓發展流數法','劍橋因瘟疫停課，牛頓回到家鄉，在這段期間發展出流數法、光學與萬有引力的早期想法，但沒有發表。'],
+  ['l','1675','萊布尼茲首次寫下 ∫ 與 d','在巴黎的手稿中，萊布尼茲開始使用 ∫ 表示總和、d 表示差，建立了至今沿用的記號。'],
+  ['l','1684','萊布尼茲發表微分學論文','在萊比錫的期刊《Acta Eruditorum》發表〈求極大極小值的新方法〉，是微積分第一篇正式出版的論文。'],
+  ['n','1687','《自然哲學的數學原理》','牛頓的巨著出版，但書中大多以古典幾何論證寫成，並未直接展示流數法。'],
+  ['n','1704','牛頓發表《曲線求積術》','作為《光學》一書的附錄出版，是牛頓首次正式發表流數法。'],
+  ['x','1712','優先權之爭高峰','英國皇家學會發表報告支持牛頓為發明者，並暗指萊布尼茲抄襲。報告實際上由當時擔任會長的牛頓主導。'],
+  ['x','1734','柏克萊的批評','柏克萊主教出版《分析學家》，諷刺流數是「已消逝量的鬼魂」，直指 o 忽而非零、忽而為零的矛盾。'],
+  ['n','1736','《流數法》出版','牛頓早年寫成的完整著作在他過世後才出版。'],
+  ['x','1821','柯西以極限重建','柯西在《分析教程》中以極限概念作為微積分的基礎，後由魏爾斯特拉斯以 ε–δ 定義完全嚴格化。'],
+  ['x','1960 年代','非標準分析','亞伯拉罕·羅賓遜用數理邏輯證明無窮小可以嚴格定義，讓萊布尼茲的直覺獲得正式地位。'],
+];
+document.getElementById('tl').innerHTML=TL.map(([c,y,t,d])=>`<div class="ev ${c}"><span class="y">${y}</span>　<b>${t}</b><div class="d">${d}</div></div>`).join('');
+document.querySelectorAll('.ev').forEach(e=>e.onclick=()=>e.classList.toggle('open'));
+document.querySelector('.ev').classList.add('open');
+
+/* tabs */
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id===t.dataset.tab));
+  if(t.dataset.tab==='pN') renderN(); if(t.dataset.tab==='pL') renderL();
+});
+oS.value=sFromO(1); selN('acc'); selL('sq');
+</script>
+</body>
+</html>
