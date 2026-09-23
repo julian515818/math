@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>梯度下降：3D 互動下山動畫</title>
+  <style>
+    :root{
+      --bg:#eef4f8;
+      --panel:#ffffff;
+      --card:#f8fbfd;
+      --border:#d7e1e8;
+      --text:#183043;
+      --muted:#687b88;
+      --accent:#2d6cdf;
+      --accent-soft:#e8f0ff;
+      --red:#c7423c;
+      --blue:#315b9a;
+      --green:#187347;
+      --shadow:0 8px 26px rgba(0,0,0,.08);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft JhengHei",sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    .wrap{
+      width:min(1400px,96vw);
+      margin:20px auto;
+    }
+    .title{
+      background:linear-gradient(90deg,#163a72,#21578f);
+      color:#fff;
+      padding:18px 24px;
+      border-radius:18px;
+      font-size:clamp(24px,3vw,42px);
+      font-weight:800;
+      text-align:center;
+      box-shadow:var(--shadow);
+    }
+    .subtitle{
+      margin:10px 2px 18px;
+      color:var(--muted);
+      text-align:center;
+      font-size:16px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns:minmax(0,1.45fr) minmax(330px,.8fr);
+      gap:18px;
+      align-items:start;
+    }
+    .panel{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .panelHead{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+      padding:14px 18px;
+      border-bottom:1px solid var(--border);
+    }
+    .panelHead h2,.card h3{margin:0}
+    .status{
+      padding:6px 11px;
+      background:#edf2f5;
+      border-radius:999px;
+      font-size:14px;
+      font-weight:700;
+      white-space:nowrap;
+    }
+    .scene{display:block;width:100%;height:auto;background:#cce2ef}
+    .side{display:grid;gap:16px}
+    .card{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:16px;
+      box-shadow:var(--shadow);
+    }
+    .formula{
+      margin-top:12px;
+      background:#eef3f6;
+      border-radius:12px;
+      padding:12px;
+      text-align:center;
+      font-size:20px;
+      font-weight:800;
+    }
+    .stats{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-top:12px;
+    }
+    .stat{
+      background:#f1f5f7;
+      border-radius:12px;
+      padding:11px;
+      min-width:0;
+    }
+    .label{font-size:13px;color:var(--muted)}
+    .value{margin-top:4px;font-weight:800;overflow-wrap:anywhere}
+    .controls label{
+      display:flex;
+      justify-content:space-between;
+      font-weight:700;
+      gap:10px;
+    }
+    input[type=range]{width:100%;margin:14px 0 2px}
+    .rangeNotes{
+      display:flex;
+      justify-content:space-between;
+      font-size:12px;
+      color:var(--muted);
+      gap:10px;
+    }
+    .buttons{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:16px;
+    }
+    button{
+      min-height:44px;
+      border-radius:12px;
+      padding:9px 14px;
+      border:1px solid var(--border);
+      background:#f4f7f9;
+      color:var(--text);
+      font-weight:800;
+      cursor:pointer;
+      font-size:15px;
+    }
+    button.primary{
+      background:var(--accent-soft);
+      border-color:#bed0f5;
+    }
+    button:hover{filter:brightness(.98)}
+    button:focus{outline:3px solid rgba(45,108,223,.2)}
+    .hint{margin-top:12px;color:var(--muted);font-size:14px;line-height:1.55}
+    ol{padding-left:22px;margin-bottom:0}
+    li{margin:8px 0;line-height:1.45}
+    .bottom{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:18px;
+      margin-top:18px;
+    }
+    .math{
+      margin-top:12px;
+      background:#eef3f6;
+      border-radius:12px;
+      padding:12px;
+      font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+      line-height:1.8;
+    }
+    @media(max-width:980px){
+      .grid,.bottom{grid-template-columns:1fr}
+    }
+    @media(max-width:540px){
+      .wrap{width:98vw;margin:8px auto}
+      .title{border-radius:12px;padding:14px 12px}
+      .stats{grid-template-columns:1fr}
+      .panelHead{align-items:flex-start;flex-direction:column}
+    }
+    .stage{position:relative;width:100%;aspect-ratio:760/560;background:#cfe3ef;overflow:hidden;touch-action:none;cursor:grab;user-select:none}
+    .stage.dragging{cursor:grabbing}
+    .stage canvas{display:block;width:100%;height:100%}
+    .stage canvas:focus{outline:3px solid rgba(45,108,223,.35);outline-offset:-3px}
+    .tag{position:absolute;left:0;top:0;transform:translate(-50%,-100%);pointer-events:none;background:rgba(255,255,255,.92);border-radius:10px;padding:5px 10px;font-size:14px;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+    .tag.red{color:#a4332e}.tag.blue{color:#244d84}.tag.green{color:#173329}
+    .tag small{display:block;font-weight:500;color:#4e5b54;font-size:12px}
+    .intuition{position:absolute;left:14px;top:14px;background:rgba(255,255,255,.9);border-radius:14px;padding:10px 14px;font-size:14px;line-height:1.5;pointer-events:none}
+    .intuition b{font-size:16px}
+    .dragHint{position:absolute;right:12px;bottom:12px;background:rgba(24,48,67,.72);color:#fff;border-radius:999px;padding:6px 12px;font-size:13px;pointer-events:none}
+    .viewGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+    .viewGrid button{padding:8px 6px;font-size:14px;min-height:40px}
+    .viewGrid button.on{background:var(--accent-soft);border-color:#bed0f5}
+    .viewCtl label{display:flex;justify-content:space-between;font-weight:700;margin-top:12px;font-size:14px}
+    .viewCtl input[type=range]{margin:8px 0 0}
+    .checks{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;font-size:14px;font-weight:700}
+    .checks label{display:flex;gap:6px;align-items:center;cursor:pointer}
+    .glFail{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;color:var(--text);font-weight:700}
+    @media(max-width:540px){.intuition{font-size:12px;padding:8px 10px}.intuition b{font-size:14px}.tag{font-size:12px}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title">用 3D 下山景象理解梯度下降 Gradient Descent</div>
+  <div class="subtitle">人物每一步都依照目前位置的負梯度方向移動，直到抵達 Loss 最低點。拖曳畫面可旋轉視角，滾輪或雙指可縮放。</div>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="panelHead">
+        <div>
+          <h2>登山者依負梯度方向下山</h2>
+          <div class="label">紅色箭頭 = −∇L，下山最快方向；藍色箭頭 = ∇L，上升最快方向。白色等高線 = Loss 相同的點；米色小徑 = 學習率趨近 0 時的理想下山路線（梯度流）。</div>
+        </div>
+        <div id="gd-status" class="status" aria-live="polite">準備開始</div>
+      </div>
+
+      <div id="stage" class="stage">
+        <div class="intuition"><b>直覺：</b><br>梯度 ∇L 指向最陡上坡<br><span style="color:#9b342f;font-weight:700">梯度下降走 −∇L，最快下山</span></div>
+        <div id="tag-grad" class="tag blue">∇L：最陡上坡</div>
+        <div id="tag-neg" class="tag red">−∇L：下山最快</div>
+        <div id="tag-min" class="tag green">山谷最低點 θ*<small>Loss 最小，梯度 ≈ 0</small></div>
+        <div id="tag-start" class="tag">起點</div>
+        <div class="dragHint">拖曳旋轉，滾輪縮放</div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <section class="card">
+        <h3>梯度下降更新式</h3>
+        <div class="formula">θ⁽ᵗ⁺¹⁾ = θ⁽ᵗ⁾ − η ∇L(θ⁽ᵗ⁾)</div>
+        <div class="stats">
+          <div class="stat"><div class="label">目前位置</div><div id="pos-value" class="value">θ = (−3.40, 2.50)</div></div>
+          <div class="stat"><div class="label">Loss</div><div id="loss-value" class="value">—</div></div>
+          <div class="stat"><div class="label">梯度 ∇L</div><div id="grad-value" class="value">—</div></div>
+          <div class="stat"><div class="label">迭代</div><div id="iter-value" class="value">0</div></div>
+        </div>
+      </section>
+
+      <section class="card controls">
+        <label for="lr"><span>學習率 η</span><output id="lr-output" for="lr">0.18</output></label>
+        <input id="lr" type="range" min="0.03" max="0.55" value="0.18" step="0.01" />
+        <div class="rangeNotes"><span>小：穩定但較慢</span><span>大：步伐較大</span></div>
+        <div class="buttons">
+          <button id="play-btn" class="primary" type="button">▶ 自動下山</button>
+          <button id="step-btn" type="button">單步</button>
+          <button id="reset-btn" type="button">重設</button>
+        </div>
+        <div id="validation" class="hint">觀察紅色箭頭：它永遠是目前梯度的反方向。</div>
+      </section>
+
+      <section class="card viewCtl">
+        <h3>調整視角</h3>
+        <div class="viewGrid" role="group" aria-label="視角預設">
+          <button type="button" data-view="default" class="on">斜視</button>
+          <button type="button" data-view="top">俯視</button>
+          <button type="button" data-view="front">正面</button>
+          <button type="button" data-view="side">側面</button>
+        </div>
+        <label for="az"><span>水平旋轉</span><output id="az-out">0°</output></label>
+        <input id="az" type="range" min="-180" max="180" step="1" value="30" />
+        <label for="el"><span>俯仰角</span><output id="el-out">0°</output></label>
+        <input id="el" type="range" min="3" max="89" step="1" value="11" />
+        <label for="dist"><span>距離</span><output id="dist-out">0</output></label>
+        <input id="dist" type="range" min="6" max="40" step="0.5" value="17" />
+        <div class="checks">
+          <label><input id="follow" type="checkbox" /> 鏡頭跟隨登山者</label>
+          <label><input id="spin" type="checkbox" /> 自動旋轉</label>
+          <label><input id="contour" type="checkbox" checked /> 顯示等高線</label>
+        </div>
+        <p class="hint">俯視時等高線就是一圈圈的橢圓，可以看到 −∇L 永遠垂直於等高線。壓低俯仰角，就能從山谷裡看到四周的山脈。</p>
+      </section>
+
+      <section class="card">
+        <h3>目前這一步發生什麼？</h3>
+        <ol>
+          <li><b>計算坡度：</b>求目前位置的 ∇L。</li>
+          <li><b>找下山方向：</b>取反方向 −∇L。</li>
+          <li><b>決定步長：</b>乘上學習率 η。</li>
+          <li><b>更新位置：</b>走到新的 θ，再重複一次。</li>
+        </ol>
+      </section>
+    </aside>
+  </div>
+
+  <div class="bottom">
+    <section class="card">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline">
+        <h3>Loss 隨迭代下降</h3><span class="label">越低越接近谷底</span>
+      </div>
+      <svg id="loss-chart" viewBox="0 0 520 180" style="display:block;width:100%;height:auto;margin-top:8px" aria-label="Loss 對迭代次數曲線">
+        <line x1="42" y1="15" x2="42" y2="150" stroke="#7a858b" stroke-width="1.5"/>
+        <line x1="42" y1="150" x2="505" y2="150" stroke="#7a858b" stroke-width="1.5"/>
+        <text x="8" y="23" font-size="13" fill="#657178">Loss</text>
+        <text x="450" y="171" font-size="13" fill="#657178">iteration</text>
+        <polyline id="loss-line" points="" fill="none" stroke="#315b9a" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+      </svg>
+    </section>
+
+    <section class="card">
+      <h3>數學模型</h3>
+      <p class="hint">3D 曲面就是這個二維碗狀 Loss surface（高度 = Loss），因此每一步都有真正可計算的梯度。</p>
+      <div class="math">
+        L(θ₁,θ₂) = 0.55(θ₁−0.8)² + 0.25(θ₂+0.6)²<br>
+        ∇L = [1.10(θ₁−0.8), 0.50(θ₂+0.6)]ᵀ
+      </div>
+      <p class="hint"><b>關鍵：</b>∇L 是「上升最快」方向；真正的梯度下降沿 <b>−∇L</b> 前進，因此人物會朝 Loss 降低最快的方向走。</p>
+    </section>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const stage = $('#stage');
+  const playBtn = $('#play-btn'), stepBtn = $('#step-btn'), resetBtn = $('#reset-btn');
+  const lr = $('#lr'), lrOutput = $('#lr-output'), status = $('#gd-status');
+  const posValue = $('#pos-value'), lossValue = $('#loss-value'), gradValue = $('#grad-value'), iterValue = $('#iter-value');
+  const lossLine = $('#loss-line'), validation = $('#validation');
+  const tagGrad = $('#tag-grad'), tagNeg = $('#tag-neg'), tagMin = $('#tag-min'), tagStart = $('#tag-start');
+  const azIn = $('#az'), elIn = $('#el'), distIn = $('#dist');
+  const azOut = $('#az-out'), elOut = $('#el-out'), distOut = $('#dist-out');
+  const followCb = $('#follow'), spinCb = $('#spin'), contourCb = $('#contour');
+  const viewBtns = [...document.querySelectorAll('[data-view]')];
+
+  const start = {x:-3.4, y:2.5};
+  const optimum = {x:0.8, y:-0.6};
+  let theta = {...start};
+  let iteration = 0, history = [], losses = [], timer = null, playing = false;
+  const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const loss = p => 0.55 * (p.x - 0.8) ** 2 + 0.25 * (p.y + 0.6) ** 2;
+  const gradient = p => ({x:1.10 * (p.x - 0.8), y:0.50 * (p.y + 0.6)});
+  const fmt = v => (Math.abs(v) < 0.0005 ? 0 : v).toFixed(3);
+
+  // ---------- 3D setup ----------
+  const K = 0.28;                 // 高度縮放：谷地內 世界 Y = K·L
+  const L_EXACT = 13;             // L ≤ 13 的範圍（登山者會走到的地方）高度完全等於 K·L
+  const A = K * L_EXACT;
+
+  // 視覺用雜訊：只負責遠處山脈與地表質感，梯度一律用 L 的解析式計算
+  function hash(i, j) {
+    let h = (Math.imul(i, 374761393) + Math.imul(j, 668265263)) | 0;
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+  }
+  function vnoise(x, y) {
+    const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+    const u = xf * xf * xf * (xf * (xf * 6 - 15) + 10), v = yf * yf * yf * (yf * (yf * 6 - 15) + 10);
+    const a = hash(xi, yi), b = hash(xi + 1, yi), c = hash(xi, yi + 1), d = hash(xi + 1, yi + 1);
+    return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+  }
+  function fbm(x, y, oct = 5) {
+    let sum = 0, amp = .5, norm = 0;
+    for (let o = 0; o < oct; o++) { sum += amp * vnoise(x, y); norm += amp; amp *= .5; x *= 2.03; y *= 2.03; }
+    return sum / norm;
+  }
+  function ridged(x, y, oct = 5) {
+    let sum = 0, amp = .5, norm = 0, prev = 1;
+    for (let o = 0; o < oct; o++) {
+      let n = 1 - Math.abs(vnoise(x, y) * 2 - 1); n *= n;
+      sum += n * amp * prev; prev = n; norm += amp; amp *= .5; x *= 2.1; y *= 2.1;
+    }
+    return sum / norm;
+  }
+  const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+
+  // 地形高度（世界座標）
+  function H(wx, wz) {
+    const L = loss({x: wx + 0.8, y: -wz - 0.6});
+    const r = Math.hypot(wx, wz) || 1;
+    // 山谷朝預設鏡頭方向（右前方）敞開：前方是與谷口同高的緩坡草原，後方與兩側是高山
+    const back = smooth(-0.55, 0.65, (-wz * 0.87 - wx * 0.5) / r);
+    const kl = K * L, cap = 0.12 + 1.6 * back;
+    let h = kl <= A ? kl : A + cap * Math.tanh((kl - A) / cap);
+    const w = smooth(L_EXACT + 3, 48, L);                 // 谷地外才長出山脈
+    if (w > 0) h += w * (0.03 + 1.25 * back) * (ridged(wx * .07 + 3.1, wz * .07 - 1.7) * 8.5 + 1.2);
+    const fw = smooth(34, 52, r);
+    if (fw > 0) h += fw * ridged(wx * .034 + 7.3, wz * .034 + 2.2) * 17;
+    h += (vnoise(wx * .9, wz * .9) - .5) * (0.05 + w * 0.9);   // 谷地內僅 ±0.025 的地表起伏
+    return h;
+  }
+  const toWorld = (p, lift = 0) => new THREE.Vector3(p.x - 0.8, H(p.x - 0.8, -(p.y + 0.6)) + lift, -(p.y + 0.6));
+
+  // 連續梯度流（η → 0 的理想路線），畫成山間小徑
+  const flow = [];
+  for (let i = 0; i <= 170; i++) {
+    const t = i / 170 * 9.5;
+    flow.push({x: 0.8 + (start.x - 0.8) * Math.exp(-1.1 * t), y: -0.6 + (start.y + 0.6) * Math.exp(-0.5 * t)});
+  }
+  const flowW = flow.map(p => ({x: p.x - 0.8, z: -(p.y + 0.6)}));
+  function distToFlow(wx, wz) {
+    let best = 1e9;
+    for (let i = 0; i < flowW.length - 1; i++) {
+      const a = flowW[i], b = flowW[i + 1];
+      const dx = b.x - a.x, dz = b.z - a.z, l2 = dx * dx + dz * dz || 1e-9;
+      const t = Math.max(0, Math.min(1, ((wx - a.x) * dx + (wz - a.z) * dz) / l2));
+      const ex = a.x + dx * t - wx, ez = a.z + dz * t - wz;
+      best = Math.min(best, ex * ex + ez * ez);
+    }
+    return Math.sqrt(best);
+  }
+
+  let renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({antialias:true});
+  } catch (e) {
+    stage.insertAdjacentHTML('beforeend', '<div class="glFail">這個瀏覽器無法啟用 WebGL，因此無法顯示 3D 畫面。請改用最新版 Chrome、Edge、Firefox 或 Safari。</div>');
+  }
+
+  const scene = new THREE.Scene();
+  const horizon = new THREE.Color('#dde9ee');
+  scene.background = horizon;
+  scene.fog = new THREE.Fog(horizon, 45, 140);
+  const camera = new THREE.PerspectiveCamera(46, 760/560, 0.1, 600);
+
+  // 天空漸層
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(300, 32, 16), new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, fog: false,
+    uniforms: {top: {value: new THREE.Color('#7fb2dc')}, mid: {value: new THREE.Color('#b9daf1')}, horizon: {value: horizon}},
+    vertexShader: 'varying vec3 vP; void main(){ vP = (modelMatrix * vec4(position, 1.0)).xyz; gl_Position = projectionMatrix * viewMatrix * vec4(vP, 1.0); }',
+    fragmentShader: 'uniform vec3 top; uniform vec3 mid; uniform vec3 horizon; varying vec3 vP; void main(){ float h = normalize(vP - cameraPosition).y; vec3 c = h < 0.12 ? mix(horizon, mid, smoothstep(0.0, 0.12, h)) : mix(mid, top, smoothstep(0.12, 0.7, h)); gl_FragColor = vec4(c, 1.0); }'
+  }));
+  sky.renderOrder = -1;
+  scene.add(sky);
+
+  // 太陽
+  const sunCanvas = document.createElement('canvas');
+  sunCanvas.width = sunCanvas.height = 128;
+  const sctx = sunCanvas.getContext('2d');
+  const grd = sctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+  grd.addColorStop(0, 'rgba(255,248,210,1)'); grd.addColorStop(.28, 'rgba(250,236,170,.95)');
+  grd.addColorStop(.36, 'rgba(250,236,170,.35)'); grd.addColorStop(1, 'rgba(250,236,170,0)');
+  sctx.fillStyle = grd; sctx.fillRect(0, 0, 128, 128);
+  const sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({map: new THREE.CanvasTexture(sunCanvas), fog: false, depthWrite: false, transparent: true}));
+  sunSprite.scale.set(38, 38, 1);
+  sunSprite.position.set(150, 105, -190);
+  scene.add(sunSprite);
+
+  if (renderer) {
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.domElement.tabIndex = 0;
+    renderer.domElement.setAttribute('role', 'img');
+    renderer.domElement.setAttribute('aria-label', '3D Loss 曲面上，登山者沿負梯度方向走向谷底的動畫；可用方向鍵旋轉、加減號縮放');
+    stage.prepend(renderer.domElement);
+  }
+
+  scene.add(new THREE.HemisphereLight(0xdcecff, 0x4d5a3e, 0.62));
+  const sun = new THREE.DirectionalLight(0xfff1d6, 0.8);
+  sun.position.set(9, 13, 2);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.bias = -0.0008;
+  sun.shadow.normalBias = 0.02;
+  Object.assign(sun.shadow.camera, {left:-11, right:11, top:11, bottom:-11, near:1, far:50});
+  scene.add(sun);
+
+  // 地形：谷地 = Loss 曲面，外圍 = 山脈
+  const SIZE = 110, SEG = 330;
+  const geo = new THREE.PlaneGeometry(SIZE, SIZE, SEG, SEG);
+  geo.rotateX(-Math.PI / 2);
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) pos.setY(i, H(pos.getX(i), pos.getZ(i)));
+  geo.computeVertexNormals();
+  const nrm = geo.attributes.normal;
+  const C = c => new THREE.Color(c);
+  const grassA = C('#5f8f43'), grassB = C('#3f6c35'), alpine = C('#7f8660'), rock = C('#766d60'),
+        rockDark = C('#5e574e'), snow = C('#f3f4f2'), trail = C('#d9c89b'), meadow = C('#86a94f');
+  const colors = new Float32Array(pos.count * 3);
+  const col = new THREE.Color(), tmp = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i), ny = nrm.getY(i);
+    const n1 = fbm(x * .25, z * .25, 4), n2 = vnoise(x * 1.6, z * 1.6);
+    col.copy(grassA).lerp(grassB, smooth(.35, .7, n1));
+    col.lerp(meadow, smooth(.6, .8, fbm(x * .5 + 9, z * .5, 3)) * .5);
+    col.lerp(alpine, smooth(4.5, 7, y + n2 * 1.2));
+    col.lerp(tmp.copy(rock).lerp(rockDark, n2), smooth(.78, .58, ny));
+    col.lerp(snow, smooth(9.2, 10.2, y + n1 * 2.5) * smooth(.45, .65, ny));
+    const L = loss({x: x + 0.8, y: -z - 0.6});
+    if (L < 16) col.lerp(trail, smooth(.34, .14, distToFlow(x, z)) * .9);
+    col.multiplyScalar(0.94 + n2 * 0.12);
+    colors[i * 3] = col.r; colors[i * 3 + 1] = col.g; colors[i * 3 + 2] = col.b;
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  const surface = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({vertexColors:true, roughness:.97, metalness:0}));
+  surface.receiveShadow = true;
+  surface.castShadow = true;
+  scene.add(surface);
+
+  // 樹林（避開登山路線附近，讓人物與箭頭不被遮住）
+  function slopeAt(x, z) { const e = .15; return Math.hypot(H(x + e, z) - H(x - e, z), H(x, z + e) - H(x, z - e)) / (2 * e); }
+  function distToSeg(px, pz, ax, az, bx, bz) {
+    const dx = bx - ax, dz = bz - az, t = Math.max(0, Math.min(1, ((px - ax) * dx + (pz - az) * dz) / (dx * dx + dz * dz)));
+    return Math.hypot(ax + dx * t - px, az + dz * t - pz);
+  }
+  const sw = {x: start.x - 0.8, z: -(start.y + 0.6)};
+  let seed = 7;
+  const rnd = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296;
+  const treeSpots = [];
+  for (let k = 0; k < 9000 && treeSpots.length < 900; k++) {
+    const x = (rnd() * 2 - 1) * 40, z = (rnd() * 2 - 1) * 40;
+    const L = loss({x: x + 0.8, y: -z - 0.6});
+    const y = H(x, z);
+    if (y > 7.2 || slopeAt(x, z) > 1.05) continue;
+    if (fbm(x * .12 + 4, z * .12, 3) < .47) continue;
+    if (L < 5) continue;
+    if (L < 18) {
+      if (rnd() > .18) continue;
+      if (distToSeg(x, z, sw.x, sw.z, 0, 0) < 1.7 || distToFlow(x, z) < 1.2 || Math.hypot(x, z) < 1.5) continue;
+    }
+    treeSpots.push({x, y, z, s: .5 + rnd() * .45, r: rnd() * Math.PI * 2, c: rnd()});
+  }
+  const trunkGeo = new THREE.CylinderGeometry(.045, .07, .4, 5); trunkGeo.translate(0, .2, 0);
+  const leafGeo = new THREE.ConeGeometry(.32, 1.05, 7); leafGeo.translate(0, .82, 0);
+  const trunks = new THREE.InstancedMesh(trunkGeo, new THREE.MeshStandardMaterial({color: '#5b4632', roughness: 1}), treeSpots.length);
+  const leaves = new THREE.InstancedMesh(leafGeo, new THREE.MeshStandardMaterial({color: '#ffffff', roughness: .9}), treeSpots.length);
+  const mtx = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), pv = new THREE.Vector3();
+  const leafA = C('#2f5e34'), leafB = C('#4a7a3c');
+  treeSpots.forEach((t, i) => {
+    q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), t.r);
+    sc.set(t.s, t.s * (.9 + t.c * .4), t.s);
+    mtx.compose(pv.set(t.x, t.y - .05, t.z), q, sc);
+    trunks.setMatrixAt(i, mtx); leaves.setMatrixAt(i, mtx);
+    leaves.setColorAt(i, tmp.copy(leafA).lerp(leafB, t.c));
+  });
+  trunks.castShadow = leaves.castShadow = true;
+  leaves.receiveShadow = true;
+  scene.add(trunks, leaves);
+
+  // 等高線（只畫在谷地，也就是 Loss 函數本身）
+  const contourMat = new THREE.LineBasicMaterial({color:0xfbf6df, transparent:true, opacity:.6});
+  const contours = new THREE.Group();
+  scene.add(contours);
+  [0.3, 1, 2, 3.5, 5.5, 8, 11].forEach(c => {
+    const a = Math.sqrt(c / 0.55), b = Math.sqrt(c / 0.25), pts = [];
+    for (let i = 0; i <= 320; i++) {
+      const t = i / 320 * Math.PI * 2;
+      pts.push(toWorld({x: 0.8 + a * Math.cos(t), y: -0.6 + b * Math.sin(t)}, 0.05));
+    }
+    contours.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), contourMat));
+  });
+
+  // 最低點旗子
+  const flag = new THREE.Group();
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(.025, .025, 1.1, 8), new THREE.MeshStandardMaterial({color:'#554a3c'}));
+  pole.position.y = .55;
+  const cloth = new THREE.Mesh(new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, 1.08, 0), new THREE.Vector3(0.5, 0.95, 0), new THREE.Vector3(0, 0.8, 0)]),
+    new THREE.MeshStandardMaterial({color:'#c2413b', side:THREE.DoubleSide}));
+  cloth.geometry.computeVertexNormals();
+  const base = new THREE.Mesh(new THREE.SphereGeometry(.1, 16, 12), new THREE.MeshStandardMaterial({color:'#177245'}));
+  flag.add(pole, cloth, base);
+  flag.traverse(o => o.castShadow = true);
+  flag.position.copy(toWorld(optimum));
+  scene.add(flag);
+
+  // 起點標記
+  const startMark = new THREE.Mesh(new THREE.CylinderGeometry(.14, .14, .04, 20), new THREE.MeshStandardMaterial({color:'#d94b43'}));
+  startMark.position.copy(toWorld(start, 0.02));
+  scene.add(startMark);
+
+  // 登山者
+  function buildHiker() {
+    const g = new THREE.Group();
+    const m = c => new THREE.MeshStandardMaterial({color:c, roughness:.7});
+    const add = (geom, color, x, y, z, rx = 0, rz = 0) => {
+      const mesh = new THREE.Mesh(geom, m(color));
+      mesh.position.set(x, y, z); mesh.rotation.x = rx; mesh.rotation.z = rz;
+      mesh.castShadow = true; g.add(mesh); return mesh;
+    };
+    add(new THREE.CylinderGeometry(.035, .03, .28, 8), '#313b40', -.05, .14, 0, .25);
+    add(new THREE.CylinderGeometry(.035, .03, .28, 8), '#313b40',  .05, .14, 0, -.25);
+    add(new THREE.CylinderGeometry(.075, .09, .28, 12), '#2f628c', 0, .41, 0);
+    add(new THREE.BoxGeometry(.14, .22, .09), '#a13f35', 0, .43, -.1);
+    add(new THREE.SphereGeometry(.072, 16, 12), '#e1b58c', 0, .63, 0);
+    add(new THREE.CylinderGeometry(.105, .105, .012, 16), '#293845', 0, .67, 0);
+    add(new THREE.CylinderGeometry(.06, .07, .05, 16), '#293845', 0, .7, 0);
+    add(new THREE.CylinderGeometry(.03, .03, .22, 8), '#d7a77f', .1, .4, .04, -.5, .35);
+    add(new THREE.CylinderGeometry(.012, .012, .62, 6), '#584b3d', .17, .3, .12, .3);
+    g.scale.setScalar(1.45);
+    return g;
+  }
+  const hiker = buildHiker();
+  scene.add(hiker);
+
+  // 3D 箭頭
+  function makeArrow(color) {
+    const g = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({color, roughness:.45, emissive:color, emissiveIntensity:.18});
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(.045, .045, 1, 12), mat);
+    const head = new THREE.Mesh(new THREE.ConeGeometry(.13, .32, 16), mat);
+    shaft.castShadow = head.castShadow = true;
+    g.add(shaft, head);
+    g.userData = {shaft, head};
+    scene.add(g);
+    return g;
+  }
+  const up = new THREE.Vector3(0, 1, 0);
+  function setArrow(g, origin, dir, len) {
+    const {shaft, head} = g.userData;
+    const shaftLen = Math.max(.05, len - .32);
+    shaft.scale.y = shaftLen; shaft.position.y = shaftLen / 2;
+    head.position.y = shaftLen + .16;
+    g.position.copy(origin);
+    g.quaternion.setFromUnitVectors(up, dir);
+    return origin.clone().addScaledVector(dir, len);
+  }
+  const gradArrow = makeArrow(0x315b9a);
+  const negArrow = makeArrow(0xc2413b);
+
+  // 路徑
+  const pathMat = new THREE.MeshStandardMaterial({color:'#d94b43', roughness:.5});
+  const dotMat = new THREE.MeshStandardMaterial({color:'#d94b43', roughness:.5});
+  const dotGeo = new THREE.SphereGeometry(.07, 12, 10);
+  let pathMesh = null;
+  const dots = new THREE.Group();
+  scene.add(dots);
+
+  function updatePath() {
+    if (pathMesh) { scene.remove(pathMesh); pathMesh.geometry.dispose(); pathMesh = null; }
+    dots.clear();
+    history.forEach((p, i) => {
+      if (i === history.length - 1) return;
+      const d = new THREE.Mesh(dotGeo, dotMat);
+      d.position.copy(toWorld(p, .06));
+      d.scale.setScalar(i === 0 ? 1.5 : 1);
+      dots.add(d);
+    });
+    if (history.length < 2) return;
+    // 每一步在 θ 空間是直線，投影到曲面上取樣，路徑會貼著山坡
+    const pts = [];
+    for (let i = 0; i < history.length - 1; i++) {
+      const a = history[i], b = history[i + 1];
+      for (let s = 0; s < 14; s++) {
+        const t = s / 14;
+        pts.push(toWorld({x:a.x + (b.x - a.x) * t, y:a.y + (b.y - a.y) * t}, .05));
+      }
+    }
+    pts.push(toWorld(history[history.length - 1], .05));
+    const path = new THREE.CurvePath();
+    for (let i = 0; i < pts.length - 1; i++) path.add(new THREE.LineCurve3(pts[i], pts[i + 1]));
+    pathMesh = new THREE.Mesh(new THREE.TubeGeometry(path, Math.max(8, pts.length * 2), .035, 8, false), pathMat);
+    pathMesh.castShadow = true;
+    scene.add(pathMesh);
+  }
+
+  // ---------- 相機（自製軌道控制） ----------
+  const VIEWS = {
+    default:{az:30, el:11, dist:17},
+    top:{az:0, el:89, dist:22},
+    front:{az:0, el:9, dist:17},
+    side:{az:90, el:9, dist:17}
+  };
+  const cam = {az:30, el:11, dist:17};
+  const goal = {...cam};
+  let camLift = 0;
+  const target = new THREE.Vector3(0, 1.4, 0);
+  const targetGoal = target.clone();
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const wrap = d => ((d + 180) % 360 + 360) % 360 - 180;
+
+  function syncSliders() {
+    const az = Math.round(wrap(goal.az));
+    azIn.value = az; elIn.value = Math.round(goal.el); distIn.value = goal.dist;
+    azOut.textContent = az + '°'; elOut.textContent = Math.round(goal.el) + '°';
+    distOut.textContent = goal.dist.toFixed(1);
+  }
+  function markView(name) { viewBtns.forEach(b => b.classList.toggle('on', b.dataset.view === name)); }
+  function setGoal(o, viewName = null) {
+    if (o.az !== undefined) goal.az = o.az;
+    if (o.el !== undefined) goal.el = clamp(o.el, 3, 89);
+    if (o.dist !== undefined) goal.dist = clamp(o.dist, 6, 40);
+    markView(viewName);
+    syncSliders();
+  }
+  viewBtns.forEach(b => b.addEventListener('click', () => {
+    const v = VIEWS[b.dataset.view];
+    // 從目前角度走最短路徑轉過去
+    setGoal({az: goal.az + wrap(v.az - goal.az), el:v.el, dist:v.dist}, b.dataset.view);
+  }));
+  azIn.addEventListener('input', () => setGoal({az: goal.az + wrap(Number(azIn.value) - goal.az)}));
+  elIn.addEventListener('input', () => setGoal({el: Number(elIn.value)}));
+  distIn.addEventListener('input', () => setGoal({dist: Number(distIn.value)}));
+
+  const pointers = new Map();
+  let pinchStart = 0, distAtPinch = 14;
+  stage.addEventListener('pointerdown', e => {
+    stage.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+    stage.classList.add('dragging');
+    if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()];
+      pinchStart = Math.hypot(a.x - b.x, a.y - b.y); distAtPinch = goal.dist;
+    }
+  });
+  stage.addEventListener('pointermove', e => {
+    if (!pointers.has(e.pointerId)) return;
+    const prev = pointers.get(e.pointerId);
+    const cur = {x:e.clientX, y:e.clientY};
+    pointers.set(e.pointerId, cur);
+    if (pointers.size === 1) {
+      setGoal({az: goal.az - (cur.x - prev.x) * 0.45, el: goal.el + (cur.y - prev.y) * 0.35});
+      cam.az = goal.az; cam.el = goal.el;   // 拖曳時直接跟手
+    } else if (pointers.size === 2 && pinchStart > 0) {
+      const [a, b] = [...pointers.values()];
+      setGoal({dist: distAtPinch * pinchStart / Math.max(20, Math.hypot(a.x - b.x, a.y - b.y))});
+    }
+  });
+  const endPointer = e => {
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) pinchStart = 0;
+    if (!pointers.size) stage.classList.remove('dragging');
+  };
+  stage.addEventListener('pointerup', endPointer);
+  stage.addEventListener('pointercancel', endPointer);
+  stage.addEventListener('wheel', e => {
+    e.preventDefault();
+    setGoal({dist: goal.dist * Math.exp(e.deltaY * 0.0012)});
+  }, {passive:false});
+  if (renderer) renderer.domElement.addEventListener('keydown', e => {
+    const k = e.key;
+    if (k === 'ArrowLeft') setGoal({az: goal.az + 8});
+    else if (k === 'ArrowRight') setGoal({az: goal.az - 8});
+    else if (k === 'ArrowUp') setGoal({el: goal.el + 5});
+    else if (k === 'ArrowDown') setGoal({el: goal.el - 5});
+    else if (k === '+' || k === '=') setGoal({dist: goal.dist - 1});
+    else if (k === '-') setGoal({dist: goal.dist + 1});
+    else return;
+    e.preventDefault();
+  });
+
+  function resize() {
+    if (!renderer) return;
+    const w = stage.clientWidth, h = stage.clientHeight;
+    if (!w || !h) return;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(resize).observe(stage);
+
+  // ---------- 標籤 ----------
+  const v3 = new THREE.Vector3();
+  function placeTag(el, world, show = true) {
+    v3.copy(world).project(camera);
+    const visible = show && v3.z < 1 && Math.abs(v3.x) < 1.1 && Math.abs(v3.y) < 1.1;
+    el.style.display = visible ? '' : 'none';
+    if (!visible) return;
+    const x = (v3.x * .5 + .5) * stage.clientWidth;
+    const y = (-v3.y * .5 + .5) * stage.clientHeight;
+    el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%) translateY(-8px)`;
+  }
+
+  // ---------- 登山者動畫 ----------
+  let anim = {from:{...start}, to:{...start}, t0:0, dur:0};
+  let heading = 0;
+  function moveHiker(to, animate) {
+    anim = {from: currentP(), to:{...to}, t0: performance.now(), dur: animate && !reducedMotion ? 560 : 0};
+  }
+  function currentP() {
+    const t = anim.dur ? clamp((performance.now() - anim.t0) / anim.dur, 0, 1) : 1;
+    const e = 1 - Math.pow(1 - t, 3);
+    return {x: anim.from.x + (anim.to.x - anim.from.x) * e, y: anim.from.y + (anim.to.y - anim.from.y) * e};
+  }
+
+  function updateScene() {
+    const p = currentP();
+    const wp = toWorld(p);
+    hiker.position.copy(wp);
+
+    const g = gradient(p);
+    const gm = Math.hypot(g.x, g.y);
+    const showArrows = gm > 0.03;
+    gradArrow.visible = negArrow.visible = showArrows;
+    let tipG = wp, tipN = wp;
+    if (showArrows) {
+      // 曲面切平面上的方向：沿 ĝ 前進一單位，高度上升 K·|∇L|
+      const ux = g.x / gm, uy = g.y / gm;
+      const dirUp = new THREE.Vector3(ux, K * gm, -uy).normalize();
+      const dirDown = dirUp.clone().negate();
+      const origin = wp.clone().add(new THREE.Vector3(0, .55, 0));
+      tipG = setArrow(gradArrow, origin, dirUp, 1.3);
+      tipN = setArrow(negArrow, origin, dirDown, 1.65);
+      const targetHeading = Math.atan2(dirDown.x, dirDown.z);
+      heading += wrapRad(targetHeading - heading) * 0.15;
+    }
+    hiker.rotation.y = heading;
+
+    placeTag(tagGrad, tipG.clone().add(new THREE.Vector3(0, .15, 0)), showArrows);
+    placeTag(tagNeg, tipN.clone().add(new THREE.Vector3(0, .15, 0)), showArrows);
+    placeTag(tagMin, flag.position.clone().add(new THREE.Vector3(0, -0.15, 0.9)));
+    placeTag(tagStart, toWorld(start, .1), iteration > 0);
+
+    targetGoal.set(0, 1.4, 0);
+    if (followCb.checked) targetGoal.copy(wp).add(new THREE.Vector3(0, .5, 0));
+  }
+  const wrapRad = a => Math.atan2(Math.sin(a), Math.cos(a));
+
+  function loop() {
+    if (spinCb.checked && !pointers.size) { goal.az += 0.12; if (Math.round(goal.az * 10) % 10 === 0) syncSliders(); }
+    const s = reducedMotion ? 1 : 0.14;
+    cam.az += (goal.az - cam.az) * s;
+    cam.el += (goal.el - cam.el) * s;
+    cam.dist += (goal.dist - cam.dist) * s;
+    target.lerp(targetGoal, reducedMotion ? 1 : 0.08);
+    const az = THREE.MathUtils.degToRad(cam.az), el = THREE.MathUtils.degToRad(cam.el);
+    camera.position.set(
+      target.x + cam.dist * Math.cos(el) * Math.sin(az),
+      target.y + cam.dist * Math.sin(el),
+      target.z + cam.dist * Math.cos(el) * Math.cos(az));
+    // 避免鏡頭鑽進山裡：沿視線檢查，被山擋住就把鏡頭抬高
+    let lift = 0;
+    for (let i = 3; i <= 20; i++) {
+      const t = i / 20;
+      const px = target.x + (camera.position.x - target.x) * t, pz = target.z + (camera.position.z - target.z) * t;
+      const py = target.y + (camera.position.y - target.y) * t;
+      const need = (H(px, pz) + 0.45 - py) / t;
+      if (need > lift) lift = need;
+    }
+    camLift += (lift - camLift) * (reducedMotion ? 1 : 0.2);
+    camera.position.y += camLift;
+    camera.lookAt(target);
+    // 斜視時把畫面往下移，讓山谷在下方、山脈與天空在上方（俯視時不偏移）
+    const vw = stage.clientWidth || 760, vh = stage.clientHeight || 560;
+    camera.setViewOffset(vw, vh, 0, -Math.round(vh * 0.2 * Math.cos(el)), vw, vh);
+    sky.position.copy(camera.position);
+    updateScene();
+    if (renderer) renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  }
+
+  // ---------- 梯度下降邏輯（與原版相同） ----------
+  function updateChart() {
+    if (!losses.length) return;
+    const maxL = Math.max(...losses, 0.01);
+    lossLine.setAttribute('points', losses.map((v, i) =>
+      `${48 + (457 * i / Math.max(1, losses.length - 1))},${145 - (124 * v / maxL)}`).join(' '));
+  }
+  function updateReadout() {
+    const g = gradient(theta);
+    posValue.textContent = `θ = (${fmt(theta.x)}, ${fmt(theta.y)})`;
+    lossValue.textContent = fmt(loss(theta));
+    gradValue.textContent = `[${fmt(g.x)}, ${fmt(g.y)}]`;
+    iterValue.textContent = String(iteration);
+    updatePath();
+    updateChart();
+  }
+  function converged() {
+    const g = gradient(theta);
+    return Math.hypot(g.x, g.y) < 0.045 || iteration >= 80;
+  }
+  function stop() {
+    if (timer) clearInterval(timer);
+    timer = null; playing = false;
+    playBtn.textContent = '▶ 自動下山';
+  }
+  function doStep() {
+    if (converged()) {
+      stop();
+      status.textContent = '已到達谷底';
+      validation.textContent = '此時梯度已非常接近 0，參數幾乎不再移動。';
+      return;
+    }
+    const eta = clamp(Number(lr.value) || 0.18, 0.03, 0.55);
+    const g = gradient(theta);
+    theta = {x: theta.x - eta * g.x, y: theta.y - eta * g.y};
+    iteration += 1;
+    history.push({...theta});
+    losses.push(loss(theta));
+    moveHiker(theta, true);
+    updateReadout();
+    status.textContent = `第 ${iteration} 步：沿 −∇L 下山`;
+    if (converged()) {
+      stop();
+      status.textContent = '收斂：抵達山谷最低點';
+      validation.textContent = '完成：Loss 已接近最小值，∇L ≈ 0。';
+    }
+  }
+  function reset() {
+    stop();
+    theta = {...start};
+    iteration = 0;
+    history = [{...theta}];
+    losses = [loss(theta)];
+    moveHiker(theta, false);
+    updateReadout();
+    status.textContent = '準備開始';
+    validation.textContent = '觀察紅色箭頭：它永遠是目前梯度的反方向。';
+  }
+
+  lr.addEventListener('input', () => {
+    const v = clamp(Number(lr.value) || 0.18, 0.03, 0.55);
+    lrOutput.textContent = v.toFixed(2);
+    if (v < 0.10) validation.textContent = '學習率較小：每步較短，下降穩定但需要更多迭代。';
+    else if (v > 0.38) validation.textContent = '學習率較大：每步更遠；在更複雜的 Loss surface 上可能產生震盪。';
+    else validation.textContent = '這個學習率兼顧步長與穩定性。';
+  });
+  stepBtn.addEventListener('click', () => { stop(); doStep(); });
+  playBtn.addEventListener('click', () => {
+    if (playing) { stop(); status.textContent = '已暫停'; return; }
+    playing = true;
+    playBtn.textContent = '⏸ 暫停';
+    status.textContent = '自動下山中';
+    doStep();
+    if (!converged()) timer = setInterval(doStep, reducedMotion ? 900 : 650);
+  });
+  resetBtn.addEventListener('click', reset);
+
+  contourCb.addEventListener('change', () => { contours.visible = contourCb.checked; });
+  lrOutput.textContent = Number(lr.value).toFixed(2);
+  syncSliders();
+  resize();
+  reset();
+  heading = Math.atan2(-(gradient(start).x), gradient(start).y);
+  loop();
+})();
+</script>
+</body>
+</html>
