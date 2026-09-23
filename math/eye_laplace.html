@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>眼圖與 Laplace 轉換的關係</title>
+<style>
+  :root {
+    --bg: #f6f4ef;
+    --panel: #ffffff;
+    --ink: #1c1d22;
+    --ink-soft: #56585f;
+    --line: #dcd8cf;
+    --accent: #0f6f6a;
+    --accent-soft: #b7e3df;
+    --warn: #c1502e;
+    --trace: 15, 111, 106;
+    --grid: #cfcabd;
+    --shade-rhp: rgba(193, 80, 46, 0.06);
+  }
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --bg: #14161a;
+      --panel: #1c1f24;
+      --ink: #eceae4;
+      --ink-soft: #a3a8ad;
+      --line: #33373d;
+      --accent: #5fd0c6;
+      --accent-soft: #1f4744;
+      --warn: #e88a68;
+      --trace: 95, 208, 198;
+      --grid: #2b2f35;
+      --shade-rhp: rgba(232, 138, 104, 0.07);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14161a;
+    --panel: #1c1f24;
+    --ink: #eceae4;
+    --ink-soft: #a3a8ad;
+    --line: #33373d;
+    --accent: #5fd0c6;
+    --accent-soft: #1f4744;
+    --warn: #e88a68;
+    --trace: 95, 208, 198;
+    --grid: #2b2f35;
+    --shade-rhp: rgba(232, 138, 104, 0.07);
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", -apple-system, sans-serif;
+  }
+  body { padding: 20px 16px 48px; }
+  .wrap { max-width: 980px; margin: 0 auto; }
+
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    margin: 4px 0 6px;
+  }
+  .subtitle {
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+    margin: 0 0 20px;
+    line-height: 1.6;
+  }
+
+  .intro {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-bottom: 18px;
+    line-height: 1.75;
+    font-size: 0.92rem;
+    color: var(--ink);
+  }
+  .intro b { color: var(--accent); }
+  .intro .formula {
+    font-family: "STIX Two Math", "Cambria Math", Georgia, serif;
+    font-size: 1rem;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 6px 10px;
+    display: inline-block;
+    margin: 4px 6px 4px 0;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+  }
+  .panel h2 {
+    font-size: 0.85rem;
+    text-transform: none;
+    color: var(--ink-soft);
+    margin: 0 0 14px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .controls-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px 24px;
+    align-items: end;
+  }
+  .control { display: flex; flex-direction: column; gap: 6px; }
+  .control label {
+    font-size: 0.85rem;
+    display: flex;
+    justify-content: space-between;
+    color: var(--ink);
+  }
+  .control label .val { color: var(--accent); font-variant-numeric: tabular-nums; font-weight: 600; }
+  select, input[type=range] { width: 100%; }
+  select {
+    padding: 7px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 0.9rem;
+  }
+  input[type=range] {
+    -webkit-appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--grid);
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--panel);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--accent); cursor: pointer; border: 2px solid var(--panel);
+  }
+  button {
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  button:hover { background: var(--accent-soft); }
+
+  .readout {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--line);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 22px;
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+  }
+  .readout b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .readout .opening.good b { color: var(--accent); }
+  .readout .opening.bad b { color: var(--warn); }
+
+  .plots {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 640px) {
+    .plots { grid-template-columns: 1fr; }
+  }
+  .plot-box {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 14px 14px;
+  }
+  .plot-box.full { grid-column: 1 / -1; }
+  .plot-box h3 {
+    font-size: 0.82rem;
+    margin: 0 0 8px;
+    color: var(--ink-soft);
+    font-weight: 600;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 210px;
+    border-radius: 6px;
+  }
+  .plot-box.full canvas { height: 260px; }
+  .caption {
+    margin-top: 8px;
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+
+  .footnote {
+    margin-top: 18px;
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+    line-height: 1.7;
+  }
+  .footnote ul { margin: 6px 0; padding-left: 20px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>眼圖（Eye Diagram）與 Laplace 轉換的關係</h1>
+  <p class="subtitle">傳輸通道的頻寬限制，本質上就是一個由 Laplace 轉換描述的濾波器 H(s)。極點在 s 平面上的位置，決定了脈衝響應 h(t) 衰減得多快 —— 而這直接決定了眼圖張開或閉合的程度。</p>
+
+  <div class="intro">
+    將通道視為一個全極點濾波器：<br>
+    <span class="formula">H(s) = ω<sub>n</sub> / (s + ω<sub>n</sub>)　（一階）</span>
+    <span class="formula">H(s) = ω<sub>n</sub>² / (s² + 2ζω<sub>n</sub>s + ω<sub>n</sub>²)　（二階）</span><br>
+    輸入端送入隨機 NRZ 位元序列 x(t)（每個位元週期 T），通道輸出為 <b>y(t) = x(t) * h(t)</b>（時域捲積，對應 s 域的 Y(s)=X(s)H(s)）。
+    把 y(t) 每隔一個位元週期切段、重疊畫在一起，就是眼圖。極點越靠近虛軸（頻寬相對位元率越窄），h(t) 衰減得越慢、拖尾超過一個位元週期，造成
+    <b>符際干擾（ISI）</b>，眼圖就會閉合；極點越往左（頻寬越寬），h(t) 很快衰減完，眼睛就張得越開。
+  </div>
+
+  <div class="panel">
+    <h2>控制參數</h2>
+    <div class="controls-grid">
+      <div class="control">
+        <label>濾波器階數
+          <span class="val" id="orderLabel">一階</span>
+        </label>
+        <select id="orderSel">
+          <option value="1">一階（單一實極點，RC 低通）</option>
+          <option value="2">二階（可調阻尼比）</option>
+        </select>
+      </div>
+      <div class="control">
+        <label>頻寬 × 位元週期 (f<sub>c</sub>·T)
+          <span class="val" id="btVal">0.50</span>
+        </label>
+        <input type="range" id="btSlider" min="0.08" max="3" step="0.02" value="0.5">
+      </div>
+      <div class="control" id="zetaControl" style="display:none">
+        <label>阻尼比 ζ
+          <span class="val" id="zetaVal">0.50</span>
+        </label>
+        <input type="range" id="zetaSlider" min="0.15" max="2" step="0.05" value="0.5">
+      </div>
+      <div class="control">
+        <label>雜訊強度
+          <span class="val" id="noiseVal">0.05</span>
+        </label>
+        <input type="range" id="noiseSlider" min="0" max="0.3" step="0.01" value="0.05">
+      </div>
+      <div class="control">
+        <button id="reshuffleBtn">重新產生亂數位元序列</button>
+      </div>
+    </div>
+    <div class="readout">
+      <span>極點位置：<b id="poleReadout">—</b></span>
+      <span>時間常數 τ = 1/ω<sub>n</sub>：<b id="tauReadout">—</b> T</span>
+      <span class="opening" id="openingWrap">眼開度：<b id="openingReadout">—</b></span>
+    </div>
+  </div>
+
+  <div class="plots">
+    <div class="plot-box">
+      <h3>S 平面 — 極點位置（Laplace 轉換）</h3>
+      <canvas id="poleCanvas"></canvas>
+      <div class="caption">橫軸 σ（實部，衰減速率）、縱軸 jω（虛部，振盪頻率）。極點離虛軸越遠（越靠左），對應的時域響應衰減越快。淡紅色區域為右半平面（不穩定，本示範中不會出現）。</div>
+    </div>
+    <div class="plot-box">
+      <h3>脈衝響應 h(t)（Laplace 反轉換）</h3>
+      <canvas id="impulseCanvas"></canvas>
+      <div class="caption">虛線標示一個位元週期 T。若 h(t) 在 t=T 時還沒衰減到接近 0，代表這個位元的能量會「拖」進下一個位元，造成 ISI。</div>
+    </div>
+    <div class="plot-box full">
+      <h3>眼圖（Eye Diagram） — 把 y(t)=x(t)*h(t) 每個位元週期重疊畫出</h3>
+      <canvas id="eyeCanvas"></canvas>
+      <div class="caption">橫軸為 t/T（跨兩個位元週期），縱軸為振幅。灰色虛線為建議取樣時刻。眼睛開口越大，代表在該時刻判斷 0/1 的容錯空間越大；開口閉合則代表誤判機率上升。</div>
+    </div>
+  </div>
+
+  <div class="footnote">
+    <b>對應關係整理：</b>
+    <ul>
+      <li>極點實部 −ω<sub>n</sub>（或 −ζω<sub>n</sub>）越負 → 時間常數 τ 越小 → h(t) 衰減越快 → 每個符元的能量不會拖到下一個符元 → 眼睛張開。</li>
+      <li>極點越靠近虛軸（頻寬相對位元率越窄，f<sub>c</sub>·T 越小）→ h(t) 拖尾超過一個位元週期 T → ISI 增加 → 眼睛閉合。</li>
+      <li>二階濾波器在 ζ&lt;1（欠阻尼、複數共軛極點）時，h(t) 會出現振盪／過衝，除了 ISI 之外還會讓眼圖出現額外的交叉線與時基抖動（jitter）。</li>
+      <li>這說明了為什麼通道設計上常說「頻寬不足會使眼圖閉合」——本質上就是 Laplace 轉換中極點位置的直接後果。</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(function(){
+  const orderSel = document.getElementById('orderSel');
+  const btSlider = document.getElementById('btSlider');
+  const zetaSlider = document.getElementById('zetaSlider');
+  const noiseSlider = document.getElementById('noiseSlider');
+  const zetaControl = document.getElementById('zetaControl');
+  const reshuffleBtn = document.getElementById('reshuffleBtn');
+
+  const btVal = document.getElementById('btVal');
+  const zetaVal = document.getElementById('zetaVal');
+  const noiseVal = document.getElementById('noiseVal');
+  const orderLabel = document.getElementById('orderLabel');
+  const poleReadout = document.getElementById('poleReadout');
+  const tauReadout = document.getElementById('tauReadout');
+  const openingReadout = document.getElementById('openingReadout');
+  const openingWrap = document.getElementById('openingWrap');
+
+  const poleCanvas = document.getElementById('poleCanvas');
+  const impulseCanvas = document.getElementById('impulseCanvas');
+  const eyeCanvas = document.getElementById('eyeCanvas');
+
+  const Ns = 40;          // samples per symbol
+  const T = 1;
+  const dt = T / Ns;
+  const Nsym = 150;       // number of symbols
+  const Nx = Nsym * Ns;
+  const NhSymbols = 8;
+  const Nh = NhSymbols * Ns;
+
+  let bits = randomBits(Nsym);
+
+  function randomBits(n){
+    const arr = new Float64Array(n);
+    for (let i=0;i<n;i++) arr[i] = Math.random() < 0.5 ? -1 : 1;
+    return arr;
+  }
+
+  function gaussian(){
+    let u=0,v=0;
+    while(u===0) u=Math.random();
+    while(v===0) v=Math.random();
+    return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+  }
+
+  function getParams(){
+    const order = parseInt(orderSel.value,10);
+    const BT = parseFloat(btSlider.value);
+    const zeta = parseFloat(zetaSlider.value);
+    const noise = parseFloat(noiseSlider.value);
+    const wn = 2*Math.PI*BT;
+    return {order, BT, zeta, noise, wn};
+  }
+
+  function impulseFn(t, order, wn, zeta){
+    if (t < 0) return 0;
+    if (order === 1){
+      return wn*Math.exp(-wn*t);
+    }
+    if (zeta < 0.999){
+      const wd = wn*Math.sqrt(1-zeta*zeta);
+      return (wn/Math.sqrt(1-zeta*zeta))*Math.exp(-zeta*wn*t)*Math.sin(wd*t);
+    } else if (zeta < 1.001){
+      return wn*wn*t*Math.exp(-wn*t);
+    } else {
+      const s = Math.sqrt(zeta*zeta-1);
+      const p1 = -wn*(zeta-s), p2 = -wn*(zeta+s);
+      const coef = wn*wn/(p1-p2);
+      return coef*(Math.exp(p1*t)-Math.exp(p2*t));
+    }
+  }
+
+  function computeAll(){
+    const {order, BT, zeta, noise, wn} = getParams();
+
+    // impulse response samples
+    const h = new Float64Array(Nh);
+    for (let k=0;k<Nh;k++){
+      h[k] = impulseFn(k*dt, order, wn, zeta);
+    }
+
+    // input NRZ waveform
+    const x = new Float64Array(Nx);
+    for (let n=0;n<Nx;n++){
+      x[n] = bits[Math.floor(n/Ns)];
+    }
+
+    // convolution y[n] = sum h[k] x[n-k] dt
+    const y = new Float64Array(Nx);
+    for (let n=0;n<Nx;n++){
+      let acc = 0;
+      const kmax = Math.min(Nh, n+1);
+      for (let k=0;k<kmax;k++){
+        acc += h[k]*x[n-k];
+      }
+      y[n] = acc*dt;
+    }
+    if (noise > 0){
+      for (let n=0;n<Nx;n++) y[n] += noise*gaussian();
+    }
+
+    return {order, BT, zeta, noise, wn, h, y};
+  }
+
+  function niceNum(v, digits){
+    return v.toFixed(digits);
+  }
+
+  function setupCtx(canvas){
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.max(200, rect.width);
+    const h = Math.max(100, rect.height);
+    canvas.width = w*dpr;
+    canvas.height = h*dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    return {ctx, w, h};
+  }
+
+  function cssVar(name){
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function drawPoleZero(order, wn, zeta){
+    const {ctx, w, h} = setupCtx(poleCanvas);
+    ctx.clearRect(0,0,w,h);
+    const ink = cssVar('--ink'), inkSoft = cssVar('--ink-soft'), grid = cssVar('--grid');
+    const warnShade = cssVar('--shade-rhp');
+    const accent = cssVar('--accent');
+
+    const axisLimit = Math.max(3, 1.4*wn);
+    const originX = w*0.5, originY = h*0.5;
+    const scale = Math.min(w*0.42, h*0.42) / axisLimit;
+
+    // right half plane shading (unstable region)
+    ctx.fillStyle = warnShade;
+    ctx.fillRect(originX, 0, w-originX, h);
+
+    // grid
+    ctx.strokeStyle = grid;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, originY); ctx.lineTo(w, originY);
+    ctx.moveTo(originX, 0); ctx.lineTo(originX, h);
+    ctx.stroke();
+
+    ctx.fillStyle = inkSoft;
+    ctx.font = '11px sans-serif';
+    ctx.fillText('σ', w-14, originY-6);
+    ctx.fillText('jω', originX+6, 12);
+
+    // poles
+    ctx.strokeStyle = cssVar('--warn');
+    ctx.lineWidth = 2.4;
+    function drawX(px, py){
+      const s=6;
+      ctx.beginPath();
+      ctx.moveTo(px-s,py-s); ctx.lineTo(px+s,py+s);
+      ctx.moveTo(px-s,py+s); ctx.lineTo(px+s,py-s);
+      ctx.stroke();
+    }
+
+    let poleText = '';
+    if (order === 1){
+      const px = originX - wn*scale;
+      drawX(px, originY);
+      poleText = `s = −${niceNum(wn,2)}`;
+    } else {
+      if (zeta < 0.999){
+        const wd = wn*Math.sqrt(1-zeta*zeta);
+        const sigma = zeta*wn;
+        const px = originX - sigma*scale;
+        const py1 = originY - wd*scale;
+        const py2 = originY + wd*scale;
+        drawX(px, py1);
+        drawX(px, py2);
+        poleText = `s = −${niceNum(sigma,2)} ± j${niceNum(wd,2)}`;
+      } else if (zeta < 1.001){
+        const px = originX - wn*scale;
+        drawX(px, originY);
+        poleText = `s = −${niceNum(wn,2)} （重根）`;
+      } else {
+        const s = Math.sqrt(zeta*zeta-1);
+        const p1 = wn*(zeta-s), p2 = wn*(zeta+s);
+        drawX(originX-p1*scale, originY);
+        drawX(originX-p2*scale, originY);
+        poleText = `s = −${niceNum(p1,2)}, −${niceNum(p2,2)}`;
+      }
+    }
+    poleReadout.textContent = poleText;
+    tauReadout.textContent = niceNum(1/wn, 2);
+  }
+
+  function drawImpulseResponse(h){
+    const {ctx, w, h: H} = setupCtxWrap(impulseCanvas);
+    ctx.clearRect(0,0,w,H);
+    const ink = cssVar('--ink'), inkSoft = cssVar('--ink-soft'), grid = cssVar('--grid');
+    const accent = cssVar('--accent');
+
+    let maxAbs = 0.001;
+    for (let i=0;i<h.length;i++) maxAbs = Math.max(maxAbs, Math.abs(h[i]));
+
+    const padL=30, padR=10, padT=10, padB=22;
+    const plotW = w-padL-padR, plotH = H-padT-padB;
+    const x0 = padL, y0 = padT + plotH/2;
+
+    // axes
+    ctx.strokeStyle = grid;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padL, y0); ctx.lineTo(w-padR, y0);
+    ctx.moveTo(padL, padT); ctx.lineTo(padL, H-padB);
+    ctx.stroke();
+
+    // T marker
+    const tPix = padL + (Ns/h.length)*plotW; // t=T corresponds to index Ns
+    ctx.strokeStyle = inkSoft;
+    ctx.setLineDash([4,3]);
+    ctx.beginPath();
+    ctx.moveTo(tPix, padT); ctx.lineTo(tPix, H-padB);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = inkSoft;
+    ctx.font = '10px sans-serif';
+    ctx.fillText('t = T', tPix+3, padT+10);
+
+    // curve
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i=0;i<h.length;i++){
+      const px = padL + (i/(h.length-1))*plotW;
+      const py = y0 - (h[i]/maxAbs)*(plotH/2)*0.92;
+      if (i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+    }
+    ctx.stroke();
+
+    ctx.fillStyle = inkSoft;
+    ctx.font = '10px sans-serif';
+    ctx.fillText('h(t)', padL+2, padT+10);
+    ctx.fillText(`${NhSymbolsLabel()}·T`, w-padR-24, H-6);
+    ctx.fillText('0', padL-2, H-padB+12);
+  }
+  function NhSymbolsLabel(){ return NhSymbols; }
+
+  function setupCtxWrap(canvas){
+    return setupCtx(canvas);
+  }
+
+  function drawEye(y, wn){
+    const {ctx, w, h: H} = setupCtx(eyeCanvas);
+    ctx.clearRect(0,0,w,H);
+    const inkSoft = cssVar('--ink-soft'), grid = cssVar('--grid');
+    const traceCol = cssVar('--trace');
+
+    const padL=30, padR=10, padT=10, padB=22;
+    const plotW = w-padL-padR, plotH = H-padT-padB;
+
+    const winLen = 2*Ns;
+    const startSym = 12, endSym = Nsym-3;
+
+    let maxAbs = 1.2;
+    for (let i=startSym*Ns;i<Nsym*Ns;i++) maxAbs = Math.max(maxAbs, Math.abs(y[i]));
+    maxAbs *= 1.05;
+
+    const y0 = padT + plotH/2;
+    function yToPix(v){ return y0 - (v/maxAbs)*(plotH/2); }
+    function xToPix(i){ return padL + (i/winLen)*plotW; }
+
+    // grid + axis
+    ctx.strokeStyle = grid;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padL, y0); ctx.lineTo(w-padR, y0);
+    ctx.moveTo(padL, padT); ctx.lineTo(padL, H-padB);
+    ctx.stroke();
+
+    // recommended sampling instants at t=T/2 and t=3T/2
+    const samp1 = Ns/2, samp2 = 1.5*Ns;
+    ctx.strokeStyle = inkSoft;
+    ctx.setLineDash([3,3]);
+    [samp1, samp2].forEach(s=>{
+      const px = xToPix(s);
+      ctx.beginPath(); ctx.moveTo(px,padT); ctx.lineTo(px,H-padB); ctx.stroke();
+    });
+    ctx.setLineDash([]);
+
+    // traces
+    ctx.strokeStyle = `rgba(${traceCol}, 0.13)`;
+    ctx.lineWidth = 1.1;
+    for (let sym=startSym; sym<endSym; sym++){
+      const start = sym*Ns;
+      ctx.beginPath();
+      for (let i=0;i<winLen;i++){
+        const px = xToPix(i);
+        const py = yToPix(y[start+i]);
+        if (i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+      }
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = inkSoft;
+    ctx.font = '10px sans-serif';
+    ctx.fillText('0', padL-2, H-padB+12);
+    ctx.fillText('T', xToPix(Ns)-3, H-padB+12);
+    ctx.fillText('2T', xToPix(2*Ns)-8, H-padB+12);
+
+    // eye opening at sampling instant t=T/2 (a stable interior point)
+    const sampleIdx = Math.round(samp1);
+    let upperMin = Infinity, lowerMax = -Infinity;
+    for (let sym=startSym; sym<endSym; sym++){
+      const v = y[sym*Ns + sampleIdx];
+      if (v >= 0) upperMin = Math.min(upperMin, v);
+      else lowerMax = Math.max(lowerMax, v);
+    }
+    let opening = upperMin - lowerMax;
+    if (!isFinite(opening)) opening = 0;
+    const pct = Math.max(0, Math.min(100, (opening/2)*100));
+    openingReadout.textContent = pct.toFixed(0) + ' %（理想全開為 100%）';
+    openingWrap.classList.remove('good','bad');
+    openingWrap.classList.add(pct > 40 ? 'good' : 'bad');
+  }
+
+  function redraw(){
+    const {order, wn, zeta, h, y} = computeAll();
+    drawPoleZero(order, wn, zeta);
+    drawImpulseResponse(h);
+    drawEye(y, wn);
+  }
+
+  function syncLabels(){
+    const order = parseInt(orderSel.value,10);
+    orderLabel.textContent = order===1 ? '一階' : '二階';
+    zetaControl.style.display = order===1 ? 'none' : 'flex';
+    btVal.textContent = parseFloat(btSlider.value).toFixed(2);
+    zetaVal.textContent = parseFloat(zetaSlider.value).toFixed(2);
+    noiseVal.textContent = parseFloat(noiseSlider.value).toFixed(2);
+  }
+
+  let rafId = null;
+  function scheduleRedraw(){
+    syncLabels();
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(redraw);
+  }
+
+  orderSel.addEventListener('change', scheduleRedraw);
+  btSlider.addEventListener('input', scheduleRedraw);
+  zetaSlider.addEventListener('input', scheduleRedraw);
+  noiseSlider.addEventListener('input', scheduleRedraw);
+  reshuffleBtn.addEventListener('click', ()=>{
+    bits = randomBits(Nsym);
+    scheduleRedraw();
+  });
+
+  let resizeTimer = null;
+  window.addEventListener('resize', ()=>{
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(redraw, 120);
+  });
+
+  syncLabels();
+  redraw();
+})();
+</script>
+</body>
+</html>
