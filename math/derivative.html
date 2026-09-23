@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>從割線到切線：導數互動解說</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&family=Noto+Serif+TC:wght@700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --paper:#f6f1e4; --paper2:#efe7d3; --card:#fffdf7;
+  --ink:#23303f; --muted:#6b6457; --grid:#e4dbc6; --grid2:#cfc2a4; --axis:#5a5140;
+  --curve:#23303f; --sec:#d2452f; --tan:#2f8a55; --blue:#2463a6; --gold:#c8871a; --violet:#8a3f9e;
+  --shadow:0 2px 0 #d8ccb0, 0 10px 30px rgba(80,60,20,.08);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#1b1f26; --paper2:#222731; --card:#242a35;
+    --ink:#ece6d6; --muted:#a39c8c; --grid:#2e3542; --grid2:#3d4555; --axis:#9e9786;
+    --curve:#ece6d6; --sec:#ff7a61; --tan:#6ccf93; --blue:#72aef2; --gold:#f2b64f; --violet:#d596ea;
+    --shadow:0 2px 0 #12151a, 0 10px 30px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#1b1f26; --paper2:#222731; --card:#242a35;
+  --ink:#ece6d6; --muted:#a39c8c; --grid:#2e3542; --grid2:#3d4555; --axis:#9e9786;
+  --curve:#ece6d6; --sec:#ff7a61; --tan:#6ccf93; --blue:#72aef2; --gold:#f2b64f; --violet:#d596ea;
+  --shadow:0 2px 0 #12151a, 0 10px 30px rgba(0,0,0,.3);
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{
+  margin:0; color:var(--ink); background:var(--paper);
+  background-image:linear-gradient(var(--paper2) 1px,transparent 1px),linear-gradient(90deg,var(--paper2) 1px,transparent 1px);
+  background-size:28px 28px;
+  font-family:"LXGW WenKai TC","Noto Serif TC","PingFang TC","Microsoft JhengHei",serif;
+  font-size:17px; line-height:1.7;
+}
+.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace}
+.wrap{max-width:1120px; margin:0 auto; padding:28px 18px 60px}
+header{animation:rise .6s ease both}
+.kicker{color:var(--sec); font-weight:700; letter-spacing:.2em; font-size:.85rem}
+h1{font-family:"Noto Serif TC",serif; font-weight:900; font-size:clamp(1.9rem,5vw,3.1rem); line-height:1.15; margin:.2em 0 .3em}
+h1 .s{color:var(--sec)} h1 .t{color:var(--tan)}
+.lead{color:var(--muted); max-width:700px; margin:0}
+.hero{display:flex; flex-wrap:wrap; gap:14px; margin-top:16px}
+.fbox{display:inline-flex; align-items:center; gap:10px; padding:10px 16px; background:var(--card); border:2px solid var(--ink); border-radius:4px; box-shadow:4px 4px 0 var(--ink); font-size:1.05rem; flex-wrap:wrap}
+.frac{display:inline-flex; flex-direction:column; align-items:center; vertical-align:middle; line-height:1.25}
+.frac>span:first-child{border-bottom:2px solid currentColor; padding:0 4px}
+.lim{display:inline-flex; flex-direction:column; align-items:center; line-height:1; vertical-align:middle}
+.lim small{font-size:.7em}
+.cs{color:var(--sec)} .ct{color:var(--tan)} .cb{color:var(--blue)} .cg{color:var(--gold)} .cv{color:var(--violet)}
+
+.tabs{display:flex; gap:6px; margin:26px 0 0; flex-wrap:wrap}
+.tab{font:inherit; font-weight:700; cursor:pointer; border:2px solid var(--ink); border-bottom:none; background:var(--card); color:var(--ink); padding:8px 18px; border-radius:6px 6px 0 0; opacity:.6; transition:opacity .2s,transform .2s}
+.tab:hover{opacity:.9}
+.tab.on{opacity:1; background:var(--ink); color:var(--paper); transform:translateY(-2px)}
+.panel{display:none; background:var(--card); border:2px solid var(--ink); border-radius:0 8px 8px 8px; padding:20px; box-shadow:var(--shadow); animation:rise .4s ease both}
+.panel.on{display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:24px}
+@media (max-width:860px){ .panel.on{grid-template-columns:1fr} }
+
+svg.plot{width:100%; height:auto; display:block; touch-action:none; user-select:none; background:var(--card); border-radius:6px; border:1px solid var(--grid2)}
+.hint{font-size:.88rem; color:var(--muted); margin-top:6px; text-align:center}
+.lbl{font-size:.85rem; font-weight:700; margin:6px 0 2px; color:var(--muted)}
+h2{font-family:"Noto Serif TC",serif; font-size:1.3rem; margin:0 0 8px}
+h3{font-family:"Noto Serif TC",serif; font-size:1.05rem; margin:16px 0 6px}
+.drag{cursor:grab} .drag:active{cursor:grabbing}
+.drag .halo{fill:currentColor; opacity:.18}
+
+.fsel{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px}
+.btn{font:inherit; font-size:.92rem; cursor:pointer; border:2px solid var(--ink); background:var(--card); color:var(--ink); padding:4px 12px; border-radius:6px; box-shadow:2px 2px 0 var(--ink); transition:transform .1s,box-shadow .1s}
+.btn:hover{transform:translate(-1px,-1px); box-shadow:3px 3px 0 var(--ink)}
+.btn:active{transform:translate(2px,2px); box-shadow:0 0 0 var(--ink)}
+.btn.on{background:var(--ink); color:var(--paper)}
+.btn.go{background:var(--sec); color:#fff; border-color:var(--sec); box-shadow:2px 2px 0 var(--ink)}
+.row{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+
+.slider{margin:10px 0}
+.slider label{display:flex; justify-content:space-between; font-weight:700}
+input[type=range]{width:100%}
+#hS{accent-color:var(--sec)} #aS,#aS2{accent-color:var(--blue)}
+.chk{display:inline-flex; align-items:center; gap:6px; font-size:.95rem; cursor:pointer}
+
+.calc{background:var(--paper); border-left:4px solid var(--gold); padding:10px 14px; border-radius:4px; margin:10px 0; overflow-x:auto}
+.calc .line{display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:1.05rem; margin:4px 0}
+.big{font-size:1.5rem; font-weight:700}
+.meter{height:10px; background:var(--paper2); border-radius:99px; overflow:hidden; margin:6px 0 2px}
+.meter i{display:block; height:100%; background:linear-gradient(90deg,var(--sec),var(--tan)); transition:width .15s}
+.tblwrap{overflow-x:auto}
+table{border-collapse:collapse; width:100%; font-size:.95rem}
+th,td{padding:4px 8px; text-align:right; border-bottom:1px solid var(--grid2)}
+th{font-weight:700; color:var(--muted)}
+td:first-child,th:first-child{text-align:center}
+tr.cur td{background:color-mix(in srgb,var(--sec) 14%,transparent)}
+tr.limit td{color:var(--tan); font-weight:700; border-bottom:none}
+.note{color:var(--muted); font-size:.93rem}
+.algebra{font-size:1rem}
+.algebra div{margin:3px 0}
+footer{margin-top:28px; color:var(--muted); font-size:.9rem; text-align:center}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">微積分互動筆記 · 導數的意義</div>
+    <h1>從<span class="s">割線</span>到<span class="t">切線</span>：導數在說什麼？</h1>
+    <p class="lead">割線通過曲線上的兩點，它的斜率是「平均變化率」。讓第二點無限靠近第一點（h → 0），割線就會轉成切線，切線斜率就是「瞬間變化率」，也就是導數。</p>
+    <div class="hero">
+      <div class="fbox"><span class="cs">割線斜率</span> =
+        <span class="frac mono"><span>f(a+h) − f(a)</span><span>h</span></span></div>
+      <div class="fbox"><span class="ct">f′(a)</span> =
+        <span class="lim mono">lim<small>h→0</small></span>
+        <span class="frac mono"><span>f(a+h) − f(a)</span><span>h</span></span></div>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab on" data-tab="p1">① 割線逼近切線</button>
+    <button class="tab" data-tab="p2">② 從切線斜率畫出導函數</button>
+  </nav>
+
+  <!-- Panel 1 -->
+  <section class="panel on" id="p1">
+    <div>
+      <div class="fsel" id="fsel1"></div>
+      <svg class="plot" id="svg1" viewBox="0 0 520 420"></svg>
+      <div class="hint">拖曳 <b class="cb">P</b> 改變位置 a，拖曳 <b class="cs">Q</b> 改變間距 h</div>
+    </div>
+    <div>
+      <div class="slider">
+        <label><span>間距 <span class="mono cs">h</span></span><span class="mono cs" id="hOut"></span></label>
+        <input type="range" id="hS" min="-100" max="100" step="0.5" value="100">
+      </div>
+      <div class="row">
+        <button class="btn go" id="play">▶ 讓 h → 0</button>
+        <button class="btn" id="reset">h 重設為 3</button>
+        <label class="chk"><input type="checkbox" id="showTan" checked> 顯示切線</label>
+        <label class="chk"><input type="checkbox" id="showTri" checked> 顯示 Δx、Δy</label>
+      </div>
+
+      <div class="calc">
+        <div class="line"><span class="cs">割線斜率</span> =
+          <span class="frac mono"><span id="numTxt"></span><span id="denTxt"></span></span>
+          = <b class="mono cs big" id="secVal"></b></div>
+        <div class="line"><span class="ct">切線斜率 f′(a)</span> = <b class="mono ct big" id="tanVal"></b></div>
+        <div class="meter"><i id="meter"></i></div>
+        <div class="note" id="gap"></div>
+      </div>
+
+      <h3>h 越來越小時的割線斜率</h3>
+      <div class="tblwrap"><table id="tbl"></table></div>
+
+      <h3>用代數看極限</h3>
+      <div class="calc algebra mono" id="alg"></div>
+    </div>
+  </section>
+
+  <!-- Panel 2 -->
+  <section class="panel" id="p2">
+    <div>
+      <div class="fsel" id="fsel2"></div>
+      <div class="lbl">y = f(x) 與點 a 的切線</div>
+      <svg class="plot" id="svgA" viewBox="0 0 520 260"></svg>
+      <div class="lbl">把每一點的切線斜率記錄下來 → y = f′(x)</div>
+      <svg class="plot" id="svgB" viewBox="0 0 520 260"></svg>
+      <div class="hint">在上圖左右拖曳，或按「掃描」讓切線自動滑過整條曲線</div>
+    </div>
+    <div>
+      <h2>導數也是一個函數</h2>
+      <p>在每個 x 算出切線斜率，就得到一個新的函數 <b class="mono ct">f′(x)</b>。下圖的高度 = 上圖切線的斜率。</p>
+      <div class="slider">
+        <label><span>位置 <span class="mono cb">a</span></span><span class="mono cb" id="aOut2"></span></label>
+        <input type="range" id="aS2" step="0.01">
+      </div>
+      <div class="row">
+        <button class="btn go" id="sweep">▶ 掃描</button>
+        <button class="btn" id="clear">清除軌跡</button>
+        <label class="chk"><input type="checkbox" id="showDer"> 顯示完整 f′(x)</label>
+      </div>
+      <div class="calc">
+        <div class="line">切線斜率 <span class="mono ct">f′(<span id="aT"></span>)</span> = <b class="mono ct big" id="dVal"></b></div>
+        <div class="line note" id="dSign"></div>
+      </div>
+      <h3>觀察重點</h3>
+      <p>・切線往右上傾時 <span class="mono">f′ &gt; 0</span>，f 在遞增；往右下傾時 <span class="mono">f′ &lt; 0</span>，f 在遞減。</p>
+      <p>・切線水平的地方 <span class="mono">f′ = 0</span>，常常是山頂或谷底（極值）。</p>
+      <p>・曲線越陡，<span class="mono">|f′|</span> 越大，下圖的點離 x 軸越遠。</p>
+      <p class="note" id="derFormula"></p>
+    </div>
+  </section>
+
+  <footer>提示：切線不一定「只碰曲線一次」。它真正的定義是割線在 h → 0 時的極限位置。</footer>
+</div>
+
+<script>
+const NS="http://www.w3.org/2000/svg";
+const el=(t,a={},p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;};
+const fmt=(v,d=4)=>{ if(!isFinite(v)) return '—'; let s=(+v.toFixed(d)).toString(); if(s==='-0')s='0'; return s.replace('-','−'); };
+const fmtP=(v,d=4)=>v<0?`(${fmt(v,d)})`:fmt(v,d);
+
+const FNS={
+  sq:{name:'x²', f:x=>x*x, d:x=>2*x, dName:'2x', win:[-3,3,-2,8], a:1,
+      alg:(a,h)=>[
+        `[(${fmtP(a,2)}+h)² − ${fmtP(a,2)}²] / h`,
+        `= [${fmt(2*a,2)}h + h²] / h`,
+        `= ${fmt(2*a,2)} + h`,
+        `→ ${fmt(2*a,2)}　（h → 0）`]},
+  cub:{name:'x³ − 3x', f:x=>x*x*x-3*x, d:x=>3*x*x-3, dName:'3x² − 3', win:[-3,3,-5,5], a:-0.5,
+      alg:(a,h)=>[
+        `[f(a+h) − f(a)] / h`,
+        `= [(3a²−3)h + 3a·h² + h³] / h`,
+        `= (3a² − 3) + 3a·h + h²`,
+        `a = ${fmt(a,2)} 代入：${fmt(3*a*a-3,3)} + ${fmt(3*a,2)}h + h²`,
+        `→ ${fmt(3*a*a-3,3)}　（h → 0）`]},
+  sin:{name:'sin x', f:Math.sin, d:Math.cos, dName:'cos x', win:[-4,4,-2,2], a:0.6,
+      alg:(a,h)=>[
+        `[sin(a+h) − sin a] / h`,
+        `= sin a·(cos h − 1)/h + cos a·(sin h)/h`,
+        `h → 0 時 (cos h − 1)/h → 0，(sin h)/h → 1`,
+        `→ cos a = cos(${fmt(a,2)}) ≈ ${fmt(Math.cos(a))}`]},
+  exp:{name:'eˣ', f:Math.exp, d:Math.exp, dName:'eˣ', win:[-3,2.3,-1,8], a:0.5,
+      alg:(a,h)=>[
+        `[e^(a+h) − eᵃ] / h = eᵃ · (eʰ − 1)/h`,
+        `h → 0 時 (eʰ − 1)/h → 1`,
+        `→ eᵃ = e^${fmt(a,2)} ≈ ${fmt(Math.exp(a))}`,
+        `eˣ 的導數就是它自己！`]},
+};
+let F1='sq', F2='cub';
+
+function plot(svg,win,W,H,pad=30){
+  const [x0,x1,y0,y1]=win;
+  const X=x=>pad+(x-x0)/(x1-x0)*(W-2*pad), Y=y=>H-pad-(y-y0)/(y1-y0)*(H-2*pad);
+  const iX=px=>x0+(px-pad)/(W-2*pad)*(x1-x0);
+  svg.innerHTML='';
+  const defs=el('defs',{},svg), cid=svg.id+'c';
+  const cp=el('clipPath',{id:cid},defs); el('rect',{x:pad,y:pad-10,width:W-2*pad,height:H-2*pad+20},cp);
+  const g=el('g',{},svg);
+  const step=(y1-y0)>12?2:1;
+  for(let i=Math.ceil(x0);i<=x1;i++){ el('line',{x1:X(i),y1:pad-10,x2:X(i),y2:H-pad+10,stroke:'var(--grid)'},g); }
+  for(let j=Math.ceil(y0);j<=y1;j++){ el('line',{x1:pad-10,y1:Y(j),x2:W-pad+10,y2:Y(j),stroke:'var(--grid)'},g); }
+  if(y0<=0&&y1>=0) el('line',{x1:pad-10,y1:Y(0),x2:W-pad+10,y2:Y(0),stroke:'var(--axis)','stroke-width':1.5},g);
+  if(x0<=0&&x1>=0) el('line',{x1:X(0),y1:pad-10,x2:X(0),y2:H-pad+10,stroke:'var(--axis)','stroke-width':1.5},g);
+  const ay=(y0<=0&&y1>=0)?Y(0):H-pad, ax=(x0<=0&&x1>=0)?X(0):pad;
+  for(let i=Math.ceil(x0);i<=x1;i++){ if(i===0) continue; el('text',{x:X(i),y:ay+14,'text-anchor':'middle','font-size':10,fill:'var(--muted)','font-family':'JetBrains Mono'},g).textContent=String(i).replace('-','−'); }
+  for(let j=Math.ceil(y0);j<=y1;j+=1){ if(j===0||j%step) continue; el('text',{x:ax-5,y:Y(j)+4,'text-anchor':'end','font-size':10,fill:'var(--muted)','font-family':'JetBrains Mono'},g).textContent=String(j).replace('-','−'); }
+  const c=el('g',{'clip-path':`url(#${cid})`},svg);
+  return {X,Y,iX,c,svg,win,W,H};
+}
+function curve(P,f,attrs){
+  const [x0,x1,y0,y1]=P.win; let d='', pen=false;
+  for(let i=0;i<=400;i++){ const x=x0+(x1-x0)*i/400, y=f(x);
+    if(!isFinite(y)||y<y0-20||y>y1+20){pen=false;continue;}
+    d+=(pen?'L':'M')+P.X(x).toFixed(1)+','+P.Y(y).toFixed(1); pen=true; }
+  return el('path',{d,fill:'none',...attrs},P.c);
+}
+function lineAt(P,x,y,m,attrs){
+  const [x0,x1]=P.win, L=x0-5, R=x1+5;
+  return el('line',{x1:P.X(L),y1:P.Y(y+m*(L-x)),x2:P.X(R),y2:P.Y(y+m*(R-x)),...attrs},P.c);
+}
+function txt(g,x,y,s,color,anchor='middle',size=13){
+  const t=el('text',{x,y,'text-anchor':anchor,'font-size':size,'font-weight':700,fill:color,'font-family':'JetBrains Mono',stroke:'var(--card)','stroke-width':4,'paint-order':'stroke'},g); t.textContent=s; return t;
+}
+function dot(g,x,y,color,r=6){ el('circle',{cx:x,cy:y,r,fill:color,stroke:'var(--card)','stroke-width':2.5},g); }
+function svgPt(svg,e){ const p=svg.createSVGPoint(); p.x=e.clientX; p.y=e.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()); }
+
+/* ========== Panel 1 ========== */
+const s1=document.getElementById('svg1'), hS=document.getElementById('hS');
+let a1=FNS[F1].a, h=3, P1=null, drag1=null, anim=null;
+const h2v=h=>{const s=Math.sign(h)||1; return s*(100+33.3*Math.log10(Math.abs(h)/3));};
+const v2h=v=>{const s=v<0?-1:1; return s*3*Math.pow(10,(Math.abs(v)-100)/33.3);};
+
+function buildSel(id,cur,cb){
+  const box=document.getElementById(id); box.innerHTML='';
+  for(const k in FNS){ const b=document.createElement('button'); b.className='btn mono'+(k===cur?' on':''); b.textContent='f(x) = '+FNS[k].name; b.onclick=()=>cb(k); box.appendChild(b); }
+}
+function setF1(k){ F1=k; a1=FNS[k].a; h=3; hS.value=100; buildSel('fsel1',F1,setF1); render1(); }
+
+function render1(){
+  const F=FNS[F1], [x0,x1]=F.win;
+  a1=Math.max(x0+0.2,Math.min(x1-0.2,a1));
+  P1=plot(s1,F.win,520,420);
+  const g=P1.c, fa=F.f(a1), ah=a1+h, fah=F.f(ah), msec=(fah-fa)/h, mtan=F.d(a1);
+  curve(P1,F.f,{stroke:'var(--curve)','stroke-width':3});
+  if(document.getElementById('showTan').checked) lineAt(P1,a1,fa,mtan,{stroke:'var(--tan)','stroke-width':2.5,'stroke-dasharray':'8 5'});
+  lineAt(P1,a1,fa,msec,{stroke:'var(--sec)','stroke-width':2.8});
+  if(document.getElementById('showTri').checked && Math.abs(P1.X(ah)-P1.X(a1))>14){
+    el('line',{x1:P1.X(a1),y1:P1.Y(fa),x2:P1.X(ah),y2:P1.Y(fa),stroke:'var(--blue)','stroke-width':2,'stroke-dasharray':'4 3'},g);
+    el('line',{x1:P1.X(ah),y1:P1.Y(fa),x2:P1.X(ah),y2:P1.Y(fah),stroke:'var(--gold)','stroke-width':2,'stroke-dasharray':'4 3'},g);
+    txt(g,(P1.X(a1)+P1.X(ah))/2,P1.Y(fa)+(fah>=fa?18:-8),'h = '+fmt(h,2),'var(--blue)');
+    txt(g,P1.X(ah)+(h>0?6:-6),(P1.Y(fa)+P1.Y(fah))/2+4,'Δy = '+fmt(fah-fa,2),'var(--gold)',h>0?'start':'end');
+  }
+  // points (draggable)
+  const top=el('g',{},s1);
+  const mk=(name,x,y,color)=>{ const pg=el('g',{class:'drag','data-p':name,style:'color:'+color},top);
+    el('circle',{class:'halo',cx:x,cy:y,r:15},pg); dot(pg,x,y,color,7); return pg; };
+  const qy=Math.max(10,Math.min(410,P1.Y(fah)));
+  mk('Q',P1.X(ah),qy,'var(--sec)');
+  mk('P',P1.X(a1),P1.Y(fa),'var(--blue)');
+  txt(top,P1.X(a1)-10,P1.Y(fa)-12,'P','var(--blue)','end',14);
+  txt(top,P1.X(ah)+10,qy-12,'Q','var(--sec)','start',14);
+  // info
+  document.getElementById('hOut').textContent='h = '+fmt(h,4);
+  document.getElementById('numTxt').innerHTML=`f(${fmt(ah,3)}) − f(${fmt(a1,2)})`;
+  document.getElementById('denTxt').textContent=fmt(h,4);
+  document.getElementById('secVal').textContent=fmt(msec,4);
+  document.getElementById('tanVal').textContent=fmt(mtan,4);
+  const diff=Math.abs(msec-mtan);
+  document.getElementById('meter').style.width=Math.max(2,Math.min(100,100-Math.log10(diff+1e-6)*-16.6-0+ (diff<1e-6?100:0)))+'%';
+  document.getElementById('meter').style.width=(Math.max(0,Math.min(1,(-Math.log10(diff+1e-9)+1)/6))*100)+'%';
+  document.getElementById('gap').textContent = diff<0.001 ? '割線幾乎和切線重合了！差距 < 0.001' : `割線與切線斜率差距：${fmt(diff,4)}（h 越小，差距越小）`;
+  // table
+  const hs=[1,0.5,0.1,0.01,0.001], sg=Math.sign(h)||1;
+  let rows='<tr><th>h</th><th>f(a+h) − f(a)</th><th>割線斜率</th></tr>';
+  let curIdx=-1, best=1e9; hs.forEach((v,i)=>{const d=Math.abs(Math.log10(Math.abs(h))-Math.log10(v)); if(d<best){best=d;curIdx=i;}});
+  hs.forEach((v,i)=>{ const hh=sg*v, dy=F.f(a1+hh)-fa;
+    rows+=`<tr class="${i===curIdx&&best<0.35?'cur':''}"><td class="mono">${fmt(hh,3)}</td><td class="mono">${fmt(dy,6)}</td><td class="mono">${fmt(dy/hh,5)}</td></tr>`; });
+  rows+=`<tr class="limit"><td class="mono">→ 0</td><td></td><td class="mono">→ ${fmt(mtan,5)}</td></tr>`;
+  document.getElementById('tbl').innerHTML=rows;
+  document.getElementById('alg').innerHTML=`<div class="note" style="font-family:inherit">a = ${fmt(a1,2)} 時：</div>`+F.alg(a1,h).map(s=>`<div>${s}</div>`).join('');
+}
+s1.addEventListener('pointerdown',e=>{ const t=e.target.closest('.drag'); if(!t) return; drag1=t.dataset.p; stopAnim(); s1.setPointerCapture(e.pointerId); e.preventDefault(); });
+s1.addEventListener('pointermove',e=>{ if(!drag1) return; const x=P1.iX(svgPt(s1,e).x), [x0,x1]=FNS[F1].win;
+  if(drag1==='P'){ a1=Math.max(x0+0.2,Math.min(x1-0.2,x)); if(a1+h>x1||a1+h<x0){ h=Math.sign(h)*Math.min(Math.abs(h),Math.max(0.001,(h>0?x1-a1:a1-x0))); hS.value=h2v(h);} }
+  else { let nh=x-a1; if(Math.abs(nh)<0.001) nh=0.001*(Math.sign(nh)||1); nh=Math.max(-3,Math.min(3,nh)); h=nh; hS.value=h2v(h); }
+  render1(); });
+['pointerup','pointercancel'].forEach(ev=>s1.addEventListener(ev,()=>drag1=null));
+hS.oninput=()=>{ stopAnim(); h=v2h(+hS.value); render1(); };
+document.getElementById('showTan').onchange=render1;
+document.getElementById('showTri').onchange=render1;
+function stopAnim(){ if(anim){cancelAnimationFrame(anim);anim=null;} document.getElementById('play').textContent='▶ 讓 h → 0'; }
+document.getElementById('play').onclick=()=>{
+  if(anim){stopAnim();return;}
+  const sg=Math.sign(h)||1; let start=null, h0=Math.abs(h)<0.01?3:Math.abs(h);
+  document.getElementById('play').textContent='⏸ 暫停';
+  const T=4500, step=ts=>{ if(!start)start=ts; const t=Math.min(1,(ts-start)/T);
+    h=sg*h0*Math.pow(0.001/h0,t); hS.value=h2v(h); render1();
+    if(t<1) anim=requestAnimationFrame(step); else stopAnim(); };
+  anim=requestAnimationFrame(step);
+};
+document.getElementById('reset').onclick=()=>{ stopAnim(); h=3; hS.value=100; render1(); };
+
+/* ========== Panel 2 ========== */
+const sA=document.getElementById('svgA'), sB=document.getElementById('svgB'), aS2=document.getElementById('aS2');
+let a2=FNS[F2].a, trail=[], PA, PB, dragA=false, sweepAnim=null;
+function derWin(F){ const [x0,x1]=F.win; let lo=1e9,hi=-1e9; for(let i=0;i<=200;i++){const v=F.d(x0+(x1-x0)*i/200); lo=Math.min(lo,v); hi=Math.max(hi,v);} lo=Math.floor(Math.min(lo,0)-0.5); hi=Math.ceil(Math.max(hi,0)+0.5); hi=Math.min(hi,10); return [x0,x1,lo,hi]; }
+function setF2(k){ F2=k; a2=FNS[k].a; trail=[]; stopSweep(); const [x0,x1]=FNS[k].win; aS2.min=x0; aS2.max=x1; aS2.value=a2; buildSel('fsel2',F2,setF2); render2(); }
+function render2(){
+  const F=FNS[F2]; PA=plot(sA,F.win,520,260,26); PB=plot(sB,derWin(F),520,260,26);
+  curve(PA,F.f,{stroke:'var(--curve)','stroke-width':2.8});
+  const fa=F.f(a2), m=F.d(a2);
+  lineAt(PA,a2,fa,m,{stroke:'var(--tan)','stroke-width':2.5});
+  // unit step triangle on tangent
+  const u=(F.win[1]-F.win[0])/8;
+  el('path',{d:`M${PA.X(a2)},${PA.Y(fa)} H${PA.X(a2+u)} V${PA.Y(fa+m*u)}`,fill:'none',stroke:'var(--gold)','stroke-width':1.8,'stroke-dasharray':'4 3'},PA.c);
+  const pg=el('g',{class:'drag',style:'color:var(--blue)'},sA); el('circle',{class:'halo',cx:PA.X(a2),cy:PA.Y(fa),r:14},pg); dot(pg,PA.X(a2),PA.Y(fa),'var(--blue)');
+  // bottom
+  if(document.getElementById('showDer').checked) curve(PB,F.d,{stroke:'var(--violet)','stroke-width':2.2,opacity:.6});
+  trail.forEach(([x,y])=>el('circle',{cx:PB.X(x),cy:PB.Y(y),r:2.6,fill:'var(--violet)'},PB.c));
+  el('line',{x1:PB.X(a2),y1:PB.Y(0),x2:PB.X(a2),y2:PB.Y(m),stroke:'var(--tan)','stroke-width':3},PB.c);
+  el('line',{x1:PA.X(a2),y1:0,x2:PA.X(a2),y2:260,stroke:'var(--blue)','stroke-dasharray':'3 4',opacity:.5},sA);
+  el('line',{x1:PB.X(a2),y1:0,x2:PB.X(a2),y2:260,stroke:'var(--blue)','stroke-dasharray':'3 4',opacity:.5},sB);
+  dot(PB.c,PB.X(a2),PB.Y(m),'var(--tan)',6);
+  txt(sB,PB.X(a2)+(a2>(F.win[0]+F.win[1])/2?-10:10),PB.Y(Math.max(PB.win[2],Math.min(PB.win[3],m)))-10,`(${fmt(a2,2)}, ${fmt(m,2)})`,'var(--tan)',a2>(F.win[0]+F.win[1])/2?'end':'start',12);
+  document.getElementById('aOut2').textContent='a = '+fmt(a2,2);
+  document.getElementById('aT').textContent=fmt(a2,2);
+  document.getElementById('dVal').textContent=fmt(m,4);
+  document.getElementById('dSign').textContent= Math.abs(m)<0.03?'切線近乎水平：f′ ≈ 0，這裡可能是極大值或極小值。': m>0?'切線往右上傾：f′ > 0，f 正在遞增。':'切線往右下傾：f′ < 0，f 正在遞減。';
+  document.getElementById('derFormula').innerHTML=`本例：f(x) = <span class="mono">${F.name}</span>，導函數 f′(x) = <span class="mono cv">${F.dName}</span>（勾選「顯示完整 f′(x)」對照）。`;
+}
+function addTrail(){ const F=FNS[F2]; if(!trail.some(([x])=>Math.abs(x-a2)<0.02)) trail.push([a2,F.d(a2)]); }
+sA.addEventListener('pointerdown',e=>{ dragA=true; stopSweep(); sA.setPointerCapture(e.pointerId); move2(e); });
+sA.addEventListener('pointermove',e=>{ if(dragA) move2(e); });
+['pointerup','pointercancel'].forEach(ev=>sA.addEventListener(ev,()=>dragA=false));
+function move2(e){ const [x0,x1]=FNS[F2].win; a2=Math.max(x0,Math.min(x1,PA.iX(svgPt(sA,e).x))); aS2.value=a2; addTrail(); render2(); }
+aS2.oninput=()=>{ stopSweep(); a2=+aS2.value; addTrail(); render2(); };
+document.getElementById('showDer').onchange=render2;
+document.getElementById('clear').onclick=()=>{ trail=[]; render2(); };
+function stopSweep(){ if(sweepAnim){cancelAnimationFrame(sweepAnim);sweepAnim=null;} document.getElementById('sweep').textContent='▶ 掃描'; }
+document.getElementById('sweep').onclick=()=>{
+  if(sweepAnim){stopSweep();return;}
+  const [x0,x1]=FNS[F2].win; trail=[]; let start=null; document.getElementById('sweep').textContent='⏸ 暫停';
+  const T=6000, step=ts=>{ if(!start)start=ts; const t=Math.min(1,(ts-start)/T); a2=x0+(x1-x0)*t; aS2.value=a2; addTrail(); render2();
+    if(t<1) sweepAnim=requestAnimationFrame(step); else stopSweep(); };
+  sweepAnim=requestAnimationFrame(step);
+};
+
+/* tabs */
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id===t.dataset.tab));
+  if(t.dataset.tab==='p2') render2(); else render1();
+});
+setF1('sq'); setF2('cub');
+</script>
+</body>
+</html>
