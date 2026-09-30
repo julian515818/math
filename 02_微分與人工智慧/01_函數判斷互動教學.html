@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>函數判斷互動教學</title>
+<style>
+:root{
+  --bg:#f7f6f2; --card:#fff; --ink:#1d2330; --mute:#667085; --line:#e3e1da;
+  --curve:#2f6fdb; --ok:#1f9d6b; --bad:#d9463b; --accent:#2f6fdb; --grid:#eceae4; --axis:#9aa0ab;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181f; --card:#1d212b; --ink:#e8eaf0; --mute:#9aa3b5; --line:#2e3441;
+    --curve:#6c9dff; --ok:#4fd19d; --bad:#ff6b5e; --accent:#6c9dff; --grid:#262b36; --axis:#5c6475;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181f; --card:#1d212b; --ink:#e8eaf0; --mute:#9aa3b5; --line:#2e3441;
+  --curve:#6c9dff; --ok:#4fd19d; --bad:#ff6b5e; --accent:#6c9dff; --grid:#262b36; --axis:#5c6475;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.65}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.9rem}
+header p{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:18px}
+.card h2{margin:0 0 10px;font-size:1.2rem;display:flex;gap:10px;align-items:center}
+.num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:.9rem;flex:none}
+.def{font-size:1.1rem;padding:12px 14px;border-radius:10px;background:color-mix(in srgb,var(--accent) 10%,transparent);border-left:4px solid var(--accent)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.split{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:22px;align-items:start}
+@media (max-width:820px){.grid2,.split{grid-template-columns:1fr}}
+.mapbox{border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}
+.mapbox h3{margin:0 0 4px;font-size:1rem}
+svg.map{width:100%;max-width:300px}
+.ok{color:var(--ok)} .bad{color:var(--bad)} .mute{color:var(--mute)}
+canvas{width:100%;max-width:100%;display:block;border-radius:10px;background:var(--bg);touch-action:none;cursor:crosshair}
+.tabs{display:flex;flex-direction:column;gap:12px}
+.tabgroup h3{margin:0 0 6px;font-size:.98rem}
+.tabrow{display:flex;flex-wrap:wrap;gap:8px}
+button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.on{background:var(--accent);color:#fff;border-color:transparent}
+button.big{font-size:1.05rem;padding:10px 18px;font-weight:700}
+button.yes{background:var(--ok);color:#fff;border-color:transparent}
+button.no{background:var(--bad);color:#fff;border-color:transparent}
+button:disabled{opacity:.45;cursor:default}
+.eq{font-size:1.25rem;font-weight:700;margin:4px 0}
+.status{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--bg);font-size:.98rem;min-height:3em}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.note{color:var(--mute);font-size:.92rem}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.qhead{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;align-items:center}
+.pill{padding:3px 10px;border-radius:99px;background:var(--bg);border:1px solid var(--line);font-size:.9rem}
+.bar{height:6px;background:var(--line);border-radius:99px;overflow:hidden;margin:8px 0 12px}
+.bar>div{height:100%;background:var(--accent);width:0;transition:width .3s}
+.fb{margin-top:12px;padding:12px 14px;border-radius:10px;display:none}
+.fb.show{display:block}
+.fb.right{background:color-mix(in srgb,var(--ok) 14%,transparent);border-left:4px solid var(--ok)}
+.fb.wrong{background:color-mix(in srgb,var(--bad) 14%,transparent);border-left:4px solid var(--bad)}
+.summary{text-align:center;padding:20px}
+.summary .big{font-size:2.4rem;font-weight:800}
+table{border-collapse:collapse;width:100%;font-size:.92rem;margin-top:10px}
+th,td{border-bottom:1px solid var(--line);padding:5px 6px;text-align:left}
+footer{color:var(--mute);font-size:.85rem;text-align:center;margin-top:30px}
+/* ---------- avatar ---------- */
+.avwrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.av{width:100%;max-width:220px;cursor:pointer;user-select:none}
+.av svg{width:100%;display:block;overflow:visible}
+.av .bodyg{animation:bob 3.2s ease-in-out infinite;transform-origin:100px 200px}
+.av .eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+.av .hairL{animation:sway 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:top center}
+.av .hairR{animation:sway 3.2s ease-in-out infinite reverse;transform-box:fill-box;transform-origin:top center}
+.av .brow{transition:transform .3s;transform-box:fill-box}
+.av .browL{transform-origin:right center}.av .browR{transform-origin:left center}
+.av .mo{opacity:0;transition:opacity .25s}.av .mo.n{opacity:1}
+.av .blush,.av .sweat,.av .spark{opacity:0;transition:opacity .3s}
+.av.smile .mo.n,.av.frown .mo.n{opacity:0}
+.av.smile .mo.s{opacity:1}.av.frown .mo.f{opacity:1}
+.av.smile .blush{opacity:.55}.av.smile .spark{opacity:1}.av.frown .sweat{opacity:.9}
+.av.smile .brow{transform:translateY(-3px)}
+.av.frown .browL{transform:rotate(14deg) translateY(2px)}.av.frown .browR{transform:rotate(-14deg) translateY(2px)}
+.av.hop svg{animation:hop .7s ease}
+.av.shake svg{animation:shake .55s ease}
+.av .spark{animation:twinkle 1s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}
+@keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+@keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.bubble{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.95rem;margin-bottom:10px;min-height:2.6em;max-width:260px;text-align:center;transition:border-color .3s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--line);border-bottom:0}
+.bubble.good{border-color:var(--pos)}.bubble.good::after{border-top-color:var(--pos)}
+.bubble.bad{border-color:var(--neg)}.bubble.bad::after{border-top-color:var(--neg)}
+.qgrid{display:grid;grid-template-columns:230px minmax(0,1fr);gap:22px;align-items:start}
+.qgrid .avwrap{position:sticky;top:12px}
+@media (max-width:760px){.qgrid{grid-template-columns:1fr}.qgrid .avwrap{position:static}.qgrid .av{max-width:150px}}
+details.orig summary{cursor:pointer;color:var(--mute);font-size:.88rem;margin-top:8px}
+details.orig img{margin-top:6px}
+
+
+.bubble.good{border-color:var(--ok)}.bubble.good::after{border-top-color:var(--ok)}
+.bubble.bad{border-color:var(--bad)}.bubble.bad::after{border-top-color:var(--bad)}
+.intro{display:grid;grid-template-columns:minmax(0,1fr) 200px;gap:20px;align-items:start}
+.qwrap{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:18px;align-items:start}
+.qwrap .avwrap{position:sticky;top:12px}
+@media (max-width:860px){.intro,.qwrap{grid-template-columns:1fr}.intro .av,.qwrap .av{max-width:140px}.qwrap .avwrap{position:static;order:-1}}
+
+.split>*,.intro>*,.qwrap>*{min-width:0}
+@media (min-width:861px){.intro{grid-template-columns:minmax(0,1fr) 340px}.intro .avwrap{flex-direction:row;align-items:center;gap:10px}.intro .bubble{flex:1;margin:0}.intro .bubble::after{display:none}.intro .av{width:130px;flex:none}}
+</style>
+<style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line,#e3e1da);border-radius:12px;background:var(--card,var(--surface,#fff));color:var(--ink,#1d2330);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+.pu-badge img{width:58px;height:58px;display:block}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute,var(--muted,#667085))}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="pu-hd">
+  <div class="pu-hd-main">
+  <h1>什麼是函數？</h1>
+  <p>工程數學 ・ 互動教學：定義、垂直線檢驗、範例與隨機測驗</p>
+</div>
+  <div class="pu-badge"><img alt="靜宜大學校徽" src="data:image/webp;base64,UklGRp4NAABXRUJQVlA4IJINAABQLwCdASpkAGQAPpE8lkglo6IhNDhMcLASCWwAyJAJkoayxKYH9n30f7b/zF+c96Kf85vvvoAdMnXmnbN5u+ID1f7let9j/tP+rz73zJ7yfiZqBOo+SvoEe233Xv2f770F+uX/O9wD8vvKq8CLyr9afgC/ln9v/5X+C9ff/s/0/n3+kf/X/m/gK/Wz/q+vB7Pv3G9nD9qHFLDlY7viCW1/x/jRblVR/R3XoZS2XKu0cqedDpp3BGWkYNMzYdRkjmQnRE55yD4o50+qWmStkNkZhsI9Zo3VypJ62c71sQoWGxkmmsEAS4b1MFr82ULQBw7NEmQZ6G/Z35mWquOa2a1qiJsBP80y6mZb5zwYcVZyLDNEPnwFy2JgpQKDmz3TMMshOdquwEOcy/oHrRx/yt9zNyo/e/Kzrz7E0gD0/jrvnK+jtphdBC7c+QSA4gHi2wr12ekIUU44ga4VxjSpb4dT6kRhYj3wAX/ryYxW22D6F8xOs08XqIbsehEpS9KQb9ENWqAA/v9dAW0liceKq+YH0mRfu1vrWFByLR89d7VQsjuxClxIRffyOM1vXt+aazxaL7o1EM6cbazY3CksDSQ08EUyLFwACckGP2eRoZ5+Tu6xVk/ODdvdo+RJrIdNvdBSFr0QeDRz/5qinU2EKBkrcrZzcbk68o2ZPWIxSelUtHRpOsAuU4QQWhyPDIi2y+ZPGu6SjMfTgdungbpxguwdcsNK0BYRztV+jfNcVVQ9n6IWjA6aLKEBXneSX/ZQ7+vhJyEwgOQtEN2nM24mXuNs5X716YBv1qdmt9afYpjnoejTOQA2YPaKJJdJCOf8tBRjFF8lmf3JOIphtNfdUNxB4l1WaTQ0p2BaTuuK/cf0YXsSCoyzVHwF8AzF1SSM0mu7I/OFv/0B2yeX+Nai/LWKRxOND2qDVQkNIvrgvJ19vDRReS4R2UfaqQNCw0Td67pinRSLbeaT2MArke3jA31vHxLWFxyukzgT11ipse3hYXtdHDPuJILC3Jf+WyhnzrbECxWlekXGZHvfCq4byZgFC4EF006FVPkTG4mD8wLWCNRw1+amvRzIJpP10lX3IeIBV8tFoguMCTa6jKR67qhrroz6PVV6n4jYQJlEZU9uBMjgxGaBSpgajd0fGKC5DM7BWdoEYxj4cJqaAt0+vAqeW8C4pPZvpSxAupuVT6kjPiY+Glpm+Z2c29VdrPBCrujf4Oua77+elnYJlstt/ZzHe78Ca4+MCu+DgggtLIfzUSmISvQbVg6fU5PhowLwmU4I2OfCzFVzIrPhXZclWluD6cJbSQ5rPUqUCseByBFGIHsxNGxVCngn2q3kRPTzCq/Jrgtlhs9S5bLfeUN7jVYJmfKqQYQvmTwKT6bfyIx50R1fobx40eSAevQWahInd3Bwb9FPB1udcvOnF6KLTgJzPWGR4gExOTRE2XHm4SC55Jt4vo0K44Mk0mayLGynvlwaU2ghoRE8Oal8FDH026NyQFvN8iBVWVZgYceNoxO/WGWY0Gmy3zOck1Ysv/lLK021wwXY14Nm4aTWrEveonV/0h30SUOvc4VfCqlc5MQXaxQlZzOlgks4DqKWDUNlh0dCxJG4ASnAsg4kv5OnSoKJF9kD5lVf9goDmc9mUJ8Pmrohf/iS/Y3yWHkMUijVp2CifVfBohGu3dh1TS8CxfksZi+gYOrEvLAsIQgqmRBPeYLfgtoZgmfoLvYccjHfP7tpWO7zfp/N2ZbiOeVuN7JgLTup04o+LgleesjgSv5ovAV/C2/aMIg+h8ND/i+lHlqxlZZu8e/2zQCgpocgWGzeT1C67SQHW5CoYOQIjnV1sgDM9SP695ubjsaTTK3cYc2xLQryttnjYzliXC4moearYZsYStCrSsf/u1htDfIEQo5n9KFzGY0F0pgid0RBcab+EqWDPLM1jVwgcVAUZ3mWpTA+MnPmN22uov3pLDSQRUkJNxFddPnCcZz8zTtH3mwfYx+BAehlbkKKkpbOmVfJykW1dCLJpuJBRTMOeqWUionyxochrDNlcMYnYYD00SDhaH6FvRX8fg1TWW+SCq1+A2rb8u5CXHcwiMzbZXM/Sf8ajIj2+Bw+UvkXAhZuRArzT56c5KeAsRFRPb3y0jRI3vJKd4LDRtKNPiP6blJM7lqnQ14FugOOMKd0OPYnPC5Zjj+lFDAWJRLYa4345zRrwt6wmcuXIG0p3ZpyaK2AEzzWTDUQwfofDzsgZOue0GW+Kusk4B0jjVPhInfoAk7A2B+tTk9/rrr9b0ycHn4tQfk1GFkWs213SVfK0Pa+yIULFkzVUdkodXT923Qlf3rket2T/fEAPZ2wDrV+0LsG6PwkA2CKdrt3oXOmFQdjH8Ezb/JzDcnvhNIsp6iGQgN4erY0i2NJVSTzWXvnm1VCq2U9eXFRBmEqIxdJ9eqntQT+UeTpy8beiZYqbCLmXhMTZf9aebr/bDz96T2HRvchccO/WwanBicoCSkCGZlm6Iw+Xh/kHyXeIMmuON4WqTyVPbffFmmQ8F6ipQJP1oCNXmwU/8ad9PjLU5yLneujliwL7gREgSsQpVFagPkmh7ud8KAQmsHZMwpKM7KSJiGfS3bhSgwQ1q2GMk8J6v1Ph+j4YJmdeZV3SFZJLb9PHHM5n4/jDmOtDu1l8pFZQhVtW1TihZJHnvYqsNKro+SGABmKjFn1yfuqRcrRJJ/MyfTzDKMQf8nNxPfv7OvJbEJWTBysH1D1pLg/yLstx7lPDottqJnKXNcdMEfSf9QRVrloR6zEGM4GtkCOETrSDLojdVymcGRP6kH9yNdMcucGly1uv2B1GR6iYYuiyMv5JeOm8pZ8M9j+7y+AvDkwM+d5BwLMgFA6xtfCiDD7r/fD/mWRIOOb8EdNtWgxgOYd/ueerPaG+vp8X4uzt12Yxc2nEvVoji2UuicAjqRu0lSGZpsb6H/z/Wgzb4F3YCkw+0DdoJEdO+N8aiOdeeqYjfKQvWRY/vMG4CZDRMvIOLJP8J6X3FtkF/9rO7DS45YszN62iluqndrbOt3dmfB4JLd3Zm/8wRIPsCSTl7X36KcPizCylvV1jX9gZ6DUJICft8LRdjngvbac2b2xHFDXwXmaNcaEQetz4LfvwRviIbs4EKVFx+h2+hy/Et8LimVIVWe0xea5X7GBVaCTxxxikeLT6Rl+YhMKeMyFQCE0M/+6E2j+H5lpb3PI9etwBYbAK5eNjpqzksxqSTTezfrx23r/HbaU2rtC3zpKnM6FdkxCX+XKRtfx8hIqUOD8HxImKS7GNTSA9VzsqSu4PDtJZ4Bj94DBCTHwz20CyZYcw2SaS+uuAcbdia50Zja07Jnw8db16URDljnVYsfvw81dD4Dq+6yY4qg38d4yYGjMNgun1rZJpCz7rnSbRSofo1R/I5jrVqDIY7anl90txbq+4589jJ/puZPjRmKgGhVQjZnM6BtqJ0JO1YAsd4NxqR76VsPck95vhqd05c4jXhgens6sBBAWap4s7x7VdBqEqwvSweJm64eiU92CIosEGzRgj23O+eZjjIkHLY+US0HT7jjAJ1V+RO0VHN+MCbvFfhJQGg1u0Lw4ebRuaqBNlL1Epg0Ih09l4skDcaOdjT6LAHvmoRRphx2GScPwXBM05rWic/Pb06Tztmu0jFypGL1L7SCWUtoBtYtwuNuPx+By5M1AJnBdMqzmDabbnwZuXUHhbZSH7T8xj8j7SI88xd6zBPzAGSu7jefemLava/cMkvVLWfYnXbY7vGFQzYaGhUZ8ZSXWutIK33AY7Swt35FrdIFFfHOrmo7v4gbTpPA/oAFHnenV/r2TV1J/GD8MWaAUNO1cr2ruaE528x7mJcdyR38nu7n+mnkhRfhMTRurzmgqX+Lf4u3cDAXxmi/17ZUyl8FlPTG1+wGR2TGSKroKuC1QbAkBPa3NIymuy2QV9trQSG8wfZ+ilCfwWC53h22me8Kc7EDflDFFBeBlNtQQgXZTCdT6qTGKdNabKfvEMlYbuTBEsOy+j5Mpzr91/JrvFR5jGy0nqwgXlhBeu8KDWHtzhp7GO2WlXQ5/oXM2g0RVeFZEOWT8VonUsIC7JJeXy4LYs9YgYJXItv320So10IiCoQoyHrvrZrgxa3xM/3xENs+VWC4Ct45r4TdadVFPvV1MhvwcBTP8L/Hwt+z0HW82oEUHgxliaFSLCUyMaZk0NYwMQ5jfamJBiduhM86DBlu2ONEqF9NJlIA8Y8/d6utk/69Knq/u+QjxtVKO6gak8QlSwf3Rv7mj9wcZaQ1bwRPbLRuMcN/fbcycATWoKAmJsaVGHKmJWkv0qKuZMORw9WYnLb32vbRxUOCZTfFQ6q4hLdsOoEhqEDatFqaqKNRa4enJuHgrospFv7USi1Cnk76jLFmPch22vTPAlmnwL1oDVysXkFPMrgIS/Fpm+IJgxdL6N8DaNYraZJdek94iUE67yBbhh+Bn22N/T308LxI+f3OhLK2S9eSL+SUB3SY3URkvWtOQdI4ABVJRaC9J1Q6EUMJy+/atlQmZyAjLSvJRmYlnGSrxL53XIZbC92uU/Iw/zOeftQrSkuBpfze+tn7crQlLX6xHIsQBhQX/UFD7WFKsKS0xikAtyrWAAAAAAAA="><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</header>
+
+<!-- 1 concept -->
+<div class="card">
+  <h2><span class="num">1</span>函數的定義</h2>
+  <div class="intro">
+    <div>
+  <div class="def">
+    設 X、Y 為兩個集合。若對 X 中<b>每一個</b>元素 x，都有 Y 中<b>唯一一個</b>元素 y 與之對應，
+    則稱此對應關係 f 為從 X 到 Y 的<b>函數</b>，記為 y = f(x)。
+  </div>
+  <p>重點只有一句話：<b>一個輸入 x 不能對應到兩個以上的輸出 y</b>。反過來，兩個不同的 x 對應到同一個 y（多對一）是<b>允許的</b>。</p>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub1">Salve！我是萊布尼茲老師，「函數」這個詞就是我最早開始用的。點我聽故事！</div><div class="av" id="av1"></div></div>
+  </div>
+  <div class="grid2">
+    <div class="mapbox">
+      <h3 class="ok">✔ 是函數（多對一也可以）</h3>
+      <svg class="map" viewBox="0 0 300 170" id="mapOK"></svg>
+    </div>
+    <div class="mapbox">
+      <h3 class="bad">✘ 不是函數（一對多）</h3>
+      <svg class="map" viewBox="0 0 300 170" id="mapNO"></svg>
+    </div>
+  </div>
+  <h3 style="margin:16px 0 4px;font-size:1.05rem">在圖形上怎麼看？「垂直線檢驗」</h3>
+  <p style="margin:0">在 xy 平面上，<b>任何一條垂直線 x = c 與圖形最多只交於一點</b>，該圖形就代表 y 是 x 的函數。
+  只要找到<b>一條</b>垂直線與圖形交於兩點以上，就代表某個 x 對應到多個 y，因此<b>不是函數</b>。</p>
+</div>
+
+<!-- 2 examples -->
+<div class="card">
+  <h2><span class="num">2</span>範例：3 個函數、3 個非函數</h2>
+  <div class="split">
+    <div>
+      <canvas id="exCanvas"></canvas>
+      <div style="margin-top:10px">
+        <label class="note">垂直線位置 x = <b id="exCval">0.00</b>（也可以直接在圖上拖曳或移動滑鼠）</label>
+        <input type="range" id="exRange" min="-5" max="5" step="0.01" value="0">
+      </div>
+    </div>
+    <div class="tabs">
+      <div class="tabgroup"><h3 class="ok">✔ 是函數</h3><div class="tabrow" id="tabsYes"></div></div>
+      <div class="tabgroup"><h3 class="bad">✘ 不是函數</h3><div class="tabrow" id="tabsNo"></div></div>
+      <div>
+        <div class="eq" id="exEq"></div>
+        <div class="note" id="exDesc"></div>
+      </div>
+      <div class="row"><button id="exSweep">▶ 自動掃描垂直線</button></div>
+      <div class="status" id="exStatus"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 3 quiz -->
+<div class="card">
+  <h2><span class="num">3</span>隨機測驗：這個圖形是函數嗎？</h2>
+<div class="qwrap">
+  <div>
+    <div id="quizArea">
+    <div class="qhead">
+      <div class="row"><span class="pill" id="qNo">第 1 / 10 題</span><span class="pill">得分 <b id="qScore">0</b></span><span class="pill">連對 <b id="qStreak">0</b></span></div>
+      <button id="qHint">💡 提示：開啟垂直線</button>
+    </div>
+    <div class="bar"><div id="qBar"></div></div>
+    <div class="split">
+      <div><canvas id="qCanvas"></canvas></div>
+      <div>
+        <p style="margin-top:0">觀察左邊的圖形（y 為 x 的關係），判斷 <b>y 是否為 x 的函數</b>？</p>
+        <div class="row">
+          <button class="big yes" id="bYes">✔ 是函數</button>
+          <button class="big no" id="bNo">✘ 不是函數</button>
+        </div>
+        <div class="fb" id="qFb"></div>
+        <div class="row" style="margin-top:12px"><button class="big" id="qNext" style="display:none">下一題 →</button></div>
+      </div>
+    </div>
+  </div>
+  <div id="summary" class="summary" style="display:none"></div>
+  </div>
+  <div class="avwrap"><div class="bubble" id="bub2">看圖判斷是不是函數！答對我會笑，答錯我會皺眉喔。</div><div class="av" id="av2"></div></div>
+  </div>
+</div>
+
+<footer>函數判斷互動教學 ・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const R=5;
+
+/* ---------- mapping diagrams ---------- */
+function mapSVG(el, pairs){
+  const L=['1','2','3'], Rr=['a','b','c'], ly=[40,85,130];
+  const ink=css('--ink'), line=css('--line'), cur=css('--curve'), mute=css('--mute');
+  let s=`<defs><marker id="m${el.id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="${cur}"/></marker></defs>`;
+  s+=`<ellipse cx="60" cy="85" rx="40" ry="72" fill="none" stroke="${line}" stroke-width="2"/><ellipse cx="240" cy="85" rx="40" ry="72" fill="none" stroke="${line}" stroke-width="2"/>`;
+  s+=`<text x="60" y="12" text-anchor="middle" fill="${mute}" font-size="13">X（輸入）</text><text x="240" y="12" text-anchor="middle" fill="${mute}" font-size="13">Y（輸出）</text>`;
+  pairs.forEach(([i,j,red])=>{s+=`<line x1="72" y1="${ly[i]}" x2="226" y2="${ly[j]}" stroke="${red?css('--bad'):cur}" stroke-width="2.2" marker-end="url(#m${el.id})"/>`;});
+  L.forEach((t,i)=>s+=`<circle cx="60" cy="${ly[i]}" r="4" fill="${ink}"/><text x="46" y="${ly[i]+5}" text-anchor="end" fill="${ink}" font-size="15">${t}</text>`);
+  Rr.forEach((t,i)=>s+=`<circle cx="240" cy="${ly[i]}" r="4" fill="${ink}"/><text x="254" y="${ly[i]+5}" fill="${ink}" font-size="15">${t}</text>`);
+  el.innerHTML=s;
+}
+function drawMaps(){
+  mapSVG($('mapOK'),[[0,0],[1,1],[2,1]]);
+  mapSVG($('mapNO'),[[0,0,1],[0,2,1],[1,1],[2,1]]);
+}
+
+/* ---------- shapes ---------- */
+function mkFn(f){
+  const lines=[]; let cur=[], prev=null;
+  for(let i=0;i<=1200;i++){
+    const x=-R+2*R*i/1200, y=f(x);
+    const good=isFinite(y)&&Math.abs(y)<=R+1;
+    if(!good||(prev!==null&&Math.abs(y-prev)>3)){ if(cur.length>1) lines.push(cur); cur=good?[[x,y]]:[]; prev=good?y:null; continue; }
+    cur.push([x,y]); prev=y;
+  }
+  if(cur.length>1) lines.push(cur);
+  return lines;
+}
+function mkPar(fx,fy,t0,t1,n=900){ const p=[]; for(let i=0;i<=n;i++){const t=t0+(t1-t0)*i/n; p.push([fx(t),fy(t)]);} return p; }
+
+const EX_FN=[
+  {eq:'y = x² − 2', fn:true, lines:mkFn(x=>x*x-2), note:'拋物線開口向上。x 與 −x 會對應到同一個 y（多對一），這是允許的。'},
+  {eq:'y = 2 sin x', fn:true, lines:mkFn(x=>2*Math.sin(x)), note:'週期函數：很多個 x 對應到同一個 y，但每個 x 只有一個 y。'},
+  {eq:'y = |x| − 1', fn:true, lines:mkFn(x=>Math.abs(x)-1), note:'有尖點的 V 形圖形，仍然通過垂直線檢驗。'}
+];
+const EX_NO=[
+  {eq:'x² + y² = 9（圓）', fn:false, lines:[mkPar(Math.cos,Math.sin,0,2*Math.PI).map(([a,b])=>[3*a,3*b])], note:'解出 y = ±√(9 − x²)，一個 x 對應正負兩個 y。'},
+  {eq:'x = y² − 2（橫躺的拋物線）', fn:false, lines:[mkPar(t=>t*t-2,t=>t,-2.65,2.65)], note:'把 x、y 對調後，原本的「多對一」變成了「一對多」。'},
+  {eq:'x = 2（垂直線）', fn:false, lines:[[[2,-R-1],[2,R+1]]], vline:2, note:'x = 2 對應到無限多個 y；其他 x 則完全沒有對應值。'}
+];
+const POOL=[
+  {eq:'y = 0.5x + 1', fn:true, lines:mkFn(x=>0.5*x+1)},
+  {eq:'y = x² − 2', fn:true, lines:mkFn(x=>x*x-2)},
+  {eq:'y = |x| − 1', fn:true, lines:mkFn(x=>Math.abs(x)-1)},
+  {eq:'y = eˣ', fn:true, lines:mkFn(Math.exp)},
+  {eq:'y = 2 sin x', fn:true, lines:mkFn(x=>2*Math.sin(x))},
+  {eq:'y = x³/4 − x', fn:true, lines:mkFn(x=>x*x*x/4-x)},
+  {eq:'y = 1/x', fn:true, lines:mkFn(x=>Math.abs(x)<1e-9?NaN:1/x), note:'x = 0 不在定義域內沒有關係；定義域內的每個 x 仍只有一個 y。'},
+  {eq:'y = √(x + 4)', fn:true, lines:mkFn(x=>x<-4?NaN:Math.sqrt(x+4)), note:'只取正根，所以每個 x 只有一個 y。'},
+  {eq:'y = 3（水平線）', fn:true, lines:mkFn(x=>3), note:'所有 x 都對應到同一個 y = 3，多對一是允許的（常數函數）。'},
+  {eq:'y = √(9 − x²)（上半圓）', fn:true, lines:mkFn(x=>9-x*x<0?NaN:Math.sqrt(9-x*x)), note:'完整的圓不是函數，但只取上半圓就是函數。'},
+  {eq:'y = 2 cos(x/2) + x/2', fn:true, lines:mkFn(x=>2*Math.cos(x/2)+x/2)},
+  {eq:'x² + y² = 9（圓）', fn:false, lines:[mkPar(t=>3*Math.cos(t),t=>3*Math.sin(t),0,2*Math.PI)]},
+  {eq:'x²/16 + y²/4 = 1（橢圓）', fn:false, lines:[mkPar(t=>4*Math.cos(t),t=>2*Math.sin(t),0,2*Math.PI)]},
+  {eq:'x = y² − 2', fn:false, lines:[mkPar(t=>t*t-2,t=>t,-2.65,2.65)]},
+  {eq:'x = |y| − 1', fn:false, lines:[mkPar(t=>Math.abs(t)-1,t=>t,-5.5,5.5)]},
+  {eq:'x = 2 sin y', fn:false, lines:[mkPar(t=>2*Math.sin(t),t=>t,-5.5,5.5)]},
+  {eq:'x = 2（垂直線）', fn:false, lines:[[[2,-R-1],[2,R+1]]], vline:2},
+  {eq:'x² − y² = 1（雙曲線）', fn:false, lines:[mkPar(t=>Math.cosh(t),Math.sinh,-2.35,2.35),mkPar(t=>-Math.cosh(t),Math.sinh,-2.35,2.35)]},
+  {eq:'x = y³/4 − y', fn:false, lines:[mkPar(t=>t*t*t/4-t,t=>t,-3.2,3.2)]},
+  {eq:'x = −(y − 1)² + 3', fn:false, lines:[mkPar(t=>-(t-1)*(t-1)+3,t=>t,-1.8,3.8)]}
+];
+
+/* vertical line intersections */
+function hits(shape,c){
+  if(shape.vline!==undefined && Math.abs(c-shape.vline)<0.06) return {inf:true,ys:[]};
+  const ys=[];
+  for(const L of shape.lines) for(let i=0;i<L.length-1;i++){
+    const [x1,y1]=L[i],[x2,y2]=L[i+1];
+    if(x1===x2) continue;
+    if((x1-c)*(x2-c)<=0){ const t=(c-x1)/(x2-x1), y=y1+t*(y2-y1); if(Math.abs(y)<=R) ys.push(y); }
+  }
+  ys.sort((a,b)=>a-b);
+  const out=[]; for(const y of ys) if(!out.length||Math.abs(y-out[out.length-1])>0.08) out.push(y);
+  return {inf:false,ys:out};
+}
+function counterexample(shape){
+  if(shape.vline!==undefined) return shape.vline;
+  let best=null,bn=1;
+  for(let c=-4.5;c<=4.5;c+=0.05){ const n=hits(shape,c).ys.length; const score=n-Math.abs(c)*0.01; if(n>bn||(n===bn&&best!==null&&Math.abs(c)<Math.abs(best)&&n>1)){bn=n;best=c;} }
+  // prefer a "nice" value
+  if(best!==null){ for(const c of [0,1,-1,2,-2,0.5,-0.5,1.5,-1.5,3,-3]) if(hits(shape,c).ys.length>=2) return c; }
+  return best;
+}
+const f2=v=>(Math.abs(v)<5e-3?0:v).toFixed(2);
+
+/* ---------- plotting ---------- */
+function makeView(canvas){
+  const v={canvas,ctx:canvas.getContext('2d'),shape:null,c:0,showLine:true,onMove:null};
+  const toX=e=>{const r=canvas.getBoundingClientRect(); return -R+2*R*(e.clientX-r.left)/r.width;};
+  let down=false;
+  canvas.addEventListener('pointerdown',e=>{down=true;if(v.showLine&&v.onMove) v.onMove(toX(e));});
+  window.addEventListener('pointerup',()=>down=false);
+  canvas.addEventListener('pointermove',e=>{ if(!v.showLine||!v.onMove) return; if(e.pointerType==='mouse'||down) v.onMove(toX(e)); });
+  return v;
+}
+function sizeView(v){
+  v.canvas.style.width='0px';
+  const w=v.canvas.parentElement.clientWidth, s=Math.min(w,560), d=window.devicePixelRatio||1;
+  v.canvas.width=s*d; v.canvas.height=s*d; v.canvas.style.width=s+'px'; v.canvas.style.height=s+'px';
+  v.ctx.setTransform(d,0,0,d,0,0); v.size=s;
+}
+function draw(v){
+  const ctx=v.ctx, S=v.size; if(!S) return;
+  const X=x=>(x+R)/(2*R)*S, Y=y=>S-(y+R)/(2*R)*S;
+  ctx.clearRect(0,0,S,S);
+  ctx.strokeStyle=css('--grid'); ctx.lineWidth=1;
+  for(let i=-R;i<=R;i++){ctx.beginPath();ctx.moveTo(X(i),0);ctx.lineTo(X(i),S);ctx.moveTo(0,Y(i));ctx.lineTo(S,Y(i));ctx.stroke();}
+  ctx.strokeStyle=css('--axis'); ctx.lineWidth=1.6;
+  ctx.beginPath();ctx.moveTo(0,Y(0));ctx.lineTo(S,Y(0));ctx.moveTo(X(0),0);ctx.lineTo(X(0),S);ctx.stroke();
+  ctx.fillStyle=css('--mute'); ctx.font='11px sans-serif';
+  for(let i=-R+1;i<R;i++) if(i){ctx.fillText(i,X(i)-4,Y(0)+14);ctx.fillText(i,X(0)+5,Y(i)+4);}
+  ctx.font='italic 13px serif'; ctx.fillText('x',S-12,Y(0)-6); ctx.fillText('y',X(0)+8,12);
+  if(!v.shape) return;
+  ctx.strokeStyle=css('--curve'); ctx.lineWidth=3; ctx.lineJoin='round';
+  for(const L of v.shape.lines){ctx.beginPath();L.forEach(([x,y],i)=>i?ctx.lineTo(X(x),Y(y)):ctx.moveTo(X(x),Y(y)));ctx.stroke();}
+  if(v.showLine){
+    const h=hits(v.shape,v.c), bad=h.inf||h.ys.length>1, col=bad?css('--bad'):css('--ok');
+    ctx.strokeStyle=col; ctx.lineWidth=2.2; ctx.setLineDash([7,5]);
+    ctx.beginPath();ctx.moveTo(X(v.c),0);ctx.lineTo(X(v.c),S);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle=col;
+    if(h.inf){ctx.globalAlpha=.25;ctx.fillRect(X(v.c)-5,0,10,S);ctx.globalAlpha=1;}
+    for(const y of h.ys){ctx.beginPath();ctx.arc(X(v.c),Y(y),6.5,0,7);ctx.fill();ctx.strokeStyle=css('--card');ctx.lineWidth=2;ctx.stroke();}
+    ctx.font='bold 13px sans-serif'; ctx.fillStyle=col;
+    const lbl=h.inf?'無限多個交點':`${h.ys.length} 個交點`;
+    const tx=X(v.c)>S-110?X(v.c)-104:X(v.c)+8; ctx.fillText(lbl,tx,20);
+    return h;
+  }
+}
+function describe(h,c){
+  if(h.inf) return `<span class="bad"><b>x = ${f2(c)} 與圖形交於無限多點</b>：一個 x 對應到無限多個 y。</span>`;
+  const n=h.ys.length;
+  if(n===0) return `<span class="mute">x = ${f2(c)} 不在定義域內（垂直線沒有碰到圖形），不影響判斷。</span>`;
+  if(n===1) return `<span class="ok"><b>1 個交點</b>：x = ${f2(c)} 只對應 y = ${f2(h.ys[0])}。</span>`;
+  return `<span class="bad"><b>${n} 個交點</b>：x = ${f2(c)} 同時對應到 ${h.ys.map(y=>'y = '+f2(y)).join('、')}，一對多！</span>`;
+}
+
+/* ---------- examples ---------- */
+const ex=makeView($('exCanvas'));
+let exShape=EX_FN[0], sweeping=null;
+function exRender(){
+  ex.shape=exShape; ex.c=+$('exRange').value; $('exCval').textContent=f2(ex.c);
+  const h=draw(ex);
+  $('exStatus').innerHTML=describe(h,ex.c);
+}
+ex.onMove=c=>{ if(sweeping) return; $('exRange').value=Math.max(-R,Math.min(R,c)); exRender(); };
+$('exRange').oninput=exRender;
+function buildTabs(){
+  const mk=(arr,box)=>{ box.innerHTML=''; arr.forEach(s=>{const b=document.createElement('button'); b.textContent=s.eq.replace(/（.*）/,''); b.onclick=()=>selectEx(s,b); box.appendChild(b); s._btn=b;}); };
+  mk(EX_FN,$('tabsYes')); mk(EX_NO,$('tabsNo'));
+}
+function selectEx(s){
+  exShape=s; [...EX_FN,...EX_NO].forEach(t=>t._btn.classList.toggle('on',t===s));
+  $('exEq').innerHTML=`${s.eq} <span class="${s.fn?'ok':'bad'}" style="font-size:.95rem">${s.fn?'✔ 是函數':'✘ 不是函數'}</span>`;
+  $('exDesc').textContent=s.note;
+  if(!s.fn){ const c=counterexample(s); $('exRange').value=c; } else $('exRange').value=0.7;
+  exRender();
+}
+$('exSweep').onclick=()=>{
+  if(sweeping) return; const t0=performance.now(), T=3000, s=exShape; let maxN=0;
+  sweeping=true; $('exSweep').disabled=true;
+  const step=t=>{ const p=Math.min(1,(t-t0)/T); $('exRange').value=-R+2*R*p; exRender();
+    const h=hits(s,+$('exRange').value); maxN=Math.max(maxN,h.inf?99:h.ys.length);
+    if(p<1) requestAnimationFrame(step);
+    else{ sweeping=null; $('exSweep').disabled=false;
+      if(!s.fn){ $('exRange').value=counterexample(s); exRender(); }
+      $('exStatus').innerHTML+= s.fn?'<br><b class="ok">掃描完畢：每條垂直線最多 1 個交點 ⇒ 是函數。</b>':'<br><b class="bad">掃描完畢：找到交點超過 1 個的垂直線 ⇒ 不是函數。</b>';
+    } };
+  requestAnimationFrame(step);
+};
+
+/* ---------- quiz ---------- */
+const qv=makeView($('qCanvas'));
+const NQ=10; let qList=[], qi=0, score=0, streak=0, answered=false, hintUsed=false, log=[];
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function newRound(){
+  const yes=shuffle(POOL.filter(s=>s.fn)), no=shuffle(POOL.filter(s=>!s.fn));
+  const ny=4+Math.floor(Math.random()*3); // 4~6 個函數題
+  qList=shuffle([...yes.slice(0,ny),...no.slice(0,NQ-ny)]);
+  qi=0;score=0;streak=0;log=[];
+  $('quizArea').style.display=''; $('summary').style.display='none';
+  loadQ();
+  if(typeof AV2!=='undefined')AV2.mood('','新的一輪！看圖判斷是不是函數。',true);
+}
+function loadQ(){
+  answered=false; hintUsed=false;
+  qv.shape=qList[qi]; qv.showLine=false; qv.c=0;
+  $('qNo').textContent=`第 ${qi+1} / ${NQ} 題`; $('qScore').textContent=score; $('qStreak').textContent=streak;
+  $('qBar').style.width=(qi/NQ*100)+'%';
+  $('qFb').className='fb'; $('qFb').innerHTML=''; $('qNext').style.display='none';
+  $('bYes').disabled=$('bNo').disabled=false; $('qHint').disabled=false;
+  draw(qv);
+}
+qv.onMove=c=>{ qv.c=Math.max(-R,Math.min(R,c)); draw(qv); };
+$('qHint').onclick=()=>{ hintUsed=true; qv.showLine=true; qv.c=0; draw(qv); $('qHint').disabled=true; };
+function answer(saysFn){
+  if(answered) return; answered=true;
+  const s=qList[qi], right=saysFn===s.fn;
+  if(right){score++;streak++;} else streak=0;
+  log.push({eq:s.eq,fn:s.fn,right});
+  $('qScore').textContent=score; $('qStreak').textContent=streak;
+  $('bYes').disabled=$('bNo').disabled=true; $('qHint').disabled=true;
+  qv.showLine=true; qv.c=s.fn?0.7:counterexample(s); const h=draw(qv);
+  let msg=`<b>${right?'✔ 答對了！':'✘ 答錯了。'}</b> 這個圖形是 <b>${s.eq}</b>，${s.fn?'<span class="ok">是函數</span>':'<span class="bad">不是函數</span>'}。<br>`;
+  msg+= s.fn ? '任何一條垂直線與圖形最多只交於一點，所以每個 x 只對應一個 y。' : describe(h,qv.c)+' 找到一條這樣的垂直線就足以判定不是函數。';
+  if(s.note) msg+=`<br><span class="mute">補充：${s.note}</span>`;
+  msg+='<br><span class="mute">你可以在圖上移動垂直線自己驗證。</span>';
+  $('qFb').innerHTML=msg; $('qFb').className='fb show '+(right?'right':'wrong');
+  $('qNext').textContent= qi===NQ-1?'看成績 →':'下一題 →'; $('qNext').style.display='';
+  if(right) AV2.mood('smile',streak>=3?`連對 ${streak} 題！Magnifique！🎉`:pick(PRAISE));
+  else AV2.mood('frown',s.fn?pick(SIGH_FN):pick(SIGH_NO));
+}
+$('bYes').onclick=()=>answer(true);
+$('bNo').onclick=()=>answer(false);
+$('qNext').onclick=()=>{ qi++; if(qi<NQ) loadQ(); else showSummary(); };
+function showSummary(){
+  $('qBar').style.width='100%';
+  $('quizArea').style.display='none';
+  const pct=score/NQ, msg=pct===1?'滿分！垂直線檢驗你已經完全掌握了 🎉':pct>=0.7?'很不錯！再看看答錯的題目。':'建議回到上面的範例，用垂直線多試幾次。';
+  $('summary').innerHTML=`<div class="big">${score} / ${NQ}</div><p>${msg}</p>
+   <table><thead><tr><th>#</th><th>圖形</th><th>正確答案</th><th>你的結果</th></tr></thead><tbody>
+   ${log.map((r,i)=>`<tr><td>${i+1}</td><td>${r.eq}</td><td class="${r.fn?'ok':'bad'}">${r.fn?'是函數':'不是函數'}</td><td>${r.right?'✔':'<span class="bad">✘</span>'}</td></tr>`).join('')}
+   </tbody></table><p style="margin-top:16px"><button class="big yes" id="again">再玩一次（重新隨機出題）</button></p>`;
+  $('summary').style.display='';
+  $('again').onclick=newRound;
+  AV2.mood(pct>=0.9?'smile':pct>=0.6?'':'frown',pct===1?`滿分 ${score}/${NQ}！Optime！🎉`:pct>=0.7?`${score}/${NQ}，很不錯！看看答錯的題目。`:`${score}/${NQ}……回到第 2 節用垂直線多試幾次吧。`,true);
+}
+
+
+/* ---------- animated Leibniz ---------- */
+const LEIB_SVG=`<svg viewBox="0 0 200 230" aria-label="萊布尼茲老師動畫">
+ <g class="bodyg">
+  <path d="M20 232 Q26 172 100 162 Q174 172 180 232 Z" fill="#5a3a40"/>
+  <path d="M40 232 Q60 190 96 176 Q70 200 64 232 Z" fill="#76525a"/>
+  <path d="M44 150 Q30 80 60 50 Q100 22 140 50 Q170 80 156 150 Q150 200 130 208 L70 208 Q50 200 44 150 Z" fill="#2e2119"/>
+  <g fill="#3a291f" stroke="#1f150e" stroke-width="1"><circle cx="50" cy="70" r="11"/><circle cx="44" cy="92" r="12"/><circle cx="42" cy="116" r="12"/><circle cx="44" cy="140" r="12"/><circle cx="48" cy="164" r="12"/><circle cx="54" cy="188" r="11"/><circle cx="62" cy="206" r="10"/><circle cx="60" cy="52" r="10"/><circle cx="150" cy="70" r="11"/><circle cx="156" cy="92" r="12"/><circle cx="158" cy="116" r="12"/><circle cx="156" cy="140" r="12"/><circle cx="152" cy="164" r="12"/><circle cx="146" cy="188" r="11"/><circle cx="138" cy="206" r="10"/><circle cx="140" cy="52" r="10"/></g>
+  <rect x="88" y="134" width="24" height="30" rx="8" fill="#e6bd9c"/>
+  <path d="M78 156 Q100 176 122 156 L118 198 Q100 208 82 198 Z" fill="#f4f2ed" stroke="#d3cdc2" stroke-width="1.2"/>
+  <path d="M90 176 Q100 184 110 176 M92 188 Q100 194 108 188" stroke="#d9d3c7" stroke-width="1.2" fill="none"/>
+  <ellipse cx="100" cy="104" rx="30" ry="40" fill="#ecc4a4"/>
+  <ellipse class="blush" cx="81" cy="115" rx="7" ry="4.5" fill="#f08080"/>
+  <ellipse class="blush" cx="119" cy="115" rx="7" ry="4.5" fill="#f08080"/>
+  <path d="M68 80 Q68 48 100 44 Q132 48 132 80 Q120 64 100 64 Q80 64 68 80 Z" fill="#2e2119"/>
+  <g fill="#3a291f" stroke="#1f150e" stroke-width="1"><circle cx="76" cy="46" r="11"/><circle cx="92" cy="38" r="12"/><circle cx="108" cy="38" r="12"/><circle cx="124" cy="46" r="11"/><circle cx="70" cy="62" r="9"/><circle cx="130" cy="62" r="9"/></g>
+  <g class="hairL" fill="#35261c" stroke="#1f150e" stroke-width="1"><circle cx="62" cy="120" r="8"/><circle cx="58" cy="140" r="9"/><circle cx="60" cy="160" r="9"/><circle cx="62" cy="180" r="9"/><circle cx="66" cy="200" r="8"/></g>
+  <g class="hairR" fill="#35261c" stroke="#1f150e" stroke-width="1"><circle cx="138" cy="120" r="8"/><circle cx="142" cy="140" r="9"/><circle cx="140" cy="160" r="9"/><circle cx="138" cy="180" r="9"/><circle cx="134" cy="200" r="8"/></g>
+  <path class="brow browL" d="M79 88 Q87 84 95 87" stroke="#4a3326" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path class="brow browR" d="M105 87 Q113 84 121 88" stroke="#4a3326" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <g class="eyes"><ellipse cx="87" cy="97" rx="4.2" ry="3.3" fill="#3b2a20"/><ellipse cx="113" cy="97" rx="4.2" ry="3.3" fill="#3b2a20"/>
+   <circle cx="88.3" cy="95.8" r="1" fill="#fff"/><circle cx="114.3" cy="95.8" r="1" fill="#fff"/></g>
+  <path d="M100 96 Q93 116 98 121 Q104 124 109 118" stroke="#bf8e6c" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <path class="mo n" d="M91 131 Q100 134 109 130" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path class="mo s" d="M89 128 Q100 142 111 128 Q100 133 89 128 Z" fill="#9b3a2c" stroke="#8a4a3a" stroke-width="1.5" stroke-linejoin="round"/>
+  <path class="mo f" d="M91 135 Q100 127 109 135" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path d="M89 140 Q100 147 111 140" stroke="#d9ab8a" stroke-width="1.2" fill="none"/>
+  <path class="sweat" d="M129 80 Q134 90 129 94 Q124 90 129 80 Z" fill="#7cc3f0"/>
+  <text class="spark" x="30" y="44" font-size="18" fill="#f0b400">✦</text>
+  <text class="spark" x="160" y="40" font-size="14" fill="#f0b400">✦</text>
+  <text class="spark" x="170" y="96" font-size="11" fill="#f0b400">✦</text>
+ </g></svg>`;
+function makeAvatar(el,bubble){
+  el.innerHTML=LEIB_SVG; let tm=null;
+  function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
+  return {mood(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
+    if(m==='smile'){el.classList.add('smile');restart('hop');}
+    if(m==='frown'){el.classList.add('frown');restart('shake');}
+    if(text!==undefined){bubble.innerHTML=text;bubble.className='bubble'+(m==='smile'?' good':m==='frown'?' bad':'');}
+    if(!hold) tm=setTimeout(()=>{el.classList.remove('smile','frown');bubble.className='bubble';},3200);}};
+}
+var AV1=makeAvatar($('av1'),$('bub1')), AV2=makeAvatar($('av2'),$('bub2'));
+const QUOTES=['1673 年左右，我開始用拉丁文 functio（函數）這個詞，當時指和曲線有關的量，例如切線、縱坐標。','後來我的朋友約翰·伯努利把它推廣成「由變數和常數組成的量」。','f(x) 這個記號是歐拉後來發明的，不是我喔！','今天的定義來自狄利克雷（1837）：每個 x 對應唯一的 y，這就是垂直線檢驗的由來。','我也發明了 dy/dx 記號和二進位，今天的晶片都在用 0 和 1！'];
+let lq=0;$('av1').onclick=()=>{AV1.mood('smile',QUOTES[lq++%QUOTES.length]);};
+const PRAISE=['Optime！答對了 😄','Très bien！垂直線檢驗用得很好。','正確！每個 x 只對應一個 y。','漂亮！你已經看得出函數了。'];
+const SIGH_FN=['唔……這其實是函數喔 🤔 多對一是允許的。','再看一次：每條垂直線最多只碰到一個點。','差一點！它通過了垂直線檢驗。'];
+const SIGH_NO=['唔……找得到一條垂直線碰到兩個點喔 🤔','不對，有 x 對應到兩個以上的 y。','差一點！一對多就不是函數。'];
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+/* ---------- init ---------- */
+function resizeAll(){ sizeView(ex); sizeView(qv); exRender(); draw(qv); }
+window.addEventListener('resize',resizeAll);
+if(window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',()=>{drawMaps();resizeAll();});
+drawMaps(); buildTabs(); sizeView(ex); sizeView(qv); selectEx(EX_FN[0]); newRound();
+</script>
+</body>
+</html>

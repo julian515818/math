@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>連鎖法則互動教學</title>
+<style>
+:root{
+  --bg:#f7f6f2; --card:#fff; --ink:#1d2330; --mute:#667085; --line:#e3e1da;
+  --cx:#2f6fdb; --cu:#e07a1f; --cy:#1f9d6b; --sec:#b0439a; --bad:#d9463b; --accent:#1f9d6b; --grid:#eceae4; --axis:#9aa0ab;
+  --tx:#eaf1fc; --tu:#fdf0e3; --ty:#e8f6ef;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181f; --card:#1d212b; --ink:#e8eaf0; --mute:#9aa3b5; --line:#2e3441;
+    --cx:#6c9dff; --cu:#ffa552; --cy:#4fd19d; --sec:#e67fd0; --bad:#ff6b5e; --accent:#4fd19d; --grid:#262b36; --axis:#5c6475;
+    --tx:#1b2436; --tu:#2e2417; --ty:#172b24;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181f; --card:#1d212b; --ink:#e8eaf0; --mute:#9aa3b5; --line:#2e3441;
+  --cx:#6c9dff; --cu:#ffa552; --cy:#4fd19d; --sec:#e67fd0; --bad:#ff6b5e; --accent:#4fd19d; --grid:#262b36; --axis:#5c6475;
+  --tx:#1b2436; --tu:#2e2417; --ty:#172b24;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.6}
+.wrap{max-width:1150px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.9rem}
+header p{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:18px}
+.card h2{margin:0 0 10px;font-size:1.2rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:.9rem;flex:none}
+.math{font-family:"Times New Roman","Cambria Math",serif;font-style:italic}
+.def{font-size:1.25rem;text-align:center;padding:12px;border-radius:10px;background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.cx{color:var(--cx)}.cu{color:var(--cu)}.cy{color:var(--cy)}.sec{color:var(--sec)}.bad{color:var(--bad)}.mute{color:var(--mute)}
+.note{color:var(--mute);font-size:.92rem}
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;align-items:end}
+label{font-size:.9rem;color:var(--mute);display:block;margin-bottom:4px}
+select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+select{width:100%}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.pri{background:var(--accent);color:#fff;border-color:transparent}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.formula{margin-top:12px;display:flex;flex-direction:column;gap:4px;font-size:1.05rem;padding:10px 14px;border-radius:10px;background:var(--bg)}
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 3px;line-height:1.15;font-size:.95em}
+.frac .fn{padding:0 3px 1px;border-bottom:1.5px solid currentColor}
+.frac .fd{padding:1px 3px 0}
+.gear .ar .frac{font-size:.95rem;color:var(--ink)}
+th .frac{font-size:.95em}
+.step0{padding-bottom:8px;margin-bottom:4px;border-bottom:1px solid var(--line)}
+.step{display:flex;gap:12px;align-items:flex-start;padding:6px 0}
+.step+.step{border-top:1px dashed var(--line)}
+.sn{flex:none;display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--ink);color:var(--card);font-size:.8rem;font-weight:700;margin-top:2px}
+.stt{font-size:.85rem;color:var(--mute)}
+.stb{line-height:1.8}
+.gear{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin:12px 0}
+.gear .n{padding:8px 14px;border-radius:10px;font-weight:700;font-size:1.1rem}
+.gear .n.x{background:var(--tx);color:var(--cx)}.gear .n.u{background:var(--tu);color:var(--cu)}.gear .n.y{background:var(--ty);color:var(--cy)}
+.gear .ar{text-align:center;font-size:.9rem;color:var(--mute);line-height:1.2}
+.gear .ar b{display:block;font-size:1.3rem;color:var(--ink)}
+svg{width:100%;display:block}
+.plots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:860px){.plots{grid-template-columns:1fr}}
+.plot h3{margin:0 0 6px;font-size:1rem}
+canvas{width:100%;display:block;border-radius:10px;background:var(--bg)}
+.plot .val{font-size:.92rem;margin-top:6px}
+table{border-collapse:collapse;width:100%;font-size:.93rem;margin-top:8px;font-variant-numeric:tabular-nums}
+th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:right}
+th{color:var(--mute);font-weight:600}
+td:first-child,th:first-child{text-align:left}
+.mistakes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:760px){.mistakes{grid-template-columns:1fr}}
+.mk{border-radius:10px;padding:10px 12px;border:2px solid var(--line)}
+.mk.ok{border-color:var(--cy);background:color-mix(in srgb,var(--cy) 8%,transparent)}
+.mk.no{border-color:color-mix(in srgb,var(--bad) 55%,transparent)}
+.mk h4{margin:0 0 4px}
+.mk .v{font-size:1.25rem;font-weight:700}
+.cg-ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:8px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.box{padding:10px 12px;border-radius:10px;background:var(--bg);margin-top:10px}
+.quiz .q{padding:12px 0;border-bottom:1px solid var(--line)}
+.quiz .q:last-child{border:none}
+.opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.opts button.right{background:var(--cy);color:#fff;border-color:transparent}
+.opts button.wrong{background:var(--bad);color:#fff;border-color:transparent}
+.fb{font-size:.92rem;margin-top:6px;min-height:1.2em}
+.scroll{overflow-x:auto}
+footer{color:var(--mute);font-size:.85rem;text-align:center;margin-top:30px}
+/* ---------- avatar ---------- */
+.avwrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.av{width:100%;max-width:220px;cursor:pointer;user-select:none}
+.av svg{width:100%;display:block;overflow:visible}
+.av .bodyg{animation:bob 3.2s ease-in-out infinite;transform-origin:100px 200px}
+.av .eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+.av .hairL{animation:sway 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:top center}
+.av .hairR{animation:sway 3.2s ease-in-out infinite reverse;transform-box:fill-box;transform-origin:top center}
+.av .brow{transition:transform .3s;transform-box:fill-box}
+.av .browL{transform-origin:right center}.av .browR{transform-origin:left center}
+.av .mo{opacity:0;transition:opacity .25s}.av .mo.n{opacity:1}
+.av .blush,.av .sweat,.av .spark{opacity:0;transition:opacity .3s}
+.av.smile .mo.n,.av.frown .mo.n{opacity:0}
+.av.smile .mo.s{opacity:1}.av.frown .mo.f{opacity:1}
+.av.smile .blush{opacity:.55}.av.smile .spark{opacity:1}.av.frown .sweat{opacity:.9}
+.av.smile .brow{transform:translateY(-3px)}
+.av.frown .browL{transform:rotate(14deg) translateY(2px)}.av.frown .browR{transform:rotate(-14deg) translateY(2px)}
+.av.hop svg{animation:hop .7s ease}
+.av.shake svg{animation:shake .55s ease}
+.av .spark{animation:twinkle 1s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}
+@keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+@keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.bubble{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.95rem;margin-bottom:10px;min-height:2.6em;max-width:260px;text-align:center;transition:border-color .3s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--line);border-bottom:0}
+.bubble.good{border-color:var(--pos)}.bubble.good::after{border-top-color:var(--pos)}
+.bubble.bad{border-color:var(--neg)}.bubble.bad::after{border-top-color:var(--neg)}
+.qgrid{display:grid;grid-template-columns:230px minmax(0,1fr);gap:22px;align-items:start}
+.qgrid .avwrap{position:sticky;top:12px}
+@media (max-width:760px){.qgrid{grid-template-columns:1fr}.qgrid .avwrap{position:static}.qgrid .av{max-width:150px}}
+details.orig summary{cursor:pointer;color:var(--mute);font-size:.88rem;margin-top:8px}
+details.orig img{margin-top:6px}
+
+
+.bubble.good{border-color:var(--cy)}.bubble.good::after{border-top-color:var(--cy)}
+.bubble.bad{border-color:var(--bad)}.bubble.bad::after{border-top-color:var(--bad)}
+.intro{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:20px;align-items:start}
+@media (max-width:760px){.intro{grid-template-columns:1fr}.intro .av{max-width:150px}}
+</style>
+<style>@media (max-width:700px){table{display:block;overflow-x:auto}}</style>
+<style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line,#e3e1da);border-radius:12px;background:var(--card,var(--surface,#fff));color:var(--ink,#1d2330);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+.pu-badge img{width:58px;height:58px;display:block}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute,var(--muted,#667085))}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="pu-hd">
+  <div class="pu-hd-main">
+  <h1>連鎖法則 Chain Rule</h1>
+  <p>工程數學 ・ 互動教學：合成函數的導數＝各層變化率相乘</p>
+</div>
+  <div class="pu-badge"><img alt="靜宜大學校徽" src="data:image/webp;base64,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"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</header>
+
+<!-- 0 -->
+<div class="card">
+  <h2><span class="num">0</span>一句話：變化率會「相乘」</h2>
+  <div class="intro">
+    <div>
+  <div class="def">若 <span class="math">y</span> = <span class="math">f</span>(<span class="math">u</span>)、<span class="math">u</span> = <span class="math">g</span>(<span class="math">x</span>)，則
+    <span class="math">h</span>(<span class="math">x</span>) = <span class="math">f</span>(<span class="math">g</span>(<span class="math">x</span>)) 的導數為<br>
+    <b><span class="math">h</span>′(<span class="math">x</span>) = <span class="math">f</span>′(<span class="math">g</span>(<span class="math">x</span>)) · <span class="math">g</span>′(<span class="math">x</span>)</b>
+    　或寫成　 <b><span class="frac"><span class="fn"><span class="cy">d<span class="math">y</span></span></span><span class="fd"><span class="cx">d<span class="math">x</span></span></span></span> = <span class="frac"><span class="fn"><span class="cy">d<span class="math">y</span></span></span><span class="fd"><span class="cu">d<span class="math">u</span></span></span></span> · <span class="frac"><span class="fn"><span class="cu">d<span class="math">u</span></span></span><span class="fd"><span class="cx">d<span class="math">x</span></span></span></span></b></div>
+  <p class="note" style="text-align:center;margin:6px 0 0">分數寫法的好處：看起來就像中間的 d<i>u</i> 「約分」掉了（這只是幫助記憶，不是真正的約分，嚴格證明要用極限）。</p>
+  <p><b>直覺（齒輪比）：</b>如果 u 變化的速度是 x 的 3 倍，而 y 變化的速度是 u 的 2 倍，那麼 y 變化的速度就是 x 的 3 × 2 = 6 倍。</p>
+  <div class="gear">
+    <div class="n x">x 動 1</div>
+    <div class="ar"><b>→ ×3 →</b><span class="frac"><span class="fn">du</span><span class="fd">dx</span></span> = 3</div>
+    <div class="n u">u 動 3</div>
+    <div class="ar"><b>→ ×2 →</b><span class="frac"><span class="fn">dy</span><span class="fd">du</span></span> = 2</div>
+    <div class="n y">y 動 6</div><div class="ar" style="margin-left:10px"><b>&nbsp;</b><span class="frac"><span class="fn">dy</span><span class="fd">dx</span></span> = <span class="frac"><span class="fn">dy</span><span class="fd">du</span></span> · <span class="frac"><span class="fn">du</span><span class="fd">dx</span></span> = 2 × 3 = 6</div>
+  </div>
+  <p class="note">注意：外層的導數 f′ 要在「內層的輸出」u = g(x) 那裡計算，而不是在 x 那裡計算。這是最常見的錯誤（見第 5 節）。</p>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub1">Salve！我是萊布尼茲老師，dy/dx 這個記號就是我發明的。點我聽故事！</div><div class="av" id="av1"></div></div>
+  </div>
+</div>
+
+<!-- 1 -->
+<div class="card">
+  <h2><span class="num">1</span>選擇函數與位置</h2>
+  <div class="controls">
+    <div><label>內層 <span class="cu">u = g(x)</span>（先做）</label><select id="selG"></select></div>
+    <div><label>外層 <span class="cy">y = f(u)</span>（後做）</label><select id="selF"></select></div>
+    <div><label>位置 x = <b id="xV"></b></label><input type="range" id="xR" min="-2.5" max="2.5" step="0.01" value="1"></div>
+    <div><label>小變化 Δx = <b id="dV"></b></label><input type="range" id="dR" min="-3" max="0" step="0.01" value="-0.7"></div>
+  </div>
+  <div class="formula" id="formula"></div>
+</div>
+
+<!-- 2 -->
+<div class="card">
+  <h2><span class="num">2</span>三條數線：一小段 Δx 被「伸縮」了兩次</h2>
+  <div class="scroll"><svg id="lines" viewBox="0 0 900 330" style="min-width:640px"></svg></div>
+  <p class="note">x 上一小段長度 Δx，經過 g 後變成 u 上長度 Δu ≈ g′(x)·Δx 的一段，再經過 f 變成 y 上長度 Δy ≈ f′(u)·Δu 的一段。
+  兩次伸縮倍率相乘，就是整體的伸縮倍率。若導數為負，區段方向會翻轉（連線交叉）。把 Δx 調小，近似會越來越準。</p>
+</div>
+
+<!-- 3 -->
+<div class="card">
+  <h2><span class="num">3</span>在圖形上看：切線斜率相乘</h2>
+  <div class="row" style="margin-bottom:10px">
+    <div style="flex:1;min-width:220px"><label>放大倍率 <b id="zV"></b>（放大後曲線看起來就像直線：局部線性）</label><input type="range" id="zR" min="0" max="2" step="0.01" value="0"></div>
+  </div>
+  <div class="plots">
+    <div class="plot"><h3 class="cu">① u = g(x)</h3><canvas id="cG"></canvas><div class="val" id="vG"></div></div>
+    <div class="plot"><h3 class="cy">② y = f(u)</h3><canvas id="cF"></canvas><div class="val" id="vF"></div></div>
+    <div class="plot"><h3 class="sec">③ y = h(x) = f(g(x))</h3><canvas id="cH"></canvas><div class="val" id="vH"></div></div>
+  </div>
+  <p class="note">① 的<span class="cu">垂直高度 Δu</span>，正好是 ② 的<span class="cu">水平寬度</span>。③ 的<span class="sec">割線</span>斜率 Δy/Δx，在 Δx → 0 時會趨近虛線切線的斜率 h′(x) = f′(u)·g′(x)。</p>
+</div>
+
+<!-- 4 -->
+<div class="card">
+  <h2><span class="num">4</span>數值驗證：Δx → 0</h2>
+  <table>
+    <thead><tr><th>Δx</th><th class="cu"><span class="frac"><span class="fn">Δu</span><span class="fd">Δx</span></span></th><th class="cy"><span class="frac"><span class="fn">Δy</span><span class="fd">Δu</span></span></th><th>兩者相乘</th><th class="sec"><span class="frac"><span class="fn">Δy</span><span class="fd">Δx</span></span></th><th>與 f′(g(x))·g′(x) 的誤差</th></tr></thead>
+    <tbody id="tbl"></tbody>
+  </table>
+  <p class="note"><span class="frac"><span class="fn">Δy</span><span class="fd">Δx</span></span> = <span class="frac"><span class="fn">Δy</span><span class="fd">Δu</span></span> · <span class="frac"><span class="fn">Δu</span><span class="fd">Δx</span></span> 對任何 Δx 都成立（只要 Δu ≠ 0），取極限後就得到連鎖法則。</p>
+</div>
+
+<!-- 5 -->
+<div class="card">
+  <h2><span class="num">5</span>常見錯誤比較（目前的 f、g、x）</h2>
+  <div class="mistakes" id="mistakes"></div>
+</div>
+
+<!-- 6 -->
+<div class="card">
+  <h2><span class="num">6</span>工程應用：神經網路的反向傳播就是連鎖法則</h2>
+  <p style="margin-top:0">一個神經元：<span class="math">a</span> = <span class="math">w x</span>，<span class="math">z</span> = <span class="math">a</span> + <span class="math">b</span>，<span class="math">y</span> = σ(<span class="math">z</span>)，損失 <span class="math">L</span> = ½(<span class="math">y</span> − <span class="math">t</span>)²。
+  要訓練 <span class="math">w</span>，需要 ∂<span class="math">L</span>/∂<span class="math">w</span>，它是一長串合成函數，所以用連鎖法則把每一段的局部導數<b>從右往左乘回來</b>：</p>
+  <div class="def" style="font-size:1.1rem"><span class="frac"><span class="fn">∂<span class="math">L</span></span><span class="fd">∂<span class="math">w</span></span></span> = <span class="frac"><span class="fn">∂<span class="math">L</span></span><span class="fd">∂<span class="math">y</span></span></span> · <span class="frac"><span class="fn">∂<span class="math">y</span></span><span class="fd">∂<span class="math">z</span></span></span> · <span class="frac"><span class="fn">∂<span class="math">z</span></span><span class="fd">∂<span class="math">a</span></span></span> · <span class="frac"><span class="fn">∂<span class="math">a</span></span><span class="fd">∂<span class="math">w</span></span></span> = (<span class="math">y</span> − <span class="math">t</span>) · <span class="math">y</span>(1 − <span class="math">y</span>) · 1 · <span class="math">x</span></div>
+  <div class="cg-ctl" style="margin-top:12px">
+    <div><label>輸入 x = <b id="nxV"></b></label><input type="range" id="nx" min="-2" max="2" step="0.05" value="1.5"></div>
+    <div><label>權重 w = <b id="nwV"></b></label><input type="range" id="nw" min="-3" max="3" step="0.01" value="0.8"></div>
+    <div><label>偏差 b = <b id="nbV"></b></label><input type="range" id="nb" min="-3" max="3" step="0.05" value="-0.5"></div>
+    <div><label>目標 t = <b id="ntV"></b></label><input type="range" id="nt" min="0" max="1" step="0.05" value="0.1"></div>
+  </div>
+  <div class="scroll"><svg id="cg" viewBox="0 0 1000 250" style="min-width:720px"></svg></div>
+  <div class="row" style="margin-top:8px">
+    <button class="pri" id="bp">▶ 播放反向傳播</button>
+    <button id="fd">數值驗證 ∂L/∂w</button>
+    <button id="gd">做一步梯度下降 w ← w − 0.5·∂L/∂w</button>
+  </div>
+  <div class="box" id="cgOut">上方數值是<b>正向傳播</b>算出的值；<span class="bad">紅色</span>是<b>反向傳播</b>算出的梯度，每往左一格就多乘一個局部導數（線下方的灰字）。</div>
+</div>
+
+<!-- 7 -->
+<div class="card quiz">
+  <h2><span class="num">7</span>小測驗</h2>
+  <div class="qgrid">
+    <div class="avwrap"><div class="bubble" id="bub2">來考考你！答對我會笑，答錯我會皺眉喔。</div><div class="av" id="av2"></div></div>
+    <div><div id="quiz"></div><p class="note" id="score"></p></div>
+  </div>
+</div>
+
+<footer>連鎖法則互動教學 ・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const P=t=>t==='x'||t==='u'?t:'('+t+')';
+const sig=v=>1/(1+Math.exp(-v));
+const FUN={
+  lin :{name:'x + 1',   f:x=>x+1, d:x=>1, t:t=>t+' + 1', dt:t=>'1'},
+  tri :{name:'3x',      f:x=>3*x, d:x=>3, t:t=>'3'+P(t), dt:t=>'3'},
+  sq  :{name:'x²',      f:x=>x*x, d:x=>2*x, t:t=>P(t)+'²', dt:t=>'2'+P(t)},
+  cube:{name:'x³ − x',  f:x=>x*x*x-x, d:x=>3*x*x-1, t:t=>P(t)+'³ − '+P(t), dt:t=>'3'+P(t)+'² − 1'},
+  sin :{name:'sin x',   f:Math.sin, d:Math.cos, t:t=>'sin'+(t.length===1?' '+t:'('+t+')'), dt:t=>'cos'+(t.length===1?' '+t:'('+t+')')},
+  cos :{name:'cos x',   f:Math.cos, d:x=>-Math.sin(x), t:t=>'cos'+(t.length===1?' '+t:'('+t+')'), dt:t=>'−sin'+(t.length===1?' '+t:'('+t+')')},
+  exp :{name:'eˣ',      f:Math.exp, d:Math.exp, t:t=>'e^'+P(t), dt:t=>'e^'+P(t)},
+  sqrt:{name:'√x',      f:x=>x<0?NaN:Math.sqrt(x), d:x=>x<=0?NaN:0.5/Math.sqrt(x), t:t=>'√'+P(t), dt:t=>'1/(2√'+P(t)+')'},
+  ln  :{name:'ln x',    f:x=>x<=0?NaN:Math.log(x), d:x=>x<=0?NaN:1/x, t:t=>'ln'+(t.length===1?' '+t:'('+t+')'), dt:t=>'1/'+P(t)},
+  inv :{name:'1/x',     f:x=>Math.abs(x)<1e-12?NaN:1/x, d:x=>Math.abs(x)<1e-12?NaN:-1/(x*x), t:t=>'1/'+P(t), dt:t=>'−1/'+P(t)+'²'},
+  sig :{name:'σ(x) = 1/(1+e⁻ˣ)', f:sig, d:x=>sig(x)*(1-sig(x)), t:t=>'σ('+t+')', dt:t=>'σ('+t+')(1 − σ('+t+'))'}
+};
+for(const k in FUN){$('selG').add(new Option('g(x) = '+FUN[k].name,k));$('selF').add(new Option('f(u) = '+FUN[k].name.replace(/x/g,'u'),k));}
+$('selG').value='sq'; $('selF').value='sin';
+const fin=v=>typeof v==='number'&&isFinite(v);
+const f3=(v,n=3)=>fin(v)?(Math.abs(v)<5e-12?0:v).toFixed(n):'無定義';
+const fg=v=>fin(v)?(Math.abs(v)>=1e4||(Math.abs(v)<1e-3&&v!==0)?v.toExponential(2):v.toFixed(4)):'—';
+
+function S(){
+  const g=FUN[$('selG').value], f=FUN[$('selF').value], x=+$('xR').value, dx=Math.pow(10,+$('dR').value);
+  const u=g.f(x), y=fin(u)?f.f(u):NaN, gp=g.d(x), fp=fin(u)?f.d(u):NaN, hp=fp*gp;
+  const u2=g.f(x+dx), y2=fin(u2)?f.f(u2):NaN;
+  return {g,f,x,dx,u,y,gp,fp,hp,du:u2-u,dy:y2-y,u2,y2};
+}
+const H=(s,x)=>{const u=s.g.f(x);return fin(u)?s.f.f(u):NaN;};
+
+/* ---------- formula ---------- */
+function mul(a,b){ if(a==='1') return b; if(b==='1') return a; return a+' · '+b; }
+function wrapF(s){if(s[0]==='−')return '('+s+')';let d=0;for(let i=0;i<s.length;i++){const c=s[i];if(c==='('||c==='[')d++;else if(c===')'||c===']')d--;else if(d===0&&(s.startsWith(' + ',i)||s.startsWith(' − ',i)))return '('+s+')';}return s;}
+function renderFormula(s){
+  const inner=s.g.t('x'), outerSym=s.f.t(inner);
+  const xs=s.x.toFixed(2), us=f3(s.u);
+  const st=(n,title,body)=>`<div class="step"><span class="sn">${n}</span><div><div class="stt">${title}</div><div class="stb">${body}</div></div></div>`;
+  $('formula').innerHTML=
+    `<div class="step0"><span class="math">h</span>(x) = f(g(x)) = <b>${outerSym}</b>　　連鎖法則：<span class="math">h</span>′(x) = <span class="cy">f′(g(x))</span> · <span class="cu">g′(x)</span></div>`+
+    st(1,'內層函數微分',`<span class="cu">g(x) = ${s.g.t('x')}</span>　⇒　<b class="cu">g′(x) = ${s.g.dt('x')}</b>`)+
+    st(2,'外層函數微分（把 u 當成變數）',`<span class="cy">f(u) = ${s.f.t('u')}</span>　⇒　<b class="cy">f′(u) = ${s.f.dt('u')}</b>`)+
+    st(3,'把 u = g(x) 代回外層導數',`<span class="cy">f′(g(x))</span> = f′(<span class="cu">${inner}</span>) = <b class="cy">${s.f.dt(inner)}</b>`)+
+    st(4,'兩者相乘，得到公式',`<span class="math">h</span>′(x) = <span class="cy">f′(g(x))</span> · <span class="cu">g′(x)</span> = <b><span class="cy">${wrapF(s.f.dt(inner))}</span> · <span class="cu">${wrapF(s.g.dt('x'))}</span></b>`)+
+    st(5,`代入數值 x = ${xs}`,
+      `u = g(${xs}) = ${s.g.t(xs)} = <b>${us}</b><br>`+
+      `<span class="cu">g′(${xs}) = ${s.g.dt(xs)} = <b>${f3(s.gp)}</b></span><br>`+
+      `<span class="cy">f′(g(${xs})) = f′(${us}) = ${s.f.dt(us)} = <b>${f3(s.fp)}</b></span><br>`+
+      `<b>h′(${xs}) = ${f3(s.fp)} × ${s.gp<0?'('+f3(s.gp)+')':f3(s.gp)} = <span style="font-size:1.15em">${f3(s.hp)}</span></b>`);
+}
+
+/* ---------- number lines ---------- */
+function renderLines(s){
+  const svg=$('lines'), W=900, cx=470, ys=[60,170,280];
+  const cX=css('--cx'),cU=css('--cu'),cY=css('--cy'),ink=css('--ink'),mute=css('--mute'),ax=css('--axis');
+  const r1=s.du/s.dx, r2=s.dy/s.du, rt=s.dy/s.dx;
+  let o='';
+  if(!fin(s.u)||!fin(s.y)||!fin(s.du)||!fin(s.dy)){svg.innerHTML=`<text x="450" y="165" text-anchor="middle" fill="${css('--bad')}" font-size="18">此 x 不在 h 的定義域內（或 x+Δx 超出），請移動 x。</text>`;return;}
+  const big=Math.max(1,Math.abs(r1),Math.abs(rt));
+  const base=Math.min(140,340/big);           // px for Δx
+  const segs=[[s.x,s.dx,'x',cX,'Δx'],[s.u,s.du,'u',cU,'Δu'],[s.y,s.dy,'y',cY,'Δy']];
+  const ends=[];
+  segs.forEach(([v,d,name,col,lab],i)=>{
+    const y=ys[i], w=base*d/s.dx;
+    o+=`<line x1="165" y1="${y}" x2="${W-20}" y2="${y}" stroke="${ax}" stroke-width="2"/>`;
+    o+=`<text x="30" y="${y+7}" font-size="22" font-weight="700" fill="${col}" font-style="italic" font-family="serif">${name}</text>`;
+    o+=`<text x="60" y="${y+6}" font-size="13" fill="${mute}">${name} = ${f3(v)}</text>`;
+    const a=cx, b=cx+w;
+    o+=`<line x1="${a}" y1="${y}" x2="${b}" y2="${y}" stroke="${col}" stroke-width="9" stroke-linecap="round" opacity=".9"/>`;
+    o+=`<circle cx="${a}" cy="${y}" r="6" fill="${ink}"/>`;
+    o+=`<text x="${(a+b)/2}" y="${y-14}" text-anchor="middle" font-size="14" font-weight="700" fill="${col}">${lab} = ${f3(d,4)}</text>`;
+    ends.push([a,b,y]);
+  });
+  const conn=(A,B,col,txt)=>{
+    o+=`<path d="M${A[0]} ${A[2]+8} L${B[0]} ${B[2]-8} M${A[1]} ${A[2]+8} L${B[1]} ${B[2]-8}" stroke="${col}" stroke-width="1.5" stroke-dasharray="5 4" fill="none"/>`;
+    o+=`<polygon points="${A[0]},${A[2]+8} ${A[1]},${A[2]+8} ${B[1]},${B[2]-8} ${B[0]},${B[2]-8}" fill="${col}" opacity=".08"/>`;
+    const my=(A[2]+B[2])/2;
+    o+=`<text x="175" y="${my+5}" font-size="15" fill="${ink}" paint-order="stroke" stroke="${css('--card')}" stroke-width="6" stroke-linejoin="round">${txt}</text>`;
+  };
+  conn(ends[0],ends[1],cU,`Δu/Δx = ${f3(r1)} 　（g′(x) = ${f3(s.gp)}）`);
+  conn(ends[1],ends[2],cY,`Δy/Δu = ${f3(r2)} 　（f′(u) = ${f3(s.fp)}）`);
+  o+=`<text x="130" y="320" font-size="15" fill="${ink}">整體：Δy/Δx = ${f3(r1)} × ${f3(r2)} = <tspan font-weight="700">${f3(rt)}</tspan>　→（Δx→0）→　h′(x) = ${f3(s.gp)} × ${f3(s.fp)} = <tspan font-weight="700">${f3(s.hp)}</tspan></text>`;
+  svg.innerHTML=o;
+}
+
+/* ---------- local plots ---------- */
+const cvs=['cG','cF','cH'].map($);
+function sizeC(){for(const c of cvs){const w=c.clientWidth,d=window.devicePixelRatio||1;c.width=w*d;c.height=w*d;c.style.height=w+'px';c.getContext('2d').setTransform(d,0,0,d,0,0);}}
+function niceStep(hw){const r=hw/2.5,p=Math.pow(10,Math.floor(Math.log10(r))),m=r/p;return (m<2?1:m<5?2:5)*p;}
+function plot(cv,fn,x0,slope,dx,cH,cV,labH,labV,secant){
+  const ctx=cv.getContext('2d'),S=cv.clientWidth; if(!S) return;
+  ctx.clearRect(0,0,S,S);
+  const y0=fn(x0); if(!fin(y0)){ctx.fillStyle=css('--bad');ctx.font='15px sans-serif';ctx.fillText('此點無定義',S/2-40,S/2);return;}
+  const hw=3/Math.pow(10,+$('zR').value);
+  const X=v=>(v-(x0-hw))/(2*hw)*S, Y=v=>S-(v-(y0-hw))/(2*hw)*S;
+  const st=niceStep(hw);
+  ctx.lineWidth=1;ctx.strokeStyle=css('--grid');ctx.fillStyle=css('--mute');ctx.font='10px sans-serif';
+  for(let v=Math.ceil((x0-hw)/st)*st;v<=x0+hw;v+=st){ctx.beginPath();ctx.moveTo(X(v),0);ctx.lineTo(X(v),S);ctx.stroke();ctx.fillText(+v.toPrecision(4),X(v)+2,S-4);}
+  for(let v=Math.ceil((y0-hw)/st)*st;v<=y0+hw;v+=st){ctx.beginPath();ctx.moveTo(0,Y(v));ctx.lineTo(S,Y(v));ctx.stroke();ctx.fillText(+v.toPrecision(4),2,Y(v)-2);}
+  ctx.strokeStyle=css('--axis');ctx.lineWidth=1.5;
+  if(x0-hw<0&&x0+hw>0){ctx.beginPath();ctx.moveTo(X(0),0);ctx.lineTo(X(0),S);ctx.stroke();}
+  if(y0-hw<0&&y0+hw>0){ctx.beginPath();ctx.moveTo(0,Y(0));ctx.lineTo(S,Y(0));ctx.stroke();}
+  // tangent
+  if(fin(slope)){ctx.strokeStyle=css('--ink');ctx.setLineDash([6,5]);ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(X(x0-hw),Y(y0-slope*hw));ctx.lineTo(X(x0+hw),Y(y0+slope*hw));ctx.stroke();ctx.setLineDash([]);}
+  // curve
+  ctx.strokeStyle=css('--ink');ctx.lineWidth=2.6;ctx.beginPath();let pen=false,prev=null;
+  for(let i=0;i<=500;i++){const xv=x0-hw+2*hw*i/500,yv=fn(xv);
+    if(!fin(yv)||(prev!==null&&Math.abs(yv-prev)>hw)){pen=false;prev=fin(yv)?yv:null;continue;}
+    if(pen)ctx.lineTo(X(xv),Y(yv));else{ctx.moveTo(X(xv),Y(yv));pen=true;}prev=yv;}
+  ctx.stroke();
+  // delta triangle
+  const y1=fn(x0+dx);
+  if(fin(y1)){
+    if(secant){const m=(y1-y0)/dx;ctx.strokeStyle=css('--sec');ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(X(x0-hw),Y(y0-m*hw));ctx.lineTo(X(x0+hw),Y(y0+m*hw));ctx.stroke();}
+    ctx.lineWidth=4;ctx.lineCap='round';
+    ctx.strokeStyle=cH;ctx.beginPath();ctx.moveTo(X(x0),Y(y0));ctx.lineTo(X(x0+dx),Y(y0));ctx.stroke();
+    ctx.strokeStyle=cV;ctx.beginPath();ctx.moveTo(X(x0+dx),Y(y0));ctx.lineTo(X(x0+dx),Y(y1));ctx.stroke();
+    ctx.lineCap='butt';ctx.font='bold 13px sans-serif';
+    ctx.fillStyle=cH;ctx.fillText(labH,(X(x0)+X(x0+dx))/2-10,Y(y0)+(y1>=y0?18:-8));
+    ctx.fillStyle=cV;ctx.fillText(labV,X(x0+dx)+6,(Y(y0)+Y(y1))/2+4);
+    ctx.fillStyle=css('--ink');ctx.beginPath();ctx.arc(X(x0+dx),Y(y1),3.5,0,7);ctx.fill();
+  }
+  ctx.fillStyle=css('--ink');ctx.beginPath();ctx.arc(X(x0),Y(y0),5.5,0,7);ctx.fill();
+}
+function renderPlots(s){
+  const cX=css('--cx'),cU=css('--cu'),cY=css('--cy');
+  plot(cvs[0],s.g.f,s.x,s.gp,s.dx,cX,cU,'Δx','Δu',false);
+  plot(cvs[1],s.f.f,s.u,s.fp,s.du,cU,cY,'Δu','Δy',false);
+  plot(cvs[2],x=>H(s,x),s.x,s.hp,s.dx,cX,cY,'Δx','Δy',true);
+  $('vG').innerHTML=`在 x = ${f3(s.x,2)}：切線斜率 <b class="cu">g′(x) = ${f3(s.gp)}</b>`;
+  $('vF').innerHTML=`在 u = g(x) = ${f3(s.u)}：切線斜率 <b class="cy">f′(u) = ${f3(s.fp)}</b>`;
+  $('vH').innerHTML=`<span class="sec">割線斜率 Δy/Δx = ${f3(s.dy/s.dx)}</span>　切線斜率 <b>h′(x) = ${f3(s.hp)}</b>`;
+}
+
+/* ---------- table & mistakes ---------- */
+function renderTable(s){
+  let r='';
+  for(const dx of [1,0.5,0.1,0.01,0.001,0.0001]){
+    const u2=s.g.f(s.x+dx),du=u2-s.u,dy=(fin(u2)?s.f.f(u2):NaN)-s.y;
+    const a=du/dx,b=dy/du,c=dy/dx;
+    r+=`<tr><td>${dx}</td><td>${fg(a)}</td><td>${fg(b)}</td><td>${fg(a*b)}</td><td><b>${fg(c)}</b></td><td>${fin(c)&&fin(s.hp)?fg(Math.abs(c-s.hp)):'—'}</td></tr>`;
+  }
+  r+=`<tr style="font-weight:700"><td>極限</td><td class="cu">${fg(s.gp)}</td><td class="cy">${fg(s.fp)}</td><td>${fg(s.hp)}</td><td>${fg(s.hp)}</td><td>0</td></tr>`;
+  $('tbl').innerHTML=r;
+}
+function renderMistakes(s){
+  const w1=s.f.d(s.x)*s.gp, w2=s.fp;
+  const inner=s.g.t('x');
+  $('mistakes').innerHTML=
+   `<div class="mk ok"><h4 class="cy">✔ 正確：f′(g(x)) · g′(x)</h4><div>${s.f.dt(inner)} · ${s.g.dt('x')}</div><div class="v">= ${f3(s.hp)}</div></div>
+    <div class="mk no"><h4 class="bad">✘ 錯誤一：f′ 在 x 計算</h4><div>f′(x) · g′(x) = ${s.f.dt('x')} · ${s.g.dt('x')}</div><div class="v">= ${f3(w1)}</div><div class="note">外層導數要在內層的<b>輸出</b> u = g(x) 處計算。</div></div>
+    <div class="mk no"><h4 class="bad">✘ 錯誤二：忘了乘 g′(x)</h4><div>只算 f′(g(x)) = ${s.f.dt(inner)}</div><div class="v">= ${f3(w2)}</div><div class="note">內層也在變化，它的變化率不能漏掉。</div></div>`;
+}
+
+function update(){
+  const s=S();
+  $('xV').textContent=s.x.toFixed(2); $('dV').textContent=s.dx<0.01?s.dx.toExponential(1):s.dx.toFixed(3);
+  $('zV').textContent='×'+Math.pow(10,+$('zR').value).toFixed(1);
+  renderFormula(s);renderLines(s);renderPlots(s);renderTable(s);renderMistakes(s);
+}
+['selG','selF'].forEach(id=>$(id).onchange=update);
+['xR','dR','zR'].forEach(id=>$(id).oninput=update);
+
+/* ---------- computational graph ---------- */
+let bpStep=99;
+function cgVals(){const x=+$('nx').value,w=+$('nw').value,b=+$('nb').value,t=+$('nt').value;
+  const a=w*x,z=a+b,y=sig(z),L=0.5*(y-t)**2;
+  const dLdy=y-t,dydz=y*(1-y),dLdz=dLdy*dydz,dLda=dLdz,dLdw=dLda*x,dLdb=dLdz;
+  return {x,w,b,t,a,z,y,L,dLdy,dydz,dLdz,dLda,dLdw,dLdb};}
+function renderCG(){
+  const v=cgVals(), ink=css('--ink'),mute=css('--mute'),bad=css('--bad'),line=css('--line'),card=css('--card'),acc=css('--accent');
+  ['nx','nw','nb','nt'].forEach(id=>$(id+'V').textContent=(+$(id).value).toFixed(2));
+  const nodes=[['w',v.w,v.dLdw],['a',v.a,v.dLda],['z',v.z,v.dLdz],['y',v.y,v.dLdy],['L',v.L,1]];
+  const ops=[['× x',`∂a/∂w = x = ${v.x.toFixed(2)}`],['+ b',`∂z/∂a = 1`],['σ( · )',`∂y/∂z = y(1−y) = ${v.dydz.toFixed(3)}`],['½(·−t)²',`∂L/∂y = y − t = ${v.dLdy.toFixed(3)}`]];
+  const X=i=>70+i*215, Yc=110;
+  let o=`<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="${mute}"/></marker>
+  <marker id="ahr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="${bad}"/></marker></defs>`;
+  o+=`<text x="10" y="24" font-size="14" fill="${mute}">正向傳播 →（算值）</text><text x="990" y="244" text-anchor="end" font-size="14" fill="${bad}">← 反向傳播（算梯度，一路相乘）</text>`;
+  ops.forEach(([op,loc],i)=>{
+    const x1=X(i)+45,x2=X(i+1)-45;
+    o+=`<line x1="${x1}" y1="${Yc}" x2="${x2}" y2="${Yc}" stroke="${mute}" stroke-width="2" marker-end="url(#ah)"/>`;
+    o+=`<text x="${(x1+x2)/2}" y="${Yc-10}" text-anchor="middle" font-size="15" font-weight="700" fill="${ink}">${op}</text>`;
+    o+=`<text x="${(x1+x2)/2}" y="${Yc+24}" text-anchor="middle" font-size="12" fill="${mute}">${loc}</text>`;
+    const on=bpStep<=3-i;  // backprop reached this edge
+    if(on) o+=`<path d="M${x2} ${Yc+44} L${x1} ${Yc+44}" stroke="${bad}" stroke-width="2.5" marker-end="url(#ahr)"/><text x="${(x1+x2)/2}" y="${Yc+62}" text-anchor="middle" font-size="12" fill="${bad}">× ${i===0?v.x.toFixed(2):i===1?'1':i===2?v.dydz.toFixed(3):v.dLdy.toFixed(3)}</text>`;
+  });
+  nodes.forEach(([n,val,gr],i)=>{
+    const cx=X(i), show=bpStep<=4-i;
+    o+=`<rect x="${cx-44}" y="${Yc-30}" width="88" height="60" rx="12" fill="${card}" stroke="${n==='w'?acc:line}" stroke-width="${n==='w'?2.5:1.5}"/>`;
+    o+=`<text x="${cx}" y="${Yc-6}" text-anchor="middle" font-size="18" font-style="italic" font-family="serif" fill="${ink}">${n}</text>`;
+    o+=`<text x="${cx}" y="${Yc+16}" text-anchor="middle" font-size="14" font-family="monospace" fill="${ink}">${val.toFixed(3)}</text>`;
+    if(show) o+=`<text x="${cx}" y="${Yc+100}" text-anchor="middle" font-size="13" font-weight="700" fill="${bad}">∂L/∂${n} = ${gr.toFixed(4)}</text>`;
+  });
+  o+=`<text x="${X(1)}" y="42" text-anchor="middle" font-size="12" fill="${mute}">x = ${v.x.toFixed(2)}</text><text x="${X(2)}" y="42" text-anchor="middle" font-size="12" fill="${mute}">b = ${v.b.toFixed(2)}</text><text x="${X(4)}" y="42" text-anchor="middle" font-size="12" fill="${mute}">t = ${v.t.toFixed(2)}</text>`;
+  $('cg').innerHTML=o;
+}
+['nx','nw','nb','nt'].forEach(id=>$(id).oninput=()=>{bpStep=99;renderCG();$('cgOut').innerHTML='數值改變了：上方為新的正向傳播結果，梯度也已重新計算。';});
+let bpTimer=null;
+$('bp').onclick=()=>{clearInterval(bpTimer);bpStep=5;renderCG();
+  bpTimer=setInterval(()=>{bpStep--;renderCG();if(bpStep<=0){clearInterval(bpTimer);const v=cgVals();
+   $('cgOut').innerHTML=`∂L/∂w = <b>${v.dLdy.toFixed(3)}</b> × <b>${v.dydz.toFixed(3)}</b> × 1 × <b>${v.x.toFixed(2)}</b> = <b class="bad">${v.dLdw.toFixed(5)}</b>　（同理 ∂L/∂b = ∂L/∂z = ${v.dLdb.toFixed(5)}）`;}},700);};
+$('fd').onclick=()=>{const v=cgVals(),h=1e-5,Lw=w=>{const y=sig(w*v.x+v.b);return 0.5*(y-v.t)**2;};
+  const num=(Lw(v.w+h)-Lw(v.w-h))/(2*h);
+  $('cgOut').innerHTML=`數值微分：[L(w+h) − L(w−h)] / 2h（h = 10⁻⁵）= <b>${num.toFixed(6)}</b>；連鎖法則：<b>${v.dLdw.toFixed(6)}</b>　⇒ ${Math.abs(num-v.dLdw)<1e-6?'<span class="cy"><b>吻合 ✔</b></span>':'差 '+Math.abs(num-v.dLdw).toExponential(2)}`;};
+$('gd').onclick=()=>{const v=cgVals(),nw=Math.max(-3,Math.min(3,v.w-0.5*v.dLdw));$('nw').value=nw;bpStep=99;renderCG();const v2=cgVals();
+  $('cgOut').innerHTML=`w：${v.w.toFixed(3)} → ${v2.w.toFixed(3)}，損失 L：${v.L.toFixed(5)} → <b>${v2.L.toFixed(5)}</b> ${v2.L<v.L?'<span class="cy">（下降了 ✔）</span>':''}<br><span class="note">沿著梯度的反方向調整 w，L 就會變小，這就是「訓練」。多按幾次看看。</span>`;};
+
+
+/* ---------- animated Leibniz ---------- */
+const LEIB_SVG=`<svg viewBox="0 0 200 230" aria-label="萊布尼茲老師動畫">
+ <g class="bodyg">
+  <path d="M20 232 Q26 172 100 162 Q174 172 180 232 Z" fill="#5a3a40"/>
+  <path d="M40 232 Q60 190 96 176 Q70 200 64 232 Z" fill="#76525a"/>
+  <path d="M44 150 Q30 80 60 50 Q100 22 140 50 Q170 80 156 150 Q150 200 130 208 L70 208 Q50 200 44 150 Z" fill="#2e2119"/>
+  <g fill="#3a291f" stroke="#1f150e" stroke-width="1"><circle cx="50" cy="70" r="11"/><circle cx="44" cy="92" r="12"/><circle cx="42" cy="116" r="12"/><circle cx="44" cy="140" r="12"/><circle cx="48" cy="164" r="12"/><circle cx="54" cy="188" r="11"/><circle cx="62" cy="206" r="10"/><circle cx="60" cy="52" r="10"/><circle cx="150" cy="70" r="11"/><circle cx="156" cy="92" r="12"/><circle cx="158" cy="116" r="12"/><circle cx="156" cy="140" r="12"/><circle cx="152" cy="164" r="12"/><circle cx="146" cy="188" r="11"/><circle cx="138" cy="206" r="10"/><circle cx="140" cy="52" r="10"/></g>
+  <rect x="88" y="134" width="24" height="30" rx="8" fill="#e6bd9c"/>
+  <path d="M78 156 Q100 176 122 156 L118 198 Q100 208 82 198 Z" fill="#f4f2ed" stroke="#d3cdc2" stroke-width="1.2"/>
+  <path d="M90 176 Q100 184 110 176 M92 188 Q100 194 108 188" stroke="#d9d3c7" stroke-width="1.2" fill="none"/>
+  <ellipse cx="100" cy="104" rx="30" ry="40" fill="#ecc4a4"/>
+  <ellipse class="blush" cx="81" cy="115" rx="7" ry="4.5" fill="#f08080"/>
+  <ellipse class="blush" cx="119" cy="115" rx="7" ry="4.5" fill="#f08080"/>
+  <path d="M68 80 Q68 48 100 44 Q132 48 132 80 Q120 64 100 64 Q80 64 68 80 Z" fill="#2e2119"/>
+  <g fill="#3a291f" stroke="#1f150e" stroke-width="1"><circle cx="76" cy="46" r="11"/><circle cx="92" cy="38" r="12"/><circle cx="108" cy="38" r="12"/><circle cx="124" cy="46" r="11"/><circle cx="70" cy="62" r="9"/><circle cx="130" cy="62" r="9"/></g>
+  <g class="hairL" fill="#35261c" stroke="#1f150e" stroke-width="1"><circle cx="62" cy="120" r="8"/><circle cx="58" cy="140" r="9"/><circle cx="60" cy="160" r="9"/><circle cx="62" cy="180" r="9"/><circle cx="66" cy="200" r="8"/></g>
+  <g class="hairR" fill="#35261c" stroke="#1f150e" stroke-width="1"><circle cx="138" cy="120" r="8"/><circle cx="142" cy="140" r="9"/><circle cx="140" cy="160" r="9"/><circle cx="138" cy="180" r="9"/><circle cx="134" cy="200" r="8"/></g>
+  <path class="brow browL" d="M79 88 Q87 84 95 87" stroke="#4a3326" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path class="brow browR" d="M105 87 Q113 84 121 88" stroke="#4a3326" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <g class="eyes"><ellipse cx="87" cy="97" rx="4.2" ry="3.3" fill="#3b2a20"/><ellipse cx="113" cy="97" rx="4.2" ry="3.3" fill="#3b2a20"/>
+   <circle cx="88.3" cy="95.8" r="1" fill="#fff"/><circle cx="114.3" cy="95.8" r="1" fill="#fff"/></g>
+  <path d="M100 96 Q93 116 98 121 Q104 124 109 118" stroke="#bf8e6c" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <path class="mo n" d="M91 131 Q100 134 109 130" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path class="mo s" d="M89 128 Q100 142 111 128 Q100 133 89 128 Z" fill="#9b3a2c" stroke="#8a4a3a" stroke-width="1.5" stroke-linejoin="round"/>
+  <path class="mo f" d="M91 135 Q100 127 109 135" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path d="M89 140 Q100 147 111 140" stroke="#d9ab8a" stroke-width="1.2" fill="none"/>
+  <path class="sweat" d="M129 80 Q134 90 129 94 Q124 90 129 80 Z" fill="#7cc3f0"/>
+  <text class="spark" x="30" y="44" font-size="18" fill="#f0b400">✦</text>
+  <text class="spark" x="160" y="40" font-size="14" fill="#f0b400">✦</text>
+  <text class="spark" x="170" y="96" font-size="11" fill="#f0b400">✦</text>
+ </g></svg>`;
+function makeAvatar(el,bubble){
+  el.innerHTML=LEIB_SVG; let tm=null;
+  function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
+  return {mood(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
+    if(m==='smile'){el.classList.add('smile');restart('hop');}
+    if(m==='frown'){el.classList.add('frown');restart('shake');}
+    if(text!==undefined){bubble.innerHTML=text;bubble.className='bubble'+(m==='smile'?' good':m==='frown'?' bad':'');}
+    if(!hold) tm=setTimeout(()=>{el.classList.remove('smile','frown');bubble.className='bubble';},3200);}};
+}
+var AV1=makeAvatar($('av1'),$('bub1')), AV2=makeAvatar($('av2'),$('bub2'));
+const QUOTES=['1675 年我發明了積分符號 ∫ 和 dx、dy，dy/dx 看起來像分數，連鎖法則就像「約分」！','1676 年我計算 √(a + bz + cz²) 的微分時，先設中間變數再相乘：這就是連鎖法則最早的用法。','我和牛頓各自獨立發明了微積分，後來還為了「誰先發明」吵了很多年……','1703 年我發表了二進位算術：只用 0 和 1。今天的晶片都在用！','「函數」（functio）這個詞，也是我最早開始用的。'];
+let qi=0;$('av1').onclick=()=>{AV1.mood('smile',QUOTES[qi++%QUOTES.length]);};
+const PRAISE=['Optime！答對了 😄','Très bien！dy/du 約分成功！','正確！變化率相乘就對了。','漂亮！你已經掌握連鎖法則。'];
+const SIGH=['唔……再想想看 🤔','不對喔，外層導數要在 u = g(x) 處計算。','差一點！別忘了乘上內層導數。','Hmm……這題有陷阱。'];
+/* ---------- quiz ---------- */
+const QZ=[
+ {q:'d/dx sin(x²) = ?',o:['cos(x²)','2x cos(x²)','2x cos x','cos(2x)'],a:1,e:'外層 sin 的導數 cos 要在 x² 處計算，再乘上內層導數 2x。'},
+ {q:'d/dx (3x + 1)⁵ = ?',o:['5(3x+1)⁴','15(3x+1)⁴','15x⁴','5·3x⁴'],a:1,e:'5(3x+1)⁴ · 3 = 15(3x+1)⁴。'},
+ {q:'已知 g(2)=5、g′(2)=3、f′(5)=4、f′(2)=7，求 (f∘g)′(2)。',o:['12','21','20','15'],a:0,e:'f′(g(2))·g′(2) = f′(5)·3 = 4·3 = 12。f′(2) 是陷阱。'},
+ {q:'d/dx e^(−x²) = ?',o:['−2x e^(−x²)','e^(−x²)','−2x e^(−2x)','−x² e^(−x²−1)'],a:0,e:'eᵘ 的導數仍是 eᵘ，再乘 du/dx = −2x。'},
+ {q:'d/dx ln(cos x) = ?',o:['1/cos x','−tan x','tan x','−sin x'],a:1,e:'(1/cos x)·(−sin x) = −tan x。'},
+ {q:'神經網路用反向傳播計算 ∂L/∂w，其數學核心是？',o:['積分','連鎖法則','泰勒展開','矩陣求逆'],a:1,e:'L 是 w 的多層合成函數，反向傳播就是把每層的局部導數從輸出端往回相乘。'}
+];
+let sc=0,dn=0;
+$('quiz').innerHTML=QZ.map((z,i)=>`<div class="q"><div><b>Q${i+1}.</b> ${z.q}</div><div class="opts">${z.o.map((t,j)=>`<button data-q="${i}" data-o="${j}">${t}</button>`).join('')}</div><div class="fb" id="fb${i}"></div></div>`).join('');
+$('quiz').onclick=e=>{const b=e.target.closest('button');if(!b)return;const i=+b.dataset.q,j=+b.dataset.o,z=QZ[i],box=b.parentElement;
+  if(box.dataset.done)return;box.dataset.done=1;dn++;
+  if(j===z.a){b.classList.add('right');sc++;$('fb'+i).innerHTML='✔ 正確！'+z.e;}else{b.classList.add('wrong');box.children[z.a].classList.add('right');$('fb'+i).innerHTML='✘ '+z.e;}
+  if(j===z.a) AV2.mood('smile',PRAISE[Math.floor(Math.random()*PRAISE.length)]); else AV2.mood('frown',SIGH[Math.floor(Math.random()*SIGH.length)]);
+  if(dn===QZ.length){$('score').innerHTML=`得分：<b>${sc} / ${QZ.length}</b>`;
+    setTimeout(()=>{const good=sc>=QZ.length-1;AV2.mood(good?'smile':sc>=QZ.length/2?'':'frown',good?`全部完成！${sc}/${QZ.length}，Optime！🎉`:sc>=QZ.length/2?`完成！${sc}/${QZ.length}，再複習一下會更好。`:`完成……${sc}/${QZ.length}，回去看看第 1、5 節吧。`,true);},1500);}};
+
+window.addEventListener('resize',()=>{sizeC();update();});
+if(window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',()=>{update();renderCG();});
+sizeC(); update(); renderCG();
+</script>
+</body>
+</html>

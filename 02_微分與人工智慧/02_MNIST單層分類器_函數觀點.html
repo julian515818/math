@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MNIST 函數觀點</title>
+<style>
+:root{
+  --bg:#f7f6f2; --card:#fff; --ink:#1d2330; --mute:#667085; --line:#e3e1da;
+  --c1:#2f6fdb; --c2:#d6334f; --c3:#1f9d6b; --c4:#c98a12;
+  --t1:#eaf1fc; --t2:#fcebee; --t3:#e8f6ef; --t4:#fbf3e0;
+  --pos:#d6334f; --neg:#2f6fdb; --mid:#f4f3ef;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181f; --card:#1d212b; --ink:#e8eaf0; --mute:#9aa3b5; --line:#2e3441;
+    --c1:#6c9dff; --c2:#ff6f86; --c3:#4fd19d; --c4:#f0b64a;
+    --t1:#1b2436; --t2:#321d24; --t3:#172b24; --t4:#2e2717;
+    --pos:#ff6f86; --neg:#6c9dff; --mid:#232834;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181f; --card:#1d212b; --ink:#e8eaf0; --mute:#9aa3b5; --line:#2e3441;
+  --c1:#6c9dff; --c2:#ff6f86; --c3:#4fd19d; --c4:#f0b64a;
+  --t1:#1b2436; --t2:#321d24; --t3:#172b24; --t4:#2e2717;
+  --pos:#ff6f86; --neg:#6c9dff; --mid:#232834;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.6}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.8rem}
+header p{margin:0;color:var(--mute)}
+.math{font-family:"Times New Roman","Cambria Math",serif;font-style:italic}
+.card{border-radius:14px;padding:16px 18px;margin-top:18px;border:1.5px solid var(--line);background:var(--card)}
+.card.s1{border-color:color-mix(in srgb,var(--c1) 45%,transparent)}
+.card.s2{border-color:color-mix(in srgb,var(--c2) 45%,transparent)}
+.card.s3{border-color:color-mix(in srgb,var(--c3) 45%,transparent)}
+.card.s4{border-color:color-mix(in srgb,var(--c4) 55%,transparent)}
+.card h2{margin:-16px -18px 14px;padding:10px 18px;font-size:1.15rem;display:flex;gap:10px;align-items:center;border-radius:13px 13px 0 0}
+.s1 h2{background:var(--t1);color:var(--c1)} .s2 h2{background:var(--t2);color:var(--c2)}
+.s3 h2{background:var(--t3);color:var(--c3)} .s4 h2{background:var(--t4);color:var(--c4)}
+.num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;color:#fff;font-size:.95rem;flex:none}
+.s1 .num{background:var(--c1)}.s2 .num{background:var(--c2)}.s3 .num{background:var(--c3)}.s4 .num{background:var(--c4)}
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:6px;align-items:center}
+.note{color:var(--mute);font-size:.9rem}
+button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--c1)}
+button.pri{background:var(--c1);color:#fff;border-color:transparent}
+canvas{display:block;image-rendering:pixelated}
+#pad{background:#000;border-radius:10px;touch-action:none;cursor:crosshair;width:260px;height:260px}
+.px{border-radius:6px;border:1px solid var(--line)}
+.gallery{display:grid;grid-template-columns:repeat(9,34px);gap:4px}
+.gallery canvas{width:34px;height:34px;border-radius:4px;cursor:pointer;border:2px solid transparent}
+.gallery canvas:hover{border-color:var(--c1)}
+.gallery canvas.hard{border-color:color-mix(in srgb,var(--c2) 60%,transparent)}
+.arrow{font-size:1.6rem;color:var(--mute);align-self:center}
+.eqbig{font-size:1.5rem;text-align:center;margin:4px 0 10px}
+.tpl{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:8px}
+.tpl .t{border:2px solid var(--line);border-radius:10px;padding:6px;text-align:center;cursor:pointer;background:var(--bg)}
+.tpl .t.sel{border-color:var(--c2)}
+.tpl .t.top{box-shadow:0 0 0 2px color-mix(in srgb,var(--c3) 70%,transparent)}
+.tpl canvas{width:100%;aspect-ratio:1;border-radius:6px}
+.tpl .zv{font-family:ui-monospace,Consolas,monospace;font-size:.85rem}
+.detail{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;margin-top:14px;padding:12px;border-radius:10px;background:var(--bg)}
+.detail canvas{width:120px;height:120px;border-radius:6px}
+.op{font-size:1.5rem;color:var(--mute)}
+.bars{display:grid;grid-template-columns:22px 1fr 58px;gap:5px 8px;align-items:center;font-family:ui-monospace,Consolas,monospace}
+.bars .bg{height:20px;background:var(--bg);border-radius:4px;overflow:hidden}
+.bars .fg{height:100%;background:color-mix(in srgb,var(--mute) 45%,transparent);transition:width .25s}
+.bars .fg.top{background:var(--c2)}
+table{border-collapse:collapse;font-size:.88rem;font-family:ui-monospace,Consolas,monospace;width:100%}
+th,td{border-bottom:1px solid var(--line);padding:3px 6px;text-align:right}
+th{color:var(--mute);font-weight:600}
+input[type=range]{width:100%;accent-color:var(--c2)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+@media (max-width:860px){.two{grid-template-columns:1fr}.tpl{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}}
+.pipe{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap;justify-content:center}
+.pipe .b{flex:1 1 150px;border-radius:12px;padding:10px 12px;text-align:center;min-width:140px}
+.pipe .b h4{margin:0 0 4px;font-size:1.02rem}
+.pipe .b .v{font-family:ui-monospace,Consolas,monospace;font-size:.82rem;word-break:break-all}
+.b1{background:var(--t1)}.b1 h4{color:var(--c1)}
+.b2{background:var(--t2)}.b2 h4{color:var(--c2)}
+.b3{background:var(--t3)}.b3 h4{color:var(--c3)}
+.b5{background:var(--t4)}.b5 h4{color:var(--c4)}
+.pipe .ar{align-self:center;font-size:1.4rem;color:var(--mute)}
+.chk{padding:10px 12px;border-radius:10px;background:var(--bg);margin-top:10px}
+.ok{color:var(--c3);font-weight:700}.bad{color:var(--c2);font-weight:700}
+.many{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.many .m{text-align:center;font-size:.85rem}
+.many canvas{width:56px;height:56px;border-radius:6px}
+.netbar{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.lg{font-size:.88rem;display:inline-flex;align-items:center;gap:5px}
+.lg::before{content:"";width:22px;height:4px;border-radius:2px;background:var(--c)}
+h2{flex-wrap:wrap}
+.netscroll{overflow-x:auto}
+#net{min-width:720px;width:100%;display:block;background:var(--bg);border-radius:12px;touch-action:none;user-select:none}
+#net .node{cursor:pointer}
+.netinfo{margin-top:8px;padding:10px 12px;border-radius:10px;background:var(--bg);font-size:.95rem;min-height:3.2em}
+footer{color:var(--mute);font-size:.85rem;text-align:center;margin-top:30px}
+/* ---------- avatar ---------- */
+.avwrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.av{width:100%;max-width:220px;cursor:pointer;user-select:none}
+.av svg{width:100%;display:block;overflow:visible}
+.av .bodyg{animation:bob 3.2s ease-in-out infinite;transform-origin:100px 200px}
+.av .eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+.av .hairL{animation:sway 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:top center}
+.av .hairR{animation:sway 3.2s ease-in-out infinite reverse;transform-box:fill-box;transform-origin:top center}
+.av .brow{transition:transform .3s;transform-box:fill-box}
+.av .browL{transform-origin:right center}.av .browR{transform-origin:left center}
+.av .mo{opacity:0;transition:opacity .25s}.av .mo.n{opacity:1}
+.av .blush,.av .sweat,.av .spark{opacity:0;transition:opacity .3s}
+.av.smile .mo.n,.av.frown .mo.n{opacity:0}
+.av.smile .mo.s{opacity:1}.av.frown .mo.f{opacity:1}
+.av.smile .blush{opacity:.55}.av.smile .spark{opacity:1}.av.frown .sweat{opacity:.9}
+.av.smile .brow{transform:translateY(-3px)}
+.av.frown .browL{transform:rotate(14deg) translateY(2px)}.av.frown .browR{transform:rotate(-14deg) translateY(2px)}
+.av.hop svg{animation:hop .7s ease}
+.av.shake svg{animation:shake .55s ease}
+.av .spark{animation:twinkle 1s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}
+@keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+@keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.bubble{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.95rem;margin-bottom:10px;min-height:2.6em;max-width:260px;text-align:center;transition:border-color .3s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--line);border-bottom:0}
+.bubble.good{border-color:var(--c3)}.bubble.good::after{border-top-color:var(--c3)}
+.bubble.bad{border-color:var(--c2)}.bubble.bad::after{border-top-color:var(--c2)}
+.av svg{background:none}
+.lecun{width:210px;flex:none}
+.card.s5{border-color:color-mix(in srgb,var(--c1) 45%,transparent)}
+.s5 h2{background:var(--t1);color:var(--c1)}.s5 .num{background:var(--c1)}
+.qgrid{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:18px;align-items:start}
+.qgrid>*{min-width:0}.qgrid .avwrap{position:sticky;top:12px}
+.quiz .q{padding:10px 0;border-bottom:1px solid var(--line)}.quiz .q:last-child{border:none}
+.opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.opts button.right{background:var(--c3);color:#fff;border-color:transparent}
+.opts button.wrong{background:var(--c2);color:#fff;border-color:transparent}
+.fb{font-size:.92rem;margin-top:6px;min-height:1.2em}
+@media (max-width:860px){.qgrid{grid-template-columns:1fr}.qgrid .avwrap{position:static;order:-1}.qgrid .av,.lecun .av{max-width:140px}.lecun{width:100%}}
+</style>
+<style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line,#e3e1da);border-radius:12px;background:var(--card,var(--surface,#fff));color:var(--ink,#1d2330);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+.pu-badge img{width:58px;height:58px;display:block}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute,var(--muted,#667085))}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="pu-hd">
+  <div class="pu-hd-main">
+  <h1>用函數觀點看 MNIST 分類器</h1>
+  <p>單層全連接層 + softmax：<span class="math">f</span>(<span class="math">x</span>) = softmax(<span class="math">Wx</span> + <span class="math">b</span>)　・　模型已用真實 MNIST 資料訓練好，測試準確率約 <b id="accTxt"></b></p>
+</div>
+  <div class="pu-badge"><img alt="靜宜大學校徽" src="data:image/webp;base64,UklGRp4NAABXRUJQVlA4IJINAABQLwCdASpkAGQAPpE8lkglo6IhNDhMcLASCWwAyJAJkoayxKYH9n30f7b/zF+c96Kf85vvvoAdMnXmnbN5u+ID1f7let9j/tP+rz73zJ7yfiZqBOo+SvoEe233Xv2f770F+uX/O9wD8vvKq8CLyr9afgC/ln9v/5X+C9ff/s/0/n3+kf/X/m/gK/Wz/q+vB7Pv3G9nD9qHFLDlY7viCW1/x/jRblVR/R3XoZS2XKu0cqedDpp3BGWkYNMzYdRkjmQnRE55yD4o50+qWmStkNkZhsI9Zo3VypJ62c71sQoWGxkmmsEAS4b1MFr82ULQBw7NEmQZ6G/Z35mWquOa2a1qiJsBP80y6mZb5zwYcVZyLDNEPnwFy2JgpQKDmz3TMMshOdquwEOcy/oHrRx/yt9zNyo/e/Kzrz7E0gD0/jrvnK+jtphdBC7c+QSA4gHi2wr12ekIUU44ga4VxjSpb4dT6kRhYj3wAX/ryYxW22D6F8xOs08XqIbsehEpS9KQb9ENWqAA/v9dAW0liceKq+YH0mRfu1vrWFByLR89d7VQsjuxClxIRffyOM1vXt+aazxaL7o1EM6cbazY3CksDSQ08EUyLFwACckGP2eRoZ5+Tu6xVk/ODdvdo+RJrIdNvdBSFr0QeDRz/5qinU2EKBkrcrZzcbk68o2ZPWIxSelUtHRpOsAuU4QQWhyPDIi2y+ZPGu6SjMfTgdungbpxguwdcsNK0BYRztV+jfNcVVQ9n6IWjA6aLKEBXneSX/ZQ7+vhJyEwgOQtEN2nM24mXuNs5X716YBv1qdmt9afYpjnoejTOQA2YPaKJJdJCOf8tBRjFF8lmf3JOIphtNfdUNxB4l1WaTQ0p2BaTuuK/cf0YXsSCoyzVHwF8AzF1SSM0mu7I/OFv/0B2yeX+Nai/LWKRxOND2qDVQkNIvrgvJ19vDRReS4R2UfaqQNCw0Td67pinRSLbeaT2MArke3jA31vHxLWFxyukzgT11ipse3hYXtdHDPuJILC3Jf+WyhnzrbECxWlekXGZHvfCq4byZgFC4EF006FVPkTG4mD8wLWCNRw1+amvRzIJpP10lX3IeIBV8tFoguMCTa6jKR67qhrroz6PVV6n4jYQJlEZU9uBMjgxGaBSpgajd0fGKC5DM7BWdoEYxj4cJqaAt0+vAqeW8C4pPZvpSxAupuVT6kjPiY+Glpm+Z2c29VdrPBCrujf4Oua77+elnYJlstt/ZzHe78Ca4+MCu+DgggtLIfzUSmISvQbVg6fU5PhowLwmU4I2OfCzFVzIrPhXZclWluD6cJbSQ5rPUqUCseByBFGIHsxNGxVCngn2q3kRPTzCq/Jrgtlhs9S5bLfeUN7jVYJmfKqQYQvmTwKT6bfyIx50R1fobx40eSAevQWahInd3Bwb9FPB1udcvOnF6KLTgJzPWGR4gExOTRE2XHm4SC55Jt4vo0K44Mk0mayLGynvlwaU2ghoRE8Oal8FDH026NyQFvN8iBVWVZgYceNoxO/WGWY0Gmy3zOck1Ysv/lLK021wwXY14Nm4aTWrEveonV/0h30SUOvc4VfCqlc5MQXaxQlZzOlgks4DqKWDUNlh0dCxJG4ASnAsg4kv5OnSoKJF9kD5lVf9goDmc9mUJ8Pmrohf/iS/Y3yWHkMUijVp2CifVfBohGu3dh1TS8CxfksZi+gYOrEvLAsIQgqmRBPeYLfgtoZgmfoLvYccjHfP7tpWO7zfp/N2ZbiOeVuN7JgLTup04o+LgleesjgSv5ovAV/C2/aMIg+h8ND/i+lHlqxlZZu8e/2zQCgpocgWGzeT1C67SQHW5CoYOQIjnV1sgDM9SP695ubjsaTTK3cYc2xLQryttnjYzliXC4moearYZsYStCrSsf/u1htDfIEQo5n9KFzGY0F0pgid0RBcab+EqWDPLM1jVwgcVAUZ3mWpTA+MnPmN22uov3pLDSQRUkJNxFddPnCcZz8zTtH3mwfYx+BAehlbkKKkpbOmVfJykW1dCLJpuJBRTMOeqWUionyxochrDNlcMYnYYD00SDhaH6FvRX8fg1TWW+SCq1+A2rb8u5CXHcwiMzbZXM/Sf8ajIj2+Bw+UvkXAhZuRArzT56c5KeAsRFRPb3y0jRI3vJKd4LDRtKNPiP6blJM7lqnQ14FugOOMKd0OPYnPC5Zjj+lFDAWJRLYa4345zRrwt6wmcuXIG0p3ZpyaK2AEzzWTDUQwfofDzsgZOue0GW+Kusk4B0jjVPhInfoAk7A2B+tTk9/rrr9b0ycHn4tQfk1GFkWs213SVfK0Pa+yIULFkzVUdkodXT923Qlf3rket2T/fEAPZ2wDrV+0LsG6PwkA2CKdrt3oXOmFQdjH8Ezb/JzDcnvhNIsp6iGQgN4erY0i2NJVSTzWXvnm1VCq2U9eXFRBmEqIxdJ9eqntQT+UeTpy8beiZYqbCLmXhMTZf9aebr/bDz96T2HRvchccO/WwanBicoCSkCGZlm6Iw+Xh/kHyXeIMmuON4WqTyVPbffFmmQ8F6ipQJP1oCNXmwU/8ad9PjLU5yLneujliwL7gREgSsQpVFagPkmh7ud8KAQmsHZMwpKM7KSJiGfS3bhSgwQ1q2GMk8J6v1Ph+j4YJmdeZV3SFZJLb9PHHM5n4/jDmOtDu1l8pFZQhVtW1TihZJHnvYqsNKro+SGABmKjFn1yfuqRcrRJJ/MyfTzDKMQf8nNxPfv7OvJbEJWTBysH1D1pLg/yLstx7lPDottqJnKXNcdMEfSf9QRVrloR6zEGM4GtkCOETrSDLojdVymcGRP6kH9yNdMcucGly1uv2B1GR6iYYuiyMv5JeOm8pZ8M9j+7y+AvDkwM+d5BwLMgFA6xtfCiDD7r/fD/mWRIOOb8EdNtWgxgOYd/ueerPaG+vp8X4uzt12Yxc2nEvVoji2UuicAjqRu0lSGZpsb6H/z/Wgzb4F3YCkw+0DdoJEdO+N8aiOdeeqYjfKQvWRY/vMG4CZDRMvIOLJP8J6X3FtkF/9rO7DS45YszN62iluqndrbOt3dmfB4JLd3Zm/8wRIPsCSTl7X36KcPizCylvV1jX9gZ6DUJICft8LRdjngvbac2b2xHFDXwXmaNcaEQetz4LfvwRviIbs4EKVFx+h2+hy/Et8LimVIVWe0xea5X7GBVaCTxxxikeLT6Rl+YhMKeMyFQCE0M/+6E2j+H5lpb3PI9etwBYbAK5eNjpqzksxqSTTezfrx23r/HbaU2rtC3zpKnM6FdkxCX+XKRtfx8hIqUOD8HxImKS7GNTSA9VzsqSu4PDtJZ4Bj94DBCTHwz20CyZYcw2SaS+uuAcbdia50Zja07Jnw8db16URDljnVYsfvw81dD4Dq+6yY4qg38d4yYGjMNgun1rZJpCz7rnSbRSofo1R/I5jrVqDIY7anl90txbq+4589jJ/puZPjRmKgGhVQjZnM6BtqJ0JO1YAsd4NxqR76VsPck95vhqd05c4jXhgens6sBBAWap4s7x7VdBqEqwvSweJm64eiU92CIosEGzRgj23O+eZjjIkHLY+US0HT7jjAJ1V+RO0VHN+MCbvFfhJQGg1u0Lw4ebRuaqBNlL1Epg0Ih09l4skDcaOdjT6LAHvmoRRphx2GScPwXBM05rWic/Pb06Tztmu0jFypGL1L7SCWUtoBtYtwuNuPx+By5M1AJnBdMqzmDabbnwZuXUHhbZSH7T8xj8j7SI88xd6zBPzAGSu7jefemLava/cMkvVLWfYnXbY7vGFQzYaGhUZ8ZSXWutIK33AY7Swt35FrdIFFfHOrmo7v4gbTpPA/oAFHnenV/r2TV1J/GD8MWaAUNO1cr2ruaE528x7mJcdyR38nu7n+mnkhRfhMTRurzmgqX+Lf4u3cDAXxmi/17ZUyl8FlPTG1+wGR2TGSKroKuC1QbAkBPa3NIymuy2QV9trQSG8wfZ+ilCfwWC53h22me8Kc7EDflDFFBeBlNtQQgXZTCdT6qTGKdNabKfvEMlYbuTBEsOy+j5Mpzr91/JrvFR5jGy0nqwgXlhBeu8KDWHtzhp7GO2WlXQ5/oXM2g0RVeFZEOWT8VonUsIC7JJeXy4LYs9YgYJXItv320So10IiCoQoyHrvrZrgxa3xM/3xENs+VWC4Ct45r4TdadVFPvV1MhvwcBTP8L/Hwt+z0HW82oEUHgxliaFSLCUyMaZk0NYwMQ5jfamJBiduhM86DBlu2ONEqF9NJlIA8Y8/d6utk/69Knq/u+QjxtVKO6gak8QlSwf3Rv7mj9wcZaQ1bwRPbLRuMcN/fbcycATWoKAmJsaVGHKmJWkv0qKuZMORw9WYnLb32vbRxUOCZTfFQ6q4hLdsOoEhqEDatFqaqKNRa4enJuHgrospFv7USi1Cnk76jLFmPch22vTPAlmnwL1oDVysXkFPMrgIS/Fpm+IJgxdL6N8DaNYraZJdek94iUE67yBbhh+Bn22N/T308LxI+f3OhLK2S9eSL+SUB3SY3URkvWtOQdI4ABVJRaC9J1Q6EUMJy+/atlQmZyAjLSvJRmYlnGSrxL53XIZbC92uU/Iw/zOeftQrSkuBpfze+tn7crQlLX6xHIsQBhQX/UFD7WFKsKS0xikAtyrWAAAAAAAA="><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</header>
+
+<!-- 1 -->
+<div class="card s1">
+  <h2><span class="num">1</span>輸入 <span class="math">x</span>：一張 28×28 影像 → 784 維向量</h2>
+  <div class="row">
+    <div class="col">
+      <canvas id="pad" width="280" height="280"></canvas>
+      <div class="row" style="gap:8px"><button id="clr">清除</button><button class="pri" id="rnd">隨機範例</button></div>
+      <div class="note">用滑鼠或手指在黑框內寫一個數字</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="col">
+      <div class="note">縮成 28×28（MNIST 格式）</div>
+      <canvas id="x28" class="px" width="28" height="28" style="width:168px;height:168px"></canvas>
+      <div class="note" id="hoverInfo" style="min-height:3em;text-align:center">把滑鼠移到像素上<br>看它在向量中的位置</div>
+    </div>
+    <div style="flex:1;min-width:260px">
+      <div class="note">範例影像（點選載入，紅框是模型會答錯的困難例子）</div>
+      <div class="gallery" id="gallery"></div>
+      <div class="note" style="margin-top:12px">展平：逐列接起來，第 r 列第 c 行的像素 → 第 <span class="math">i</span> = 28<span class="math">r</span> + <span class="math">c</span> 個分量</div>
+      <canvas id="flat" width="784" height="1" style="width:100%;height:26px;border-radius:4px;border:1px solid var(--line)"></canvas>
+      <div class="note" id="flatInfo" style="margin-top:4px"></div>
+    </div>
+    <div class="avwrap lecun"><div class="bubble" id="bub1">Bonjour！我是楊立昆老師，MNIST 資料集就是我們整理的。寫個數字給我看！</div><div class="av" id="av1"></div></div>
+  </div>
+</div>
+
+<!-- 2 -->
+<div class="card s2">
+  <h2><span class="num">2</span>一層全連接層：<span class="math">z</span> = <span class="math">Wx</span> + <span class="math">b</span>（<span class="math">W</span>：10×784，<span class="math">b</span>：10×1）</h2>
+  <p style="margin-top:0">只有<b>一層</b>：784 個輸入像素直接連到 10 個輸出神經元，<b>每個像素都連到每個神經元</b>（全連接），共 784 × 10 = 7840 條線，每條線上的權重就是 <span class="math">W</span> 的一個數字 <span class="math">W<sub>k,i</sub></span>。
+  神經元 <span class="math">k</span> 做的事很簡單：把所有連進來的「權重 × 像素值」加起來，再加上偏差 <span class="math">b<sub>k</sub></span>，得到分數 <span class="math">z<sub>k</sub></span> = Σ<sub>i</sub> <span class="math">W<sub>k,i</sub> x<sub>i</sub></span> + <span class="math">b<sub>k</sub></span>。</p>
+  <p class="note" style="margin-top:-6px">👉 <b>點選右邊任一個神經元</b>，看哪些像素對它貢獻最大；<b>把滑鼠移到左邊影像的任一像素</b>，看這一個像素連出去的 10 條線。</p>
+  <div class="netbar">
+    <div class="row" style="gap:8px;align-items:center">
+      <span class="note">線的顏色：</span><span class="lg" style="--c:var(--pos)">正貢獻（加分）</span><span class="lg" style="--c:var(--neg)">負貢獻（扣分）</span>
+      <span class="note">線的粗細＝|W<sub>k,i</sub>·x<sub>i</sub>|</span>
+    </div>
+    <div class="row" style="gap:8px;align-items:center">
+      <label class="note">顯示連線數 <b id="nLv">60</b></label><input type="range" id="nL" min="10" max="300" step="10" value="60" style="width:140px">
+    </div>
+  </div>
+  <div class="netscroll"><svg id="net" viewBox="0 0 1000 615"></svg></div>
+  <div class="netinfo" id="netInfo"></div>
+  <details style="margin-top:10px"><summary class="note" style="cursor:pointer">展開：用「模板」看同一件事（w<sub>k</sub> ⊙ x）</summary>
+  <div class="detail" id="detail">
+    <div class="col"><canvas id="dW" width="28" height="28"></canvas><div class="note" id="dWl">w<sub>k</sub></div></div>
+    <div class="op">⊙</div>
+    <div class="col"><canvas id="dX" width="28" height="28"></canvas><div class="note">x</div></div>
+    <div class="op">=</div>
+    <div class="col"><canvas id="dP" width="28" height="28"></canvas><div class="note">逐元素相乘 w<sub>k,i</sub>·x<sub>i</sub></div></div>
+    <div style="min-width:220px;font-size:1.02rem" id="dEq"></div>
+  </div>
+  <p class="note">把神經元 k 的 784 個權重排回 28×28，就是它的「模板」（網路圖中神經元左邊的小圖）。與輸入逐點相乘後全部加總，就是 w<sub>k</sub>·x。</p>
+  </details>
+</div>
+
+<!-- 3 -->
+<div class="card s3">
+  <h2><span class="num">3</span>輸出 <span class="math">y</span> = softmax(<span class="math">z</span>)：把 10 個分數變成機率</h2>
+  <div class="two">
+    <div>
+      <div class="eqbig"><span class="math">y<sub>k</sub></span> = <span style="display:inline-block;vertical-align:middle;text-align:center"><span style="display:block;border-bottom:1px solid var(--ink)">e<sup class="math">z<sub>k</sub></sup></span><span style="display:block">Σ<sub>j</sub> e<sup class="math">z<sub>j</sub></sup></span></span></div>
+      <div class="bars" id="bars"></div>
+      <p class="note" id="predTxt" style="font-size:1rem"></p>
+    </div>
+    <div>
+      <table><thead><tr><th>k</th><th>z<sub>k</sub></th><th>e<sup>z<sub>k</sub></sup></th><th>y<sub>k</sub></th></tr></thead><tbody id="tbl"></tbody></table>
+      <p class="note" id="sumTxt"></p>
+      <label class="note">溫度 T（softmax(z / T)，模型本身使用 T = 1）：<b id="Tv">1.00</b></label>
+      <input type="range" id="T" min="0.1" max="5" step="0.05" value="1">
+      <p class="note">softmax 保留大小順序（最大分數 → 最大機率），所有 y<sub>k</sub> &gt; 0 且總和為 1。T 越小越「果斷」，T 越大越平均。</p>
+    </div>
+  </div>
+</div>
+
+<!-- 4 -->
+<div class="card s4">
+  <h2><span class="num">4</span>函數觀點</h2>
+  <div class="eqbig" style="font-size:1.8rem"><span class="math">f</span>(<span class="math">x</span>) = softmax(<span class="math">Wx</span> + <span class="math">b</span>) = (softmax ∘ <span class="math">g</span>)(<span class="math">x</span>)，　<span class="math">g</span>(<span class="math">x</span>) = <span class="math">Wx</span> + <span class="math">b</span></div>
+  <div class="pipe">
+    <div class="b b1"><h4>輸入 x</h4><div>定義域 [0,1]<sup>784</sup> ⊂ ℝ<sup>784</sup></div><div class="v" id="pX"></div></div>
+    <div class="ar">→</div>
+    <div class="b b2"><h4>內層 g：仿射變換</h4><div>ℝ<sup>784</sup> → ℝ<sup>10</sup>，W、b 已訓練好（固定）</div><div class="v" id="pZ"></div></div>
+    <div class="ar">→</div>
+    <div class="b b3"><h4>外層 softmax</h4><div>ℝ<sup>10</sup> → 機率向量（y<sub>k</sub>&gt;0, Σ=1）</div><div class="v" id="pY"></div></div>
+    <div class="ar">→</div>
+    <div class="b b5"><h4>argmax（預測）</h4><div>機率向量 → {0,…,9}</div><div class="v" id="pC" style="font-size:1.4rem;font-weight:700"></div></div>
+  </div>
+
+  <div class="two" style="margin-top:14px">
+    <div>
+      <h3 style="margin:6px 0">✔ 它真的是函數嗎？</h3>
+      <p style="margin:0">函數的要求：<b>每個輸入只能有唯一一個輸出</b>。W、b 訓練好後就固定不變，所以同一張影像不論算幾次，都會得到同一組 10 個機率。</p>
+      <div class="chk"><button id="rep">把目前的 x 連續算 1000 次</button><div id="repOut" style="margin-top:6px"></div></div>
+      <h3 style="margin:14px 0 6px">變數與參數</h3>
+      <table style="font-family:inherit">
+        <tr><th style="text-align:left">符號</th><th style="text-align:left">角色</th><th>大小</th></tr>
+        <tr><td style="text-align:left" class="math">x</td><td style="text-align:left">自變數（每張圖不同）</td><td>784</td></tr>
+        <tr><td style="text-align:left" class="math">W</td><td style="text-align:left">參數（訓練時學得，之後固定）</td><td>10×784 = 7840</td></tr>
+        <tr><td style="text-align:left" class="math">b</td><td style="text-align:left">參數</td><td>10</td></tr>
+        <tr><td style="text-align:left" class="math">y</td><td style="text-align:left">應變數 y = f(x)</td><td>10</td></tr>
+      </table>
+      <p class="note">總共 7850 個參數。「訓練」就是在找一組 W、b，讓 f 盡量把每張圖對應到正確的類別。</p>
+    </div>
+    <div>
+      <h3 style="margin:6px 0">多對一可以，一對多不行</h3>
+      <p style="margin:0">預測函數 argmax∘f 把無限多種不同的影像對應到同一個類別（多對一，完全允許）。下面是同一類別的不同範例，它們的輸出都一樣：</p>
+      <div class="many" id="many"></div>
+      <h3 style="margin:14px 0 6px">輸入改變 → 輸出跟著改變</h3>
+      <label class="note">在 x 上加入雜訊（固定的隨機樣式），強度 σ = <b id="Nv">0.00</b></label>
+      <input type="range" id="noise" min="0" max="1" step="0.01" value="0">
+      <p class="note">x 不同，就是<b>另一個輸入</b>，f 當然可以給出不同的輸出；雜訊大到某個程度時，預測類別就會改變。這也說明了 f 只是一個固定的規則，不一定每次都答對。</p>
+    </div>
+  </div>
+</div>
+
+<!-- 5 -->
+<div class="card s5 quiz">
+  <h2><span class="num">5</span>小測驗：單層分類器的函數觀點</h2>
+  <div class="qgrid"><div>
+  <div id="quiz"></div>
+  <p class="note" id="score"></p>
+  <div id="againBox" style="display:none"><button class="pri" id="again">再做一次</button></div>
+  </div>
+  <div class="avwrap"><div class="bubble" id="bub2">來考考你！答對我會笑，答錯我會皺眉喔。</div><div class="av" id="av2"></div></div></div>
+</div>
+
+<footer>單層全連接 + softmax 的 MNIST 分類器（權重以 <span id="ntr"></span> 張 MNIST 影像訓練，<span id="nte"></span> 張測試）・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+
+<script>
+const MODEL={"Wq": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMJBAAAAAAAAAAAAAAAAAAAAAAAAP/+/wD+/f38/fz+/wAAAAAAAAAAAAAAAAAAAAD+/Pv39fv/APn57/P19Pn/AAAAAAAAAAAA///9/Pj6+f4UERkIA/v28PL1AAH/AAAAAAAA/vz6+fv49fD+GjszLxwWEAwJAgL//QAAAAAAAPz59vXy6/gFERQWGCwgEiMYHwv/+Pf9/wAA///7+PX66foE/gcIFiYpKhkODRkKCv32/gAAAAD/+Pb68+7vBfP2Ci0fHy42FvgEDwsC9f3/AAAA//n5+/DwAP78CiMeBBQdLiEMCyAaBPb9/wAAAP/4APz/BA31BxkU/e/6HSAcGR4oKw31/wAAAAD++f4LCg/8/RIOANzHzOwUJSUvKSwT8/4AAAAA/fYDFxUQAhINCuzFsbDM8gUYISUrFPf9AAAAAPzyDycQEREhEwPcq6Op1+Hu7wInKxb9AAAAAAD79yQtGxATLR7/36mdqc/g8u4KKCwV/gAAAAAA+gEjLCwaGyUG6cWYn7TF6PD8CiIlD/oAAAAAAPv+HDI3MSQfAtGklLDI5f0JBwsUIAj5AAAAAP/9/honLS8yOhbgra/F2gMIDwUcFxEB+wAAAAAA/AAeHiwsIy8a9MDH7vIECwQJFwb3AP0AAAAAAPsBGRYmMR0ZGBPi6vD7APz2/QX8+///AAAAAP/7ABEGByYZKyIZCO31/ATn5O7++v35AAAAAAD/+wMMCQcWHiImFwUPFQjv4ub6//n3/QAAAAAAAP/9ChH8BhgfHS4/KicH7e/7+vn2+v4AAAAAAAAA+wH9/voKKzc5KiARBQgB8O31+v4AAAAAAAAAAP4B9/b6+PwBCAgLD/709PLx+P4AAAAAAAAAAAAA/vz69PHu9Pf69fXy9fn8+/3///8AAAAAAAAAAP////79/f3+/Pv5+////v7+/v8AAAAAAAAAAAAAAAAAAAAAAAD//wAAAAD//wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAD//Pv5+v3+/wAAAAAAAAAAAAAAAAAAAAAA/fbz9f/9+wD68vT4AwH7AAAAAAAAAAAAAP///QD7BPgBBAQM+fsNDw8jFgcDAAAAAAAAAAD+/vz5BvXs9P8FCO4DCxITHCATBP3+AAAA/v79+Pjx8frw697n6N/L3QoREg0J9fD3/v8AAP/++vDk6ebh4d3T5fPZ0tYJGQcB+Ojr+P7/AAAA//rr4OXs1ODf4fkNAe7tCvrp6ePa5/r/AAAAAP/57+f09u3t6/8AJyQS+QHb1dbb4/D6/wAAAAD//fr38PHz5fcHCUhTKAHw3dTY5O33//4AAAAAAP78/Pfx7+La5xZpcCD87+Lc6PL4+gH/AAAAAAD//QIF/O/Mysoxf2YN7Onh5fL4+/v9AAAAAAAA/wAF/fjev67PPHU3B/rV4efx9vv8/wAAAAAAAP8A/PHz37er5TdcJwzp3OTr7/b6/gAAAAAAAAD/+fbv79ixzvFIbTH+0dzc5u3y9fr+/wAAAAAA//rz8OnfzeAJQFQD1cbS3ODp8PP4/P4AAAAAAP326ejv6u7wDDk+8cW80t/j6/Dy9/r+AAAAAP/97Nzi5fD//g4wI+rB0t3k8fHz+fj8AAAAAAD//OvfzNvrCv8GKAgB9vcPCAb88/8B/wAAAAAAAP7y7+zs6xsUFR36+/0AHAsA//r7BgMAAAAAAAgQDxEXDvsV/uzw/xz5BxP/9v///gcJAAAAAAAEExUWIhgI7t/V2AUI/RkaDP709/sEBQAAAAAAAAMCDAgCCvTj4e/zDhccGBkG8vP4/f8AAAAAAAD+9fLh1u3t6Ojj6Ojm+gMI/fn5/Pz/AAAAAAAA/vv58/Hv5uTt8fX29fn6+/4AAP8AAAAAAAAAAP///v79/fr29vz8/P3+//8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD+/f8AAAD//wYAAAAAAAAAAAAAAAAAAAAAAAD//f0ABBcZEwkE+/b5/P3/AAAAAAAAAAAAAAECBAkYJiogIxwdIQz29/Hz+f8AAAAAAAAAAAABAgkLISUlMB8dGxgVFfDl3uP3/QAAAAAAAAADCBMgIioyNjU7MiUwFhcM/+zq7vj/AAAAAP7/BgwSLBYMDw4FAhMgHv8QBAsK9erz/P7/AAACAQgaHBwPAwgkFxcPDf3h8vnvBv3l7Pj+/wAAAgESJyknEQ0mIAD8AhILF/X7Agj86un5/wAAAP7+Bx0NC/ID/PrxA/QKABoGAQkC7ejo+P8AAAD9+wT85Nve4d3V2dHj9wYJ6gYS9/Hq8PoAAAAA//4A6Mm7q6Knur2ttO4J4dQPFOvy6vkB/wAAAAAD7s+plJ+0tKeutM/Z3Nzr+wH2+O73CgQAAAAAA+S5qK7F1NPO1PDj0vv3AfD0APvy9wYCAAAAAP7pzdzx7eLu+AsX7e7u+/Xs8PDi6QP9AQAAAAD+9w8ZHxMECRUEDf396/Lt6+Ty5/0bFxAAAAD8AAs0OA/8FCIcLCQmGwULFBEEFCIkLS8ZAAAA+f8RKTEMAyQlKjw4CgwJBg4LJDEzJywmGAEAAPn5FRIiLBcdGCA5Lw8MFSUQ9QIRLTU0GwYAAAD7+RQjJTEsLyIyLyQoEAgaEAQFFy4oJhQDAAAAAPoMGi8vLCMcJBcPEAsEBxgiJCUdFhIFBAAAAAYCAA4cHv4aISAG7NTrBAYjMhwbDg4KAgEAAAAGAgkHFysOFhgK+u3o7vQJERAaHx4RBAEAAAAAAP0AAxUV++ff7/Xm5OLvAfHy9QgbEAUCAQAAAAD7+/T/AufZ2+jw8+rq7/sA8fX4AAEHAQAAAAAA//v38ezs7Ozv8e/u6+rs8fL2+f3/AAAAAAAAAAAA///+/v///v////7+/////v7+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA///+/QMHBwgHAgAAAAAAAAAAAAAAAAAAAP/9/QAEERsZDhIXCwP/+Pj+AAAAAAAAAAAAAQcLFhQeIiUoHx8VFhUW9u7s9P8AAAAAAAACBg0fJhcMIBEbIwoKDQEEA+HQy+j5/gAAAAAFCwkVLiAeJisfFBn/FRENCgEO69ne7vsAAAACAREdHysnEyIH9hUHIxQLHhAYJQH75uj6/wAAAP8UKRYbDPD4AgchEhEoJSEcDh4RCvHn9/8AAAACFBgR//nz4uXM7/cJPUUuIBE2GQ347foAAAAABAf9+Pjrysi8sL7s/ygnHSYNGAMH+/b9AAAAAAUB8ezl0L3Zw7Xm/EksDBU3HAD0+f74/gAAAAAA9/Lu0tbK3N/xIDAYEggYIBD23+f5/QAAAAAAAPz8+97Y3d7w9f8SMCoXDh7w/t3f7/v/AAAAAAD+/vPh2esK6e/tEhgVCPYZ/QQG6/L3/gAAAAABAP/uyNPZ6OkFECIUBA7w/hIGEAsD/v8CAAABBgkN+NfOx9LL2gMI9trs9h0gCCAOBgH+AAAAAQwZKxfn2s+/qLLYvrTjABMoLgUzJf3++wAAAAALMUUuDfrz27q8vLHD6hIkLCMZNyj2+fwAAAAAACY9RCgUCNbKu8/sAwULGRwOJyYR9/r+AAAAAP0dJj8iARcB1Njo+hwQGBYYCyspCfr5/v8AAAD+ChwcDg0RB+3n4PEACCMQGgkYEwX5+P4AAAAA+wIECBQJFxsBEQP3/RQJFAkIEvz59/3/AAAAAAAMFQwqJgcaEhUCCxUDAQITEfv09/n/AAAAAAAAEiIfNEdBNhgSHSkaA/zu/Pj5+v7+/wAAAAAAAAAEFSEoMTIzLC4rBwX78gEMAwQFAAAAAAAAAAAA/wEDAf77AQUDAAAA+v4BBAYA/wAAAAAAAAAAAAAAAAAAAAAAAAD//wAA/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD///7//v77+v4AAAAA//4AAAAAAAAAAAAAAAD//Pb49vXt7fL4+/7//v7+AAAAAAAAAAAAAAD//ffs6+zb1s3Z4+rp9f///v0AAAAAAAAAAQD+/vr06ens5uHW2u7j6goMDgEEAAAAAAAAAAQIBAAEAv3t+Nvt4w4YCwUUGB4XEwUAAAAAAAAMFgkCDgL88vHX07fZ3fb8AxwmMxkG/QAAAAD/CxUG9/8D5OPUxqafuND+9/cRHyYVCAAAAAAA/wkMAf7y7+TjxceisNjj5fH5EBQE/AYA/gAA//0FAPPz6OUK9uPVoMX19dz+9vX14uf9/v8AAPr29ez2AO73EggB3rLwARLz9Or18ej2+v8AAAD89vP0AQcTCy0gGuXGABge8QX29v7o8fr/AAAA//v3/QIhMjE4PBXt6hAmGRIRHBYB7PL6/AAAAP7+Bv0NQkk7PlMb6+4AI0gwKjEN/PXz+f4AAAAAAhIMIjggKC5ROwbuCT9SOzAdDwTz6/r/AAAAAAUQBhs0LT4rKhXwCDpKOhYgEwMJ/u/8/AAAAAAA9wIMPk48Gw4IAClDR0YhGhQD9/j68fsAAAAA/uzp7R01E/kEFixFNz0cBfHy6N/w9Pj7AAAA/vri9+3q8/fk6gwkKyIO+fvx+O3h6fD7/wAAAP357O/u2cbQ0dDs/v0fC/Tu4ff66Oz3/QAAAAAA+/Hf2M6+vbzZ7tzpE/gJ+OX3++/1+QEAAAAAAP7669fI0NDR1dXi7O7x9fT4Df/9+P4CAAAAAAD//fTk3Nru6uzc8OfrAQ4YFBMGAgMBAQAAAAAA//358/X9AvX37/r79gwQEhcdCfsBAQAAAAAAAP/+/AH7/AL1+fLy+fQC9gD/CgUBAQIAAAAAAAAA//z26+/l4t3b4fT66N7e6Pf3/wUBAAAAAAAAAP//+/j38O/w7Orh5+zq6u339/v/AAAAAAAAAAAAAAAAAAAAAP///P7//v3///v9AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP///vz8+vn6+fv9////AAAAAAAAAAAAAAAAAP/++ff27/L28+z5Ag4REQYCAAAAAAAAAAD/9+/t5uDr7vL+CQsKBgIRGhH7/QIAAAAAAP7379/l9fX56+by5NsDGRoDDhkbBgoJAwAAAAD79/Tl+f0D+gQU9QIE/vP6Cw8bIylBLA8AAAAA9+7t6eYREQgUEAYB/v369gscGipKYUARAAAAAO/g7OTzHyYEIREB5dPM6voIJzYwWm9MDwIAAADv7O35+CIYDhzy/e7Y0t3s8f4hHklsSw4DAAAA+/fy/wMgKissJjYg+d/X6Nzm9fIaODYHAQAAAP779wMIKRUfRSEd7NfauaSfmrS73gIYBgAAAAD+/PMIGhkQHkY3KgLeycvGrqausb3lBAMAAAAAAADt/wgKFiVWSyL/37rc7uzbxr/J4P0AAAAAAAYE7/Tr9Bk1ICEW9NLU7fP2/ufh3u/8/wAAAAAHAu7n2ekFHAP87+THxuL9ABb64+/5/v4AAAD/Bf/n2biy0/L18evZ2NX28O4PBvz5AwH+AAAA/v8E/gvn07m4w63M4PoVD/sAGA3/CQ0D/gAAAP/8Ags5F/7Qw8/M6gcRBPkKEx8YCBcNA/8AAAAIBQDyJTAvGPkF8/sAC/f1FBkFDhYZEP//AAAABggHARFARzUOEe/38vf/CQIC7/EdIgr+/wAAAP8CBxYjGyUjFB0ZChn0/wf4BgoVJhwI/AAAAAAA/wkO/wP1BfgaGRALDCIOEAkJHB8QAP4AAAAAAP4IDwf3CRURHhEJJSQK+/L1DBAI/wAAAAAAAAAAAwf/9P4RGRslFQoH/gYJCwsE//3/AAAAAAAAAP79+/n6BAcB/fr4BQwIBP71+Pz/AAAAAAAAAAAA/wD//Pv9/f/++v8A/Pb4+P3/AAAAAAAAAAAAAAAAAAAAAAAA////AAD+////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgQCAgIDAwX+AQEBAQACAgAAAAAAAAAAAAAAAQYMEAsDBhIYFhQNDAkIBQIAAAAAAAAAAAAAAAEHCxAMCRUeIRsxNTYgFwsAAQAAAAAAAAAABAYEBgwPBuz6BwsTHBYbIRUYFf//AAAAAAAAAgcH/gT/APXt+fQHAQ0LFxkREhICAQIAAAAA//3/A/r4+vH47fD0+eH5Au3f8AIC/AAGBAAAAPv7AP7x5+7x7eLu4Nvd38+xw9fz8vT4AQMAAAD9/wH35uHp49Pr9OXh2r+ao7bD4ujp8/3/AAAA/P348vX16ubk/ubx47yXoL/Hydni7Pj9AAAAAP79+PoNBv339QT+7L61sb7H0tbh8PL3/gAAAAD+/wEFCgsMAP8LDuSrzNPN3O4IBRP+9PcAAAAA//8PDBkYDxsSF/7T2fT19+v9FRchEvb0AAAAAP8BFhIRCBAhFyAI8/336fXzDyQiMSIC/gAAAAD+/A4VERsaJSMP4P8n/Ori7BElLjAgDwEAAAAA/PkFFhMkISUrEOgNGwUSEAUMIygcDQL6AAAAAPz7AAwPJSwuQgT8D/7v5wwWCwoZEwn59wAAAAD98Pb/Fx44SEYeCgrm7fwIHSH+DxcA+vj/AAAA/fLv6wIiQ1NEOx4WAhoaGxoRAAkS+/r+AAAAAP7+9+neADRBSE0xLiAlGRMIEAYKAvT7/wAAAAD+A/7t3fcfLCg/NEpILREeFA7/+vb6/v4AAAAA//377fACDB0pPjwmJBkTJQby3+nz/P8AAAAAAAD++eru9u0G9Pr38gHq7//y4efx+P//AAAAAAAA//327url3M/Fycfd4uD08vT0+f0AAAAAAAAAAAD//Pr38u/t6ufl8vHt9Pb7/P3+AAAAAAAAAAAAAP///f39/fv6+Pr8/f3+//8AAAAAAAAAAAAAAAAAAAAAAAAAAP//AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/wAAAAAAAAAAAAAAAAAAAAAAAAAA//8A//8A//8AAAAAAAAAAAAAAAAAAAAAAAD///79/fz6+vz8/f7+////AAAAAAAAAAAAAP/+/f37+PXw6ubn7Ozw8/f5+v7/AAAAAAAAAP/79vj4+Pbk1M3Nx8G5vMja5/T5/gAAAAAA//8A/fwEDAsI6u3s79Ll5tTa4Obp7vb6/gAA//8CCQULKx4aGR4c/f0J/xcOCfv97O73+P4AAAECBwsOFzQsKh4rKxkjKyQqJjUY9/j+//j9/wACBxEbGiUfIQQJHRkDKSlHPzwnEA4T/v35/v8AAQsaICAVDw7/BhIIMiZATEc8NSsgEAH6/f8AAAAHHRwSAgQaGxH/ABUYNzZNWyIRExDz8/3/AAAABBMS9vr6/evt58293AMnOCYRCP0R7fb+/wAAAAYCEg8L997u3riYk7PZCgr4DQAB/uv+/gAAAAAB/A0VC/wB78mvlJ7E4Qj5KioUCAQKCgcAAAAAAP3/CxMK8t/MsrO60fcCL1MyKiUWCv3//wAAAAABCQYBAvLazLnM1+ocDiMqHSkQAPTu/gAAAAAA/gkA+O3i1MLM5vkXFf0KAen57Ojy9AIAAAAAAvoA8djTzMLU4PwDHvHv7evm6N/f6PMAAAAAAAP8697T0cvJ5usI7wHx6+vg2NHO1u/3AAAAAAAA+vHi2M7O3fnz/e0D9+jgzdTW2eH0/gAAAAAAAPzx59XO4vfp//v7+OT028zK1N7i9P0AAAAAAAD+8PPn6vz19fkB9/AHCNvSztHh3fH/AAAAAAAAAP4ABBAO/P/3+/P3Efru29jh5uPu/gAAAAAAAP8EEBAWGwwVEwUKGh4JEuPs8vLv9f4AAAAAAAACDw8QGhYlLzcpKTAZJiP5BQj7+Pz/AAAAAAAAAP8B/f8MEx0TDRUREh8QCg4JBP7/AAAAAAAAAAAAAAEBAQECAwcIBgQGBgMCBQgBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/+//7+/v79AAb///8AAAAAAAAAAAAAAAAA//78/P/5+fwEAf0NAvv9AQEAAAAAAAAAAAD/Awf+/voAAP7+8xoDBBcG9vsAAwEAAAAAAAD+/P/36e3sHRUIIjQfFhYTDRP++/f+AAAAAAD//Pj66vPs/wsaKhUdFCELFAoAFBX79vgAAAAA/vfy/gIRAAr6CALi6//zAhD6AAYZ/Pf9/wAAAP7x8gwEGB8QGgfz7dwD4wojBPsYIBL1AQMAAP79/wUTEyIxGycLD/fP3Pv2IgUbMDER8AAAAAD+/A8XHBouJz0PGQL11ePl8hkcLC8aDfkAAAAA/vwTHh0lHyMsFiw4Devm+BAGHyAlJSYQCgAAAAD8GR8bBfYeDQwhLCUQIvb8EAkeMDEkFg8AAAAA/QkKBvb6/fAJNiwoQyjS8Qf5EygjFw4DAAAAAP//9tzf5On1IjImNTUJ7+js2uwKBgT+/wAAAAD//uLQ0NHpAAc9R0Mh9+jX6dbY5PD++vwAAAAA//bh5PH/7Q0dKjofBh0Hz9Hd4d3u9ff7AAAAAP7u5vkEER9JQUYtBPwC++bZ5On1+v72/AAAAAD66vL+Aho7OzEbHtsEBePm7N32Bgv8+v8AAAD/+fP7AB8SLSIP6Ova4Pr18froBQwJ9fsAAAAA//fv+g8wCxYM+fEM5c3g//oF/AUJA/n//wAAAP/66+4ULRT57/UFIgsB/CUPE/sICAf7/wAAAAAA/vT0HRQI7QwZNS4fAA4EBhAB/gMC/wAAAAAAAPzy8OjrAwUiIFFVKiUYDhweDgz9BwAAAAAAAAD36+rs8P8DCQsIIzE0PCIQGQ8C+f8AAAAAAAAAAPr0+vrx6uvh6uXx8fH7AgYB/P37/wAAAAAAAAD////9/Pn6+vv6+/z9/f7+/f3+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP78/gAAAAAAAAAAAAAAAAAAAAAAAAAA//////7+/f7+/wAAAAAAAAAAAAAAAAAAAAAA//79+/jz8vX4+fn6/v8AAAAAAAAAAAAAAP7+/Pn1+vbo5t3U0tvk7PX6/v8AAAAAAAAAAP348/Xw7A8M7tHXtL3B1t/i7PP4/P8AAAAA//vv6+zm8+8B/xcjMign+uTi09fj7/j+/wD/AP7y5urg6eQMEBA8YHRtTwn8Dd/Y2uby+gAAAP/87+nj5fDy+usUKTc8HhMG9A//0t3h8PsAAP/9+Ofm+wb0EhIZHxofGu3+EfoQ+9zm6vX+AAD//PryBBITFBQYM/3gAOHu9xgQ/wT59fD4AAAAAPv5/BUjNBgwLiv14wIKJjIlJT0mBgP3+/8AAAD9Aw8wPyg1JyMLDgEWJTNMK0Q8JfkL+vr+AAAA/QkMJCAlIhIL+wcSETM2QC80JSUF/fH8AAAAAAAHBQcJGxHv/+vzARshNUQUGBoB9O7q/AAAAAAAAwIBAvkO9gIBAP3e/EhEBPf+6uzj7vwAAAAA//v88PcEDBYUDQT54x08B+rg2Nbi3en8/wAAAP718u3v+vgIBwT0/QsyGvwCCufM1t7r/f4AAAD+9Onl8vXt7vf+3+IDCAYE6xD91dzh9f4AAAAA/vfq5PDy7uLe5c3j3eDy9eQaCuLo5/r+AAAAAP/79er989jU0NDJ0uDf/93uEP7s9fIB/wAAAAD//Pbr7ejh1+HF6+nw797l4/4E+gACAfwAAAAA///7797j9O3w3dzq+dDd9N/zDQ8IBv7+AAAAAAD/+frc6wLt7Ojf4+3P6fH1/xIfJg8BAAAAAAAA/vj76/D9+An+997V3vsOHRgSJCYU/wAAAAAAAAD9/v8KEA0MGhcYHCItNEIdHCERCAIAAAAAAAABBQIKEA8WBxAYEyUZCBMbDgoODQMAAAAAAAAAAAAA//////79+/sCAfz9BAL+/gQAAAAAAA==", "s": 0.004030152271260515, "b": [-0.5457, 0.6151, 0.1548, -0.4093, 0.4486, 1.4223, -0.0588, 1.3304, -2.3423, -0.615], "acc": 0.8993, "ntr": 8500, "nte": 1500, "samples": [{"y": 0, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAhM9v+pm///xT8AAAAAAAAAAAAAAAAAAAAAAABS/f39/f3s7/3QDQAAAAAAAAAAAAAAAAAAAAA78f1x/fv9ZBrE/VwAAAAAAAAAAAAAAAAAAAAAif23xfRYl0gAh/2WAAAAAAAAAAAAAAAAAAAAG+z9eu93AAAAAIf9dQAAAAAAAAAAAAAAAAAAALL9/f0tCgAAAACH/SsAAAAAAAAAAAAAAAAAAAC9/fR6CAAAAAAAh/0rAAAAAAAAAAAAAAAAAAAP0/pZAAAAAAAAAIf9KwAAAAAAAAAAAAAAAAAALP3sAAAAAAAAAACO3RYAAAAAAAAAAAAAAAAAACz9hgAAAAAAAAAV9rwAAAAAAAAAAAAAAAAAAACB/YYAAAAAAAAAif2VAAAAAAAAAAAAAAAAAAAAl/2GAAAAAAAAAM77SgAAAAAAAAAAAAAAAAAAAJf9hgAAAAAAACjtyQAAAAAAAAAAAAAAAAAAAACX/YYAAAAAAAm0/XcAAAAAAAAAAAAAAAAAAAAAMP3wCwAAAABQ/fMNAAAAAAAAAAAAAAAAAAAAACHt/WEAAABA1v2AAAAAAAAAAAAAAAAAAAAAAAAAvf26AAAAiP3lHQAAAAAAAAAAAAAAAAAAAAAAAHj6/dSN0v3xVwAAAAAAAAAAAAAAAAAAAAAAAAAAl/39/f3kegAAAAAAAAAAAAAAAAAAAAAAAAAAABJ+/f24LwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 0, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFX97TIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbb/PztAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADe/Pz8/CAAAAAAAAAAAAAAAAAAAAAAAAAAABNr/fz8/PyZAwAAAAAAAAAAAAAAAAAAAAAAAACp/P38/Pz8/RsAAAAAAAAAAAAAAAAAAAAAAAAaz/3//aXY/f9aAAAAAAAAAAAAAAAAAAAAAAAdyPz8/bAGqfz9pwAAAAAAAAAAAAAAAAAAAAAAVfz8/IUlAIn8/acAAAAAAAAAAAAAAAAAAAAADbX8/OwAAAAd/P2nAAAAAAAAAAAAAAAAAAAAAL/8/OwyAAAAa/z9pwAAAAAAAAAAAAAAAAAAAD///f1UAAAAAKn9/6gAAAAAAAAAAAAAAAAAAAqy/fyaCQAAAACp/P2nAAAAAAAAAAAAAAAAAAA8/P3pKwAAAAAAqfzEggAAAAAAAAAAAAAAAAAAqfzwRwAAAAAANuD8AAAAAAAAAAAAAAAAAAAAINf8y14AAAAAAMWdcAAAAAAAAAAAAAAAAAAAACDY/f9qAAAAAJP9/XAAAAAAAAAAAAAAAAAAAAAAqfz9GwAAAJP5/PxwAAAAAAAAAAAAAAAAAAAAAKn8/ct3xcX9/PzGGQAAAAAAAAAAAAAAAAAAAAA4of38/Pz8/fJyHAAAAAAAAAAAAAAAAAAAAAAAAABw7fzscHBKAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 0, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB/0f7iYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWP/v7+/viuAAAAAAAAAAAAAAAAAAAAAAAAAABD/v7+/v7++YcBAAAAAAAAAAAAAAAAAAAAAAAAuf7+/t/I/v7+CQAAAAAAAAAAAAAAAAAAAAAAnfv+/v6WBqf+/nIAAAAAAAAAAAAAAAAAAAACdvz+/v77iwAb6f7FAAAAAAAAAAAAAAAAAAAAE/7+/v7JSgAAAM/+xQAAAAAAAAAAAAAAAAAAC43+/v6wBAAAAAB1/sUAAAAAAAAAAAAAAAAAAGj+/tT5QgAAAAAAfP66AAAAAAAAAAAAAAAAADn5/v6iOBEAAAAAJPL+ZwAAAAAAAAAAAAAAAABl/vNfBAAAAAAAAIP+/wkAAAAAAAAAAAAAAAA69P6rAAAAAAAAAFL8/sMFAAAAAAAAAAAAAAAAsf7qJKoHAAAAADLr/usRAAAAAAAAAAAAAAAAAMb+sg6SAwAAAFnr/t4vAAAAAAAAAAAAAAAAAADG/nosAAAAADfr/vBAAAAAAAAAAAAAAAAAAAAAxv7J6wAAA1rt/s9AAAAAAAAAAAAAAAAAAAAAAMb+/ssAAKH+/tFBAAAAAAAAAAAAAAAAAAAAAADG/v7zl/L8/sIPAAAAAAAAAAAAAAAAAAAAAAAAavT+/v7+/qIOAAAAAAAAAAAAAAAAAAAAAAAAAABIsf7+6PBCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 1, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAl///GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAANP9/RgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADfr/f0YAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAjS/f23CgAAAAAAAAAAAAAAAAAAAAAAAAAAAABa/f3yGwAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+6f39oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwP39/YsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAROr9/ewdAAAAAAAAAAAAAAAAAAAAAAAAAAAADcn9/f1PAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFf9/f3CDAAAAAAAAAAAAAAAAAAAAAAAAAAAAEjs/f3pQgAAAAAAAAAAAAAAAAAAAAAAAAAAAA3F/f39jgAAAAAAAAAAAAAAAAAAAAAAAAAAAABU/f39ngsAAAAAAAAAAAAAAAAAAAAAAAAAAAAg7/396CkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAkP396T0AAAAAAAAAAAAAAAAAAAAAAAAAAAAATfL9/cUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJv9/f1VAAAAAAAAAAAAAAAAAAAAAAAAAAAAABj3/f1cBgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZ/f3pKwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADc3rbAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 1, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH/aoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA2fz8fQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAANn8/JAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADZ/PyQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA2fxsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAXvfcDwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAANT81wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD9/NcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA///3ZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAkP381wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJD9/HAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACQ/fxHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAkf/eKQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJD9swAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACQ/bMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAkP1hAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJH/IwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACQ/XcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKf04AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABsnwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 1, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY/DkKAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMO7+/qkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKr+/tN7AAAAAAAAAAAAAAAAAAAAAAAAAAAAAATR/vctDgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAz/v6qAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwP7+iwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIPz+/moAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHD+/t0SAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB/x/v52AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAp/v78JwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAfP7+gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFfT+/jIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFb+/ugbAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAmr/v6xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABQ/v7/EAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAyf7+4AMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOb+/msAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABvv/vAnAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA++v7WAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAL/+hwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 2, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZnOijul8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAJenu/f33iwgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEk5s2f2lAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAE70+TMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAw/6HAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGP/ngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABi/ukAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYv7pAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGL+2gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABi/ocAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAxP9MAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIvT5JAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEb9wwAAAAAAAAAAAAAAAAAAAAAAGVzq6urUgSia/YAAAAAAAAAAAAAAAAAAAAAAJuf93qr9/v39/f0mAAAAAAAAAAAAAAAAAAAAGefxRAAAABdq7P7+rAkAAAAAAAAAAAAAAAAAAKf9aQAAAAAAPvH68f6eAAAAAAAAAAAAAAAAAADquQAAAAAAR9P9dB6JOQAAAAAAAAAAAAAAAAAA2/U1AAAHTfb6TwIAAAAAAAAAAAAAAAAAAAAAAGT92paAzP3+eQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 2, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADatrgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEbO/v31YQAAAAAAAAAAAAAAAAAAAAAAAAAAJJPx/uG1/vk9AAAAAAAAAAAAAAAAAAAAAAATnPP+/qknA4b+iAAAAAAAAAAAAAAAAAAAAAAAlv7+0mMCAABP/7sAAAAAAAAAAAAAAAAAAAAAAH7VhAwAAAAAVf60AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALb+UwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABvz/lMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA1/vpCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAjtv6WAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlP7yFwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAb/D+YgAAAAAAAAAAAAAAAAAAAAALgIeHofDwxfj+/vTw8MFxEwAAAAAAAAAAAB2Izv7+/v7+/v7+/v7+/v7+/rYAAAAAAAAAABjY/J13Ghpb1P72cxomNxo1sPfDAAAAAAAAAABL/ngAAABu4v7xSAAAAAAAAAA1DwAAAAAAAAAAxq4DC2u7+vyaHQAAAAAAAAAAAAAAAAAAAAAAAJujdsXFxZRHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 2, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgSUlJKgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbv39/d4vAAAAAAAAAAAAAAAAAAAAAAAAAAAAAC/p/f393n0BAAAAAAAAAAAAAAAAAAAAAAAAAAAAm/39/f39bAAAAAAAAAAAAAAAAAAAAAAAAAAAAAuW/f39/ekqAAAAAAAAAAAAAAAAAAAAAAAAAAAAC0jo/f394BoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAL+n9/f4jAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADb/v7RFQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA2v39kQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEN/9/X0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAG79/akAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD/+/v5tAAAAAAAAAAAAAAAAAAAAAAAAAAAgSbHu/f396dtdSUlKSUlJSkkVAAAAAAAAAAAA1f39/f39/f3+/f39/v39/f79xZEAAAAAAAAAAKv9/f39/f39/v39/f79/f3+/dkAAAAAAAAAAABu//7+/qCRkZKRkZHRkZGRkmhUAAAAAAAAAAAAEKDp0yMFAAAAAAAAFQAAAAAAAAAAAAAAAAAAAAAANB8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 3, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFOG/f15eQ0AAAAAAAAAAAAAAAAAAAAAAAAAHYf4/Pz8/fzx8MwcAAAAAAAAAAAAAAAAAAAAALr8/Pz8/P38/Pz8zR4AAAAAAAAAAAAAAAAAAADI/PzJrGYnYMn8/Px6AAAAAAAAAAAAAAAAAAAAyPzcFAAAAAAUdPz83hkAAAAAAAAAAAAAAAAAAFju1AAAAAAAAFH8/PxdAAAAAAAAAAAAAAAAAAAAO0MAAAAAAACr/Pz1TgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAK2fz8xgAAAAAAAAAAAAAAAAAAAAAAAAAPkk1brPz8/E8AAAAAAAAAAAAAAAAAAAAAAAAAkvz9/Pz8/OAmAAAAAAAAAAAAAAAAAAAAAAAAG/39//39/f2BAAAAAAAAAAAAAAAAAAAAAAAAABDP/P38/Pz8+UwAAAAAAAAAAAAAAAAAAAAAAAAAFp6fnp68/PzVIwAAAAAAAAAAAAAAAB5+AAAAAAAAAAAADaX8/M0AAAAAAAAAAAAAAADH66QSAAAAAAAAAABD/PzhAAAAAAAAAAAAAAAAxvz8ry0AAAAAAAAApfz8fwAAAAAAAAAAAAAAAF78/PzvrWApKSlarez8hB0AAAAAAAAAAAAAAAAjhvb8/Pz8/P38/Pz8/E8AAAAAAAAAAAAAAAAAAABUzPH8/Pz9/Pz8+O5LAAAAAAAAAAAAAAAAAAAAAAAThPz8/fz8i1gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 3, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABw0NZKj+/pCFhoV1DQ0NDQgAAAAAAAAAAAAATc/9/f39/f39/f79/f39/f3UDgAAAAAAAAAAADnZ2dmCYGBgYJra2fD9/f39/VIAAAAAAAAAAAAAAAAAAAAAAAAAAAA81f39/aUIAAAAAAAAAAAAAAAAAAAAAAAAAAAGWf397JgKAAAAAAAAAAAAAAAAAAAAAAAAAAAnlP39yUcAAAAAAAAAAAAAAAAAAAAAAAAAAABS6P39/UgAAAAAAAAAAAAAAAAAAAAAAAAAACaV/P79/eZUAAAAAAAAAAAAAAAAAAAAAAAAAADP/f3+/f39+MNJAAAAAAAAAAAAAAAAAAAAdfLy/P39/v39/f39+iIAAAAAAAAAAAAAAAAAN/7+/vq+egAAABjQ/P7QDQAAAAAAAAAAAAAAAJ799rxDAAAAAAAAAH39/V0AAAAAAAAAAAAAAAATYEUAAAAAAAAAAAA/9v3UBwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM79/V0AAAAAAAAAAAAAOJMAAAAAAAAAAAAAAADO/f2EAAAAAAAAAAAAAJ3yWgAAAAAAAAAAAABb8v39YgAAAAAAAAAAAAB2/fLOpVYIAAAADVas8v392QgAAAAAAAAAAAAAF5zi/f393drb2t/9/f392FoAAAAAAAAAAAAAAAAALq/9/f39/v39/f392SAAAAAAAAAAAAAAAAAAAAAECzqEvv797IRoCwgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 3, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH3v9/f39/4ElAAAAAAAAAAAAAAAAAAAAAAAAAG78/Pz8/P3834oHAAAAAAAAAAAAAAAAAAAAAADf/Pz88O39/Pz8fgAAAAAAAAAAAAAAAAAAAAAAdpK89TsAhef8/NQjAAAAAAAAAAAAAAAAAAAAAAAEDhsHAABN/Pz8SgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATvz8xxYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOOf8/LEAAAAAAAAAAAAAAAAAAAAAAAAAACB07vX8/PwlAAAAAAAAAAAAAAAAAAAAAAAAAABa/Pz9/PygBwAAAAAAAAAAAAAAAAAAAAAAAAAAJdn8/fz8hAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAblf/9/bYMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABq8fz8lwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHD8/OEwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8/Pz8SgAAAAAAAAAAAAAAAAAAAAAXS0tLagAAPPz8/EoAAAAAAAAAAAAAAAAAAAAAtPz8/FIeADXx/PyyAAAAAAAAAAAAAAAAAAAAAN/8/Pz8/IY30vz83gAAAAAAAAAAAAAAAAAAAAA5rfz8/Pz99Pz8/FIAAAAAAAAAAAAAAAAAAAAAAAc7cNf8/fz8/O49AAAAAAAAAAAAAAAAAAAAAAAAAAATZ6X8/LVJAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 4, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEb//k0AAAAAAKbgHQAAAAAAAAAAAAAAAAAAAAB9/dMeAAAAABPb/TUAAAAAAAAAAAAAAAAAAAAwz/hKAAAAAAAe/dERAAAAAAAAAAAAAAAAAAAA4f3EAAAAAAAAHv1kAAAAAAAAAAAAAAAAAAAASfjPFQAAAAAAAEj9RgAAAAAAAAAAAAAAAAAAHtX9gQAAAAAAAAXA/UYAAAAAAAAAAAAAAAAAAoL9xgsAAAAAAACA/c0DAAAAAAAAAAAAAAAAADb9/R0AAAAAAAAA+e0nAAAAAAAAAAAAAAAAAAAU1f0wAAAAAAAAW/zMAB8JAAAAAAAAAAAAAAAAAKL93Xg8PBIAAOf9jFLoNQAAAAAAAAAAAAAAAAAysPX9/f3Vw8P4/f396SUAAAAAAAAAAAAAAAAAAAAkmdT9/f39/f3yiB4AAAAAAAAAAAAAAAAAAAAAAAANFxdd/f1TFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATv34BQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJL9SAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADD/RcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ0rkHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY/15AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALG7BgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACxsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 4, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgP+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQP////8AAAAAAAAAAABAAAAAAAAAAAAAAAAAAL//////AAAAAAAAAAC//4AAAAAAAAAAAAAAAAD/////gAAAAAAAAACA/////wAAAAAAAAAAAAAAgP///4AAAAAAAABA//////+/AAAAAAAAAAAAAID///+AAAAAgIC/////////AAAAAAAAAAAAAACA////v4D//////////////wAAAAAAAAAAAAAAQP///////////////////0AAAAAAAAAAAAAAAAD//////////////////4AAAAAAAAAAAAAAAAAAQL///////4D///////9AAAAAAAAAAAAAAAAAAAAAQL+/QAAAgP////+/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAID/////QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD//////wAAAAAAAAAAAAAAAAAAAAAAAAAAAACA/////4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgP////9AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP//////QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD//////4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/////4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP////8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACA//8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 4, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB7y1EAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA06f/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcPz9bwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPtb9/zIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAI79/NUKAAAAAAAAAAAAAAAAH8H+MgAAAAAAAHH9/v0pAAAAAAAAAAAAAAAAAIT86R4AAAAAACnB/P2CAAAAAAAAAAAAAAAAAFL+/f5HAAAAAABS/v3LAAAAAAAAAAAAAAAAAKPz/fz96I4UAABS8/38egAAAAAAAAAAAAAAC63+/f79/v3+1XsV1v3+6QAAAAAAAAAAAAAAAFz8/fz9/P38/fzz3/38/ZcAAAAAAAAAAAAAAACt/f7pt2YVZsvz/v3+/bcUAAAAAAAAAAAAAAAACoNbHgAAAAAAUf38/fxRAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD7+/f6DAAAAAAAAAAAAAAAAAAAAAAAAAAAAABWi/fzAHgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAy/79ywAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMv9/FEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSZj0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 5, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABiZgAAAAA9PIKGnQAAAAAAAAAAAAAAAAAAAAag/Pnw79nv/v7+/ugAAAAAAAAAAAAAAAAAACaR/v7+/v7+/v7+061bAAAAAAAAAAAAAAAAACjVzYfJ4NvNs3FKHgIAAAAAAAAAAAAAAAAAAAnTvgUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABz/o4rDgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOtP7++s+OJAAAAAAAAAAAAAAAAAAAAAAAAAAAAHzR0e7j/tAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATDIvobwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA4P9aAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADns2A4AAAAAAAAAAAAAAAAAAAANCwgAAAAAAAARs/5sAAAAAAAAAAAAAAAAAAB08+zirI47SHmO3PP7cQAAAAAAAAAAAAAAAAAAyv7+/v7+/v7+/vaA7zgAAAAAAAAAAAAAAAAAAMr+/v7+9ve0y4e029kjAAAAAAAAAAAAAAAAAACM/v7+6Ka+i+b+5sJOAAAAAAAAAAAAAAAAAAAABl7w/v7+/v7772EFAAAAAAAAAAAAAAAAAAAAAAAAFV+c0WxsQwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 5, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABZ0dBgYGBgYSnRSAAAAAAAAAAAAAAAAAAAAAACT/f3+/f39/v39/QAAAAAAAAAAAAAAAAAAAABf/ve4ucX+y7m4jjsAAAAAAAAAAAAAAAAAAABE9f2iAAAFFwYAAAAAAAAAAAAAAAAAAAAAAAA+8P6kCQAAAAAAAAAAAAAAAAAAAAAAAAAAAAARx/3LBgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAApP7+w6GhXzMAAAAAAAAAAAAAAAAAAAAAAAAAANb9/f79/f34tBkAAAAAAAAAAAAAAAAAAAAAAABMiYmKeTaJy/2jAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABPs9jIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA5/5FAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgvvwHwAAAAAAAAAAAAAAAFN0Sg8AAAAAAAAclf79cQAAAAAAAAAAAAAAAAD+/f3kuYZdXbm48P3+lw0AAAAAAAAAAAAAAAAAXbC40v/+/v7+/v7LXQkAAAAAAAAAAAAAAAAAAAAAAAkXSXNzcx8XBgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 5, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACeOy+CeAAAAAAAAAAAAAAAAAJ73vqmpqqmpqeT7/c1SAwAAAAAAAAAAAAAAAACi/v7+/v/+/v7geDwAAAAAAAAAAAAAAAAAAABH7dI+ZqK5dHQoFQAAAAAAAAAAAAAAAAAAAAAAj/5FAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJT+lAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA75e5aAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGH58mMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAANOP+uAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA65/60CgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEf3/mIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAChf62AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFYObvgQAAAAAAAAAAAAAAAAAAAABmTwgAAABCsP7+dQAAAAAAAAAAAAAAAAAAAAAASvzxu8Xv+P76gQAAAAAAAAAAAAAAAAAAAAAAAAA3td/f39yIIgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 6, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAzqf39gQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAz7/z8/I4AAAAAAAAAAAAAAAAAAAAAAAAAAAWk8Pz83jUHAAAAAAAAAAAAAAAAAAAAAAAAAAA4/P38ghsAAAAAAAAAAAAAAAAAAAAAAAAAAAAW5vz94BMAAAAAAAAAAAAAAAAAAAAAAAAAAAAJS/z85C0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAg/z8/HEAAAAgKSIAAAAAAAAAAAAAAAAAAAAAMd/8/KcADBtG6fzYCgAAAAAAAAAAAAAAAAAAJ+D8+ucyB7n8/Pz8+lgAAAAAAAAAAAAAAAAAAIn8/OEAAL78/Pz8/NQAAAAAAAAAAAAAAAAAAJD9/f1dTf3//f39/eQqAAAAAAAAAAAAAAAAAADV/PydV/f8/fz8/PyOAAAAAAAAAAAAAAAAAAAj4/z8j8L8/P38/PxJBwAAAAAAAAAAAAAAAAAAh/z8/Pz8/Pz9/N48CAAAAAAAAAAAAAAAAAAAAOL8/Pz8/Pz8/bwvAAAAAAAAAAAAAAAAAAAAAACA/Pz8/Pz84IgEAAAAAAAAAAAAAAAAAAAAAAAAXvz8/ODGTyYAAAAAAAAAAAAAAAAAAAAAAAAAAF78/OAmAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABe/Pz5SwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALaH8gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 6, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAArlMn9/cE3AAAAAAAAAAAAAAAAAAAAAAAAAAAAt/z8/Pz951YAAAAAAAAAAAAAAAAAAAAAAAAGxv3JdhUVkOeoAAAAAAAAAAAAAAAAAAAAAAAGcPzhFQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFvz8fAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAID9/S0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB//PwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAf/z8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH/8/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABT/PwAADaw09TTcyMAAAAAAAAAAAAAAAAAAAAAFv39Pbf9/f3//f39TQAAAAAAAAAAAAAAAAAAABb8/P389ahQP2Ko4PxQAAAAAAAAAAAAAAAAAAACp/z90hsAAAAAACnf4CkAAAAAAAAAAAAAAAAAADDy/agAAAAAAAAAUP2oAAAAAAAAAAAAAAAAAAAA0/3LCQAAAAAAAAClywkAAAAAAAAAAAAAAAAAAML+/ewrBwAAAAAAlP1/AAAAAAAAAAAAAAAAAAAb2vz8/MiBOQAAAJT8fgAAAAAAAAAAAAAAAAAAAAyH+/z87IUJABKc9RsAAAAAAAAAAAAAAAAAAAAAAIf8/P3gqanv/Y0AAAAAAAAAAAAAAAAAAAAAAAAEKoH9/Pz8pFYLAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 6, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3U/W0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABh/PygAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVvzpQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIr8twAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABW/LcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlf16AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP38RQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD98DIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABf/aQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3P1cAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKj/XAAAABgYBwAAAAAAAAAAAAAAAAAAAAAAAAC9/VwNL5f9/LodAAAAAAAAAAAAAAAAAAAAAAAA5v2HrPzduMT8xDAAAAAAAAAAAAAAAAAAAAAAAOb9/PzaIwAJxPyzAAAAAAAAAAAAAAAAAAAAAAB+/fz8OAAAAFD8/DUAAAAAAAAAAAAAAAAAAAAAav/9uAAAAAAA0P10AAAAAAAAAAAAAAAAAAAAAADo/MQeAAAAAM/8dAAAAAAAAAAAAAAAAAAAAAAAMOP847i5b5nw/FQAAAAAAAAAAAAAAAAAAAAAAAAyufz8/fz8/J0AAAAAAAAAAAAAAAAAAAAAAAAAAAdB8v38qIkWAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 7, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA2O///+//6jgoKCgoKCgg0AAAAAAAAAAAAAAAfK/f39/f39/f39/f39/f2NAAAAAAAAAAAAAAAM6+uegevr6/j9/f39/f39xAYAAAAAAAAAAAAAAAAAAAAAAABNaWmY/f3980MAAAAAAAAAAAAAAAAAAAAAAAAAAAAAnf39/ZQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQuz9/dxCAAAAAAAAAAAAAAAAAAAAAAAAAAAALuv9/e0ZAAAAAAAAAAAAAAAAAAAAAAAAAAAADaX9/cEzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFr9/f2mAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAC6/f3pQQAAAAAAAAAAAAAAAAAAAAAAAAAAAABN7f3pQgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAo7f39swAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWv395z4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAT/D9/Y4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKf9/cgJAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/J/f1SAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABa/f39RAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALv39yQUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACb9/cUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABqeUoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 7, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZZvf/v7+/sOZT24oAAAAAAAAAAAAAAAAAAAAAJ743UKPj4+Puff08aAhAAAAAAAAAAAAAAAAAAAAKz8AAAAAAAAkBnX2viYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKNupBgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACW/V4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACOyjAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACiowAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAArqMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIajAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEP0aQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACzuA0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ4ngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAdPkiAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFOhsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGOjnJgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAE8bnMQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEr2LwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATmywAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB42xUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAo3YAAAAAAAAAAAAAAAAAAA=="}, {"y": 7, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEJrgSQAAAAAAAAAAAAAAAAAAAAAACEJv0dBvm9/+/nQAAAAAAAAAAAAAAAAAAAAAIsv+/sv+/v7+/uoPAAAAAAAAAAAAAAAAAAAAQu74s2EIJYaH3f+mAAAAAAAAAAAAAAAAAAAAADazUQAAAAAAS/7QGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH+v+dgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAqT+qggAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABX+/EgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACO/n4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABG/vMgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAo6fxLAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAeP7iAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGd7oKwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIz+iQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADTs0A4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAArP/lkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABi/qQFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA5+OAjAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM2fk9AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZP5rAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 8, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSJiYnAtV8BAAAAAAAAAAAAAAAAAAAAAAAAR5r6/v7+/v7+BQAAAAAAAAAAAAAAAAAAAAAAgfD+/uDJyaH+/gUurI4MAAAAAAAAAAAAAAAAEND+4EYdAAAU4P5R5P7+NQAAAAAAAAAAAAAAAArK/uszAAAAAKz+/v7uhwoAAAAAAAAAAAAAAAAAjP7+8JUAAABg/v7yQQAAAAAAAAAAAAAAAAAAAARt6/799IRi5f62CgAAAAAAAAAAAAAAAAAAAAAAAABv9P7+/v60AwAAAAAAAAAAAAAAAAAAAAAAAAAAAET+/v7+FwAAAAAAAAAAAAAAAAAAAAAAAAAAAAKF/v/+/4QCAAAAAAAAAAAAAAAAAAAAAAAAAAAr/vJfrf7+KQAAAAAAAAAAAAAAAAAAAAAAAAAA4fZOAA2w/uQoAAAAAAAAAAAAAAAAAAAAAAAAMPl7AAAANsD+awAAAAAAAAAAAAAAAAAAAAAAAKj7NwAAAABy/t4AAAAAAAAAAAAAAAAAAAAAAADi+QAAAAAAcv7hAAAAAAAAAAAAAAAAAAAAAAAAzPxKAAAAAIf+4QAAAAAAAAAAAAAAAAAAAAAAAGz+jgAAAGT4/sIAAAAAAAAAAAAAAAAAAAAAAAAX9vq3VK/2/vUWAAAAAAAAAAAAAAAAAAAAAAAAAMT+/v7+/v5dAAAAAAAAAAAAAAAAAAAAAAAAAAAJlv7+/pocAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 8, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABE4gKr+nHIVAAAAAAAAAAAAAAAAAAAAAAAAAAm//PP38/P8yhUAAAAAAAAAAAAAAAAAAAAAAABV/XgAJAAATP1LAAAAAAAAAAAAAAAAAAAAAAAASPe5KQAAABX5JAZtIwAAAAAAAAAAAAAAAAAAAACR4ON4EgDMpAV99jUAAAAAAAAAAAAAAAAAAAAACBvE5MYg0oiw/bEAAAAAAAAAAAAAAAAAAAAAAAAAAAux/f39+H0vAAAAAAAAAAAAAAAAAAAAAAAAAAAABtL9/b4mAAAAAAAAAAAAAAAAAAAAAAAAAAAAACT7/f22IAAAAAAAAAAAAAAAAAAAAAAAAAAAABjk/apD07YAAAAAAAAAAAAAAAAAAAAAAAAAAAAo/YIKAEruQwAAAAAAAAAAAAAAAAAAAAAAAAAAZ/0EAAAAqeoSAAAAAAAAAAAAAAAAAAAAAAAAAOD9BAAAAFL2wgkAAAAAAAAAAAAAAAAAAAAAADn5/QQAAAAAO/0UAAAAAAAAAAAAAAAAAAAAAABW/f0EAAAAABr9OwAAAAAAAAAAAAAAAAAAAAAAO/n9BAAAAAAa/VoAAAAAAAAAAAAAAAAAAAAAAACF/XYHAAAAJ/1CAAAAAAAAAAAAAAAAAAAAAAAAKP39eiIAPdL9FAAAAAAAAAAAAAAAAAAAAAAAAAIvz/X49Pv5kgEAAAAAAAAAAAAAAAAAAAAAAAAAAAAusf27ZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 8, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACZ//7wdnZGAAAASnYAAAAAAAAAAAAAAAAOYafq+/39/f39vQ0AJ/b9AAAAAAAAAAAAAABY2/39/f3psWexsfmVPLP9iQAAAAAAAAAAABWr7/394Yo9LQAAAACI6fD0uxwAAAAAAAAAAAC+/f3mUigAAAAAAAEjxv3itwAAAAAAAAAAAABO9f3VWQAAAAAAAAlg/fjCFgAAAAAAAAAAAAAA/v39PQAAAAAAAGHS/f1QAAAAAAAAAAAAAAAAAEb1/dtgAAAAAID8/fpMAQAAAAAAAAAAAAAAAAAAb/39+uOcWor4/cNVAAAAAAAAAAAAAAAAAAAAABIvl8L9/f39/f3fgEUpAAAAAAAAAAAAAAAAAAAAAAAKRKP97Nr9/f394o0lAAAAAAAAAAAAAAAAAAAAABjS/UsYWbLi4vz96IoAAAAAAAAAAAAAAAAAAAGa/XEMAAAAAABo5v3rNwAAAAAAAAAAAAAAAAAj/b0DAAAAAAAAACvj/WAAAAAAAAAAAAAAAAAXxvhJAAAAAAAAAAAi3f1gAAAAAAAAAAAAAAAAOP3vAAAAAAAAAABa5/3ZDQAAAAAAAAAAAAAAAAy9+oA/BwAABz+B3f3uVgAAAAAAAAAAAAAAAAAARuz9/bqzs7v9/f3wVgAAAAAAAAAAAAAAAAAAAAA5puj7/f39/fPoUwAAAAAAAAAAAAAAAAAAAAAAAAAAaL50dHQ8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 9, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMjeG6DQAAAAAAAAAAAAAAAAAAAAAAAAAAAAM93/7+/pMAAAAAAAAAAAAAAAAAAAAAAAAAABSM/v7+/v78YwAAAAAAAAAAAAAAAAAAAAAAABTQ/v7+/v7+/rYAAAAAAAAAAAAAAAAAAAAAAAyL/v7+8ZjP/v7YFQAAAAAAAAAAAAAAAAAAAAB5/v74iB8AM/j+/ngAAAAAAAAAAAAAAAAAAAAA1v7+MgBWlY7+/v54AAAAAAAAAAAAAAAAAAAAANn+6hsAZf7+/v7eHQAAAAAAAAAAAAAAAAAAAAC6/v6TU7z+/v77WAAAAAAAAAAAAAAAAAAAAAAAef7+/v7+/v7+mQAAAAAAAAAAAAAAAAAAAAAAACCw+f7+/v7+/kcAAAAAAAAAAAAAAAAAAAAAAAAAADB2UnP+/sQRAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAC+/v5jAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAm9/7eCwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGyP7+cgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIv7+9ycAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJr+/qMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACPv/v4wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABC/v7UBgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlf7+YQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 9, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYir9hDQAAAAAAAAAAAAAAAAAAAAAAAAAAAABK1Pzw9NMAAAAAAAAAAAAAAAAAAAAAAAAAAAA5zfeiMnz8AAAAAAAAAAAAAAAAAAAAAAAAAAAa4NJeAACGyAAAAAAAAAAAAAAAAAAAAAAAAAAWzfxVAAAg5PwAAAAAAAAAAAAAAAAAAAAAAAAY1P0uAAAFv/39AAAAAAAAAAAAAAAAAAAAAAAAn/R7EQAaiPz8nQAAAAAAAAAAAAAAAAAAAAAAAP3OAAB03vz8/BYAAAAAAAAAAAAAAAAAAAAAAADT9M/P+PVo3bAEAAAAAAAAAAAAAAAAAAAAAAAAVvz80okVL/ygAAAAAAAAAAAAAAAAAAAAAAAAAAAWVAAAA6r9lgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABj8/C0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3/OkhAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAivyNAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIr8RQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD//UUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/d8ZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP3OAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD99DgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYPx5AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 9, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATlef+/v56AAAAAAAAAAAAAAAAAAAAAAAAAANJ4P364Ln29SkAAAAAAAAAAAAAAAAAAAAAAABl/f2wOAAALfTJIgAAAAAAAAAAAAAAAAAAAABB8+8+AgAAAADW/dcAAAAAAAAAAAAAAAAAAAAAvOdQAAAAAAAA1v3sFgAAAAAAAAAAAAAAAAAACOCyAAAAAAAAN/r9/UoAAAAAAAAAAAAAAAAAACjwsgAAAAAAADz9/f1KAAAAAAAAAAAAAAAAAAAe674EAAAAAAGp/f39SgAAAAAAAAAAAAAAAAAAALb9vEAAAABS/f39/koAAAAAAAAAAAAAAAAAAAA67v386pWp+/31aOxKAAAAAAAAAAAAAAAAAAAAAEDI+v39/fm6PgDgdAAAAAAAAAAAAAAAAAAAAAAAACBeXl4TAAAA4OAMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIz9QQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB9/XgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJf14AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABr9vQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM1t8JAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALP+QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB7/kAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAULsOAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}, {"y": 7, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEv7miOn+/v7+/6MlAgAAAAAAAAAAAAAAAAAAABL9/f39/f39/f39/W8BAAAAAAAAAAAAAAAAAAAGUqLIyMiOUmaR2P39VgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACrq/XwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB3/f18AAAAAAAAAAAAAAAAAAAAAAAAAAAAAABn9/3OEQAAAAAAAAAAAAAAAAAAAAAAAAAAAAABs/37GwAAAAAAAAAAAAAAAAAAAAAAAAwAAAADdf32WQAAAAAAAAAAAAAAAAAAAAAAACLLoKCgqP39sAAAAAAAAAAAAAAAAAAAAAAAAAAQ0P39/f39/eaxRh0AAAAAAAAAAAAAAAAAAAAAAE3v/f39/f39/f3ftU5ONAAAAAAAAAAAAAAAAAAAIYL99It8np7J/f39/fDVDgAAAAAAAAAAAAAAAADW/eYAAAAACxdcjTgXFwIAAAAAAAAAAAAAAAQ27/1tAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABW/f2yAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAj5/39bAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAi/39sAMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHez9/TUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACT9/doSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAT19whAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==", "hard": 1}, {"y": 7, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKklwo1UAAAAAAAAAAAAAAAAAAAAAAAAACF7Ssu/9/f35RQAAAAAAAAAAAAAAAAAAAAAlONL9/f71q3+r/roAAAAAAAAAAAAAAAAAAAAA9/39/f34lwAAFP7xQwAAAAAAAAAAAAAAAAAAAGn3/bViNAAAAAD+/X8AAAAAAAAAAAAAAAAAAAAANVsUAAAAAAAA//5/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP79SwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD+/SQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/v0kAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP79RAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD//iQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/v0kAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP79JAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD+/SQAAAAACmFnAAAAAAAAAAAAAAAAAAAAAAAh/v2/tbW2tdn9/QAAAAAAAAAAAAALkOT//v7+/v/+/v7+//7+xK4AAAAAAAAAAAAAef39/v39/f3+/f391qaSPwQHAAAAAAAAAAAAAB+l5ebFf39/8f29WAsAAAAAAAAAAAAAAAAAAAAAABQUAAAAAHj7fwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAV1EAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==", "hard": 1}, {"y": 1, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGc/0cAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABU/f1GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY0/39RgAAAAAAAAAAAAAAAAAAAAAAAAAUVkh02v392hIAAAAAAAAAAAAAAAAAAAAAAAAAALH9/azS/W4AAAAAAAAAAAAAAAAAAAAAAAAAAAAUHR0DtP1YAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPnhBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAED74AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAC7/cwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA5/tRAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAASvjNAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAML9fAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACPn/UcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABT/fgFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHyv1IABIeQAAAAAAAAAAAAAAAAAAAAAAAAAAAUv39rabZ9DkAAAAAAAAAAAAAAAAAAAAAAD9Nt+j9/f39yTkAAAAAAAAAAAAAAAAAAAAARLz7/f39/f2ybhYAAAAAAAAAAAAAAAAAAAAAbff9/fSYsP1GBAAAAAAAAAAAAAAAAAAAAAAAAL2ch04QAAQRAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==", "hard": 1}, {"y": 3, "px": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQddb///dgcAAAAAAAAAAAAAAAAAAAAAAAAAABo/Pz8/fz8iwAAAAAAAAAAAAAAAAAAAAAAAAAA5fz81rL8/OQAAAAAAAAAAAAAAAAAAAAAAAAAAJn81hwd/PzKAAAAAAAAAAAAAAAAAAAAAAAAAACN/agAmv39jAAAAAAAAAAAAAAAAAAAAAAAAAAAjfxdAP38/EEAAAAAAAAAAAAAAAAAAAAAAAAAADX8OFn9/LoGAAAAAAAAAAAAAAAAAAAAAAAAAACA/Dg//fyoAAAAAAAAAAAAAAAAAAAAAAAAAAAAGsgZALP9shAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAd/PzXnTkNAAAAAAAAAAAAAAAAAAAAAAAAAAAAB1HE/P38egoAAAAAAAAAAAAAAAAAAAAAAAAAAAAACk6Z/PyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHf39ywAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADb8/OMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbl/PyLAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACj/fz8iwAAAAAAAAAAAAAAAAAAAAAAAAAAABPM/f799BkAAAAAAAAAAAAAAAAAAAAAAAAAGnjh/Pz3qzgAAAAAAAAAAAAAAAAAAAAAAAAAQ9L9/PzWZAAAAAAAAAAAAAAAAAAAAAAAAAAAGt788Ys0DwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==", "hard": 1}]};
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const Wq=new Int8Array(b64(MODEL.Wq).buffer), W=new Float32Array(7840);
+for(let i=0;i<7840;i++) W[i]=Wq[i]*MODEL.s;
+const B=MODEL.b;
+const SAMPLES=MODEL.samples.map(s=>({y:s.y,hard:!!s.hard,x:Float32Array.from(b64(s.px),v=>v/255)}));
+$('accTxt').textContent=(MODEL.acc*100).toFixed(1)+'%'; $('ntr').textContent=MODEL.ntr; $('nte').textContent=MODEL.nte;
+
+/* noise pattern (seeded) */
+let seed=12345; const rand=()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};
+const NOISE=Float32Array.from({length:784},()=>{let u=rand()||1e-9,v=rand();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);});
+
+let xRaw=new Float32Array(784), x=new Float32Array(784), sel=8, T=1, noise=0;
+
+/* ---------- model ---------- */
+function logits(xv){const z=new Array(10);for(let k=0;k<10;k++){let s=B[k];const o=k*784;for(let i=0;i<784;i++) s+=W[o+i]*xv[i];z[k]=s;}return z;}
+function softmax(z,t=1){const m=Math.max(...z);const e=z.map(v=>Math.exp((v-m)/t));const S=e.reduce((a,b)=>a+b,0);return e.map(v=>v/S);}
+const argmax=a=>a.indexOf(Math.max(...a));
+
+/* ---------- colors ---------- */
+function rgb(h){h=h.replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');return[0,2,4].map(i=>parseInt(h.substr(i,2),16));}
+function paintDiv(cv,vals,scale){
+  const ctx=cv.getContext('2d'),im=ctx.createImageData(28,28),P=rgb(css('--pos')),N=rgb(css('--neg')),M=rgb(css('--mid'));
+  for(let i=0;i<784;i++){const t=Math.max(-1,Math.min(1,vals[i]/scale)),C=t>=0?P:N,a=Math.abs(t);
+    for(let c=0;c<3;c++) im.data[i*4+c]=M[c]+(C[c]-M[c])*a; im.data[i*4+3]=255;}
+  ctx.putImageData(im,0,0);
+}
+function paintGray(cv,vals){
+  const ctx=cv.getContext('2d'),im=ctx.createImageData(28,28);
+  for(let i=0;i<784;i++){const v=Math.round(Math.max(0,Math.min(1,vals[i]))*255);im.data[i*4]=im.data[i*4+1]=im.data[i*4+2]=v;im.data[i*4+3]=255;}
+  ctx.putImageData(im,0,0);
+}
+
+/* ---------- drawing pad ---------- */
+const pad=$('pad'), pctx=pad.getContext('2d');
+function clearPad(){pctx.fillStyle='#000';pctx.fillRect(0,0,280,280);}
+clearPad();
+let drawing=false,last=null;
+const pos=e=>{const r=pad.getBoundingClientRect();return[(e.clientX-r.left)*280/r.width,(e.clientY-r.top)*280/r.height];};
+pad.addEventListener('pointerdown',e=>{drawing=true;last=pos(e);pad.setPointerCapture(e.pointerId);stroke(last,last);});
+pad.addEventListener('pointermove',e=>{if(!drawing)return;const p=pos(e);stroke(last,p);last=p;});
+pad.addEventListener('pointerup',()=>{drawing=false;});
+function stroke(a,b){pctx.strokeStyle='#fff';pctx.lineWidth=20;pctx.lineCap='round';pctx.lineJoin='round';pctx.beginPath();pctx.moveTo(a[0],a[1]);pctx.lineTo(b[0],b[1]);pctx.stroke();fromPad();}
+/* MNIST-style preprocessing: bbox → 20×20 → center of mass at (14,14) */
+const tmp=document.createElement('canvas');tmp.width=tmp.height=28;const tctx=tmp.getContext('2d');
+function fromPad(){
+  const d=pctx.getImageData(0,0,280,280).data;let x0=280,y0=280,x1=-1,y1=-1;
+  for(let y=0;y<280;y++)for(let x=0;x<280;x++) if(d[(y*280+x)*4]>30){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}
+  if(x1<0){xRaw=new Float32Array(784);update();return;}
+  const w=x1-x0+1,h=y1-y0+1,s=20/Math.max(w,h),dw=w*s,dh=h*s;
+  tctx.fillStyle='#000';tctx.fillRect(0,0,28,28);tctx.imageSmoothingEnabled=true;tctx.imageSmoothingQuality='high';
+  tctx.drawImage(pad,x0,y0,w,h,(28-dw)/2,(28-dh)/2,dw,dh);
+  let g=tctx.getImageData(0,0,28,28).data,m=0,cx=0,cy=0;
+  for(let i=0;i<784;i++){const v=g[i*4]/255;m+=v;cx+=v*(i%28);cy+=v*Math.floor(i/28);}
+  const sx=Math.round(14-cx/m-0.5),sy=Math.round(14-cy/m-0.5);
+  const out=new Float32Array(784);
+  for(let i=0;i<784;i++){const r=Math.floor(i/28)+sy,c=i%28+sx;if(r>=0&&r<28&&c>=0&&c<28) out[r*28+c]=g[i*4]/255;}
+  xRaw=out;update();
+}
+function loadSample(s){
+  userPicked=false;
+  xRaw=Float32Array.from(s.x);
+  const c=document.createElement('canvas');c.width=c.height=28;paintGray(c,xRaw);
+  clearPad();pctx.imageSmoothingEnabled=true;pctx.drawImage(c,0,0,280,280);update();
+}
+$('clr').onclick=()=>{userPicked=false;clearPad();xRaw=new Float32Array(784);update();};
+$('rnd').onclick=()=>{const ok=SAMPLES.filter(s=>!s.hard);loadSample(ok[Math.floor(Math.random()*ok.length)]);};
+
+/* gallery */
+SAMPLES.forEach(s=>{const c=document.createElement('canvas');c.width=c.height=28;paintGray(c,s.x);if(s.hard){c.classList.add('hard');c.title='困難例子：真實標籤 '+s.y;}else c.title='標籤 '+s.y;c.onclick=()=>loadSample(s);$('gallery').appendChild(c);});
+
+/* hover on 28×28 */
+const x28=$('x28');let hov=-1;
+x28.addEventListener('mousemove',e=>{const r=x28.getBoundingClientRect();const c=Math.min(27,Math.floor((e.clientX-r.left)/r.width*28)),rr=Math.min(27,Math.floor((e.clientY-r.top)/r.height*28));hov=rr*28+c;
+  $('hoverInfo').innerHTML=`第 ${rr} 列、第 ${c} 行<br>→ x<sub>${hov}</sub> = ${x[hov].toFixed(2)}`;drawFlat();});
+x28.addEventListener('mouseleave',()=>{hov=-1;drawFlat();});
+function drawFlat(){
+  const cv=$('flat'),ctx=cv.getContext('2d'),im=ctx.createImageData(784,1);
+  for(let i=0;i<784;i++){const v=Math.round(x[i]*255);const hl=i===hov;im.data[i*4]=hl?255:v;im.data[i*4+1]=hl?60:v;im.data[i*4+2]=hl?60:v;im.data[i*4+3]=255;}
+  ctx.putImageData(im,0,0);
+  const nz=x.reduce((a,v)=>a+(v>0.05),0);
+  $('flatInfo').innerHTML=`<span class="math">x</span> = [x<sub>0</sub>, x<sub>1</sub>, …, x<sub>783</sub>]<sup>T</sup> ∈ [0,1]<sup>784</sup>　・　有筆畫的像素：${nz} 個`+(hov>=0?`　・　<b style="color:#e33">紅線</b>＝x<sub>${hov}</sub>`:'');
+}
+
+/* ---------- network diagram (single fully-connected layer) ---------- */
+let wMax=0;for(const v of W) wMax=Math.max(wMax,Math.abs(v));
+let tplURL=[], userPicked=false, hovPix=-1, nLines=60;
+function paintTemplates(){const c=document.createElement('canvas');c.width=c.height=28;tplURL=[];
+  for(let k=0;k<10;k++){paintDiv(c,W.subarray(k*784,k*784+784),wMax*0.5);tplURL.push(c.toDataURL());}}
+const G={ix:30,iy:150,S:300,tx:548,ts:40,nx:628,r:21,ny:k=>92+k*51,sx:666,bx:730,bw:180};
+const pxC=i=>[G.ix+((i%28)+.5)*G.S/28, G.iy+(Math.floor(i/28)+.5)*G.S/28];
+const curve=(x1,y1,x2,y2)=>{const m=(x2-x1)*0.55;return `M${x1.toFixed(1)} ${y1.toFixed(1)}C${(x1+m).toFixed(1)} ${y1.toFixed(1)} ${(x2-m).toFixed(1)} ${y2.toFixed(1)} ${x2} ${y2}`;};
+function drawNet(){
+  const {z,y,top}=cur; if(!z) return;
+  const pos=css('--pos'),neg=css('--neg'),ink=css('--ink'),mute=css('--mute'),line=css('--line'),acc=css('--c2'),card=css('--card');
+  const endX=G.tx-2;
+  let s=`<text x="${G.ix+G.S/2}" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="${ink}">輸入層 x</text>
+  <text x="${G.ix+G.S/2}" y="52" text-anchor="middle" font-size="13" fill="${mute}">28×28 = 784 個像素 = 784 個輸入</text>
+  <text x="${G.nx-10}" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="${ink}">輸出層 z</text><text x="${G.nx-10}" y="52" text-anchor="middle" font-size="13" fill="${mute}">10 個神經元（小圖＝權重模板）</text>
+  <text x="${G.bx+G.bw/2+20}" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="${ink}">輸出 y（機率）</text><text x="${G.bx+G.bw/2+20}" y="52" text-anchor="middle" font-size="13" fill="${mute}">y = softmax(z)</text>`;
+  s+=`<text x="${(G.ix+G.S+G.tx)/2}" y="606" text-anchor="middle" font-size="13" fill="${mute}">全連接：784 × 10 = 7840 條線，每條線一個權重 W[k,i]</text>`;
+  // faint "fully connected" background
+  const grid=[4,9,14,19,24];
+  for(let k=0;k<10;k++) for(const r of grid) for(const c of grid){const [px,py]=pxC(r*28+c); s+=`<path d="${curve(px,py,endX,G.ny(k))}" stroke="${mute}" stroke-opacity=".07" fill="none"/>`;}
+  // active lines
+  let hl='';
+  if(hovPix>=0){
+    const i=hovPix,[px,py]=pxC(i),xi=x[i];let mx=1e-9;for(let k=0;k<10;k++) mx=Math.max(mx,Math.abs(W[k*784+i]));
+    for(let k=0;k<10;k++){const w=W[k*784+i],c=w*xi,rel=Math.abs(w)/mx;
+      s+=`<path d="${curve(px,py,endX,G.ny(k))}" stroke="${w>=0?pos:neg}" stroke-width="${(0.8+4.5*rel).toFixed(2)}" stroke-opacity="${xi>0.02?0.9:0.45}" ${xi>0.02?'':'stroke-dasharray="5 4"'} fill="none"/>`;
+      s+=`<text x="${endX-6}" y="${G.ny(k)-9}" text-anchor="end" font-size="11" font-family="monospace" fill="${w>=0?pos:neg}">${(w>=0?'+':'')+w.toFixed(3)}</text>`;}
+    const cs=G.S/28; hl=`<rect x="${px-cs/2}" y="${py-cs/2}" width="${cs}" height="${cs}" fill="none" stroke="${acc}" stroke-width="2.5"/>`;
+  }else{
+    const k=sel,o=k*784,arr=[];for(let i=0;i<784;i++){const c=W[o+i]*x[i];if(c!==0) arr.push([i,c]);}
+    arr.sort((a,b)=>Math.abs(b[1])-Math.abs(a[1]));const shown=arr.slice(0,nLines),mx=shown.length?Math.abs(shown[0][1]):1;
+    for(const [i,c] of shown.slice().reverse()){const [px,py]=pxC(i),rel=Math.abs(c)/mx;
+      s+=`<path d="${curve(px,py,endX,G.ny(k))}" stroke="${c>0?pos:neg}" stroke-width="${(0.6+4.4*rel).toFixed(2)}" stroke-opacity="${(0.25+0.65*rel).toFixed(2)}" fill="none"/>`;}
+  }
+  // input image
+  s+=`<rect x="${G.ix-2}" y="${G.iy-2}" width="${G.S+4}" height="${G.S+4}" rx="4" fill="#000" stroke="${line}"/>`;
+  s+=`<image href="${x28.toDataURL()}" x="${G.ix}" y="${G.iy}" width="${G.S}" height="${G.S}" style="image-rendering:pixelated"/>`+hl;
+  s+=`<text x="${G.ix+G.S/2}" y="${G.iy+G.S+26}" text-anchor="middle" font-size="13" fill="${mute}">每個像素 x<tspan font-size="10" dy="3">i</tspan><tspan dy="-3"> 都是一個輸入，連到全部 10 個神經元</tspan></text>`;
+  // softmax bracket
+  s+=`<rect x="${G.sx}" y="${G.ny(0)-24}" width="34" height="${G.ny(9)-G.ny(0)+48}" rx="10" fill="${css('--t3')}" stroke="${css('--c3')}"/>`;
+  s+=`<text transform="translate(${G.sx+22},${(G.ny(0)+G.ny(9))/2}) rotate(-90)" text-anchor="middle" font-size="15" font-weight="700" fill="${css('--c3')}">softmax（10 個分數 → 10 個機率，總和 = 1）</text>`;
+  // nodes, thumbs, bars
+  const zmax=Math.max(...z.map(Math.abs));
+  for(let k=0;k<10;k++){const yy=G.ny(k),isTop=k===top,isSel=k===sel&&hovPix<0,a=Math.max(0,z[k])/zmax;
+    s+=`<g class="node" data-k="${k}">`;
+    s+=`<rect x="${G.tx-3}" y="${yy-G.ts/2-3}" width="${G.nx+G.r-G.tx+8}" height="${G.ts+6}" fill="transparent"/>`;
+    s+=`<image href="${tplURL[k]}" x="${G.tx}" y="${yy-G.ts/2}" width="${G.ts}" height="${G.ts}" style="image-rendering:pixelated"/>`;
+    s+=`<rect x="${G.tx}" y="${yy-G.ts/2}" width="${G.ts}" height="${G.ts}" fill="none" stroke="${isSel?acc:line}" stroke-width="${isSel?2.5:1}"/>`;
+    s+=`<line x1="${G.tx+G.ts}" y1="${yy}" x2="${G.nx-G.r}" y2="${yy}" stroke="${mute}"/>`;
+    s+=`<circle cx="${G.nx}" cy="${yy}" r="${G.r}" fill="${isTop?acc:card}" fill-opacity="${isTop?1:1}" stroke="${isSel?acc:mute}" stroke-width="${isSel?3.5:1.5}"/>`;
+    if(!isTop&&a>0) s+=`<circle cx="${G.nx}" cy="${yy}" r="${G.r-2}" fill="${acc}" fill-opacity="${(a*0.35).toFixed(2)}"/>`;
+    s+=`<text x="${G.nx}" y="${yy+4}" text-anchor="middle" font-size="11.5" font-weight="700" font-family="monospace" fill="${isTop?'#fff':ink}">${z[k].toFixed(1)}</text>`;
+    s+=`<text x="${G.nx}" y="${yy-G.r-3}" text-anchor="middle" font-size="10" fill="${mute}">z${'₀₁₂₃₄₅₆₇₈₉'[k]}</text>`;
+    s+=`<line x1="${G.nx+G.r}" y1="${yy}" x2="${G.sx}" y2="${yy}" stroke="${mute}" stroke-dasharray="3 3"/>`;
+    s+=`<line x1="${G.sx+34}" y1="${yy}" x2="${G.bx-24}" y2="${yy}" stroke="${mute}" stroke-dasharray="3 3"/>`;
+    s+=`<text x="${G.bx-10}" y="${yy+6}" text-anchor="middle" font-size="17" font-weight="700" fill="${isTop?acc:ink}">${k}</text>`;
+    s+=`<rect x="${G.bx}" y="${yy-10}" width="${G.bw}" height="20" rx="4" fill="${line}" fill-opacity=".6"/>`;
+    s+=`<rect x="${G.bx}" y="${yy-10}" width="${(G.bw*y[k]).toFixed(1)}" height="20" rx="4" fill="${isTop?acc:mute}" fill-opacity="${isTop?1:.6}"/>`;
+    s+=`<text x="${G.bx+G.bw+8}" y="${yy+5}" font-size="13" font-family="monospace" fill="${isTop?acc:ink}" font-weight="${isTop?700:400}">${y[k].toFixed(2)}</text>`;
+    s+=`</g>`;}
+  $('net').innerHTML=s;
+  // info
+  if(hovPix>=0){const i=hovPix,r=Math.floor(i/28),c=i%28,xi=x[i];
+    $('netInfo').innerHTML=`像素 (第 ${r} 列, 第 ${c} 行) ＝ 輸入 <b>x<sub>${i}</sub> = ${xi.toFixed(2)}</b>。它有 10 條線連到 10 個神經元，線上標的是權重 W[k, ${i}]。`+
+      (xi>0.02?` 這個像素對每個神經元的貢獻 = 權重 × ${xi.toFixed(2)}：`+Array.from({length:10},(_,k)=>`<span style="color:${W[k*784+i]>=0?pos:neg}">${k}: ${(W[k*784+i]*xi>=0?'+':'')+(W[k*784+i]*xi).toFixed(3)}</span>`).join('、')
+       :' <b>這個像素是黑的（x<sub>i</sub> = 0）</b>，所以不論權重多大，貢獻都是 0（虛線）。');
+  }else{const k=sel,o=k*784;let P=0,N=0,nz=0;for(let i=0;i<784;i++){const c=W[o+i]*x[i];if(c>0)P+=c;else N+=c;if(x[i]>0)nz++;}
+    $('netInfo').innerHTML=`<b>神經元 ${k}</b>：z<sub>${k}</sub> = Σ<sub>i</sub> W[${k},i]·x<sub>i</sub> + b<sub>${k}</sub> = <span style="color:${pos}">(+${P.toFixed(2)})</span> + <span style="color:${neg}">(${N.toFixed(2)})</span> + (${B[k].toFixed(2)}) = <b>${z[k].toFixed(2)}</b>
+     <br><span class="note">雖然有 784 條線連進來，但只有 ${nz} 個像素不是黑的，其餘 ${784-nz} 條的貢獻都是 0。圖中只畫出貢獻最大的 ${Math.min(nLines,nz)} 條。</span>`;}
+}
+function svgPt(e){const sv=$('net'),p=sv.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(sv.getScreenCTM().inverse());}
+function pixAt(p){if(p.x<G.ix||p.x>=G.ix+G.S||p.y<G.iy||p.y>=G.iy+G.S) return -1;return Math.floor((p.y-G.iy)/G.S*28)*28+Math.floor((p.x-G.ix)/G.S*28);}
+$('net').addEventListener('pointermove',e=>{const h=pixAt(svgPt(e));if(h!==hovPix){hovPix=h;drawNet();}});
+$('net').addEventListener('pointerleave',e=>{if(e.pointerType==='mouse'&&hovPix>=0){hovPix=-1;drawNet();}});
+$('net').addEventListener('pointerdown',e=>{const p=svgPt(e),h=pixAt(p);
+  const g=e.target.closest('.node'); if(g){sel=+g.dataset.k;userPicked=true;hovPix=-1;update();return;}
+  if(h!==hovPix){hovPix=h;drawNet();}});
+$('nL').oninput=e=>{nLines=+e.target.value;$('nLv').textContent=nLines;drawNet();};
+
+/* ---------- main update ---------- */
+let cur={};
+function update(){
+  for(let i=0;i<784;i++) x[i]=Math.max(0,Math.min(1,xRaw[i]+noise*0.5*NOISE[i]));
+  paintGray(x28,x); drawFlat();
+  const z=logits(x), y=softmax(z,T), y1=softmax(z,1), top=argmax(z);
+  cur={z,y,top};
+  if(!userPicked) sel=top;
+  // detail
+  const w=W.subarray(sel*784,sel*784+784),prod=new Float32Array(784);let dot=0,pos=0,neg=0;
+  for(let i=0;i<784;i++){prod[i]=w[i]*x[i];dot+=prod[i];if(prod[i]>0)pos+=prod[i];else neg+=prod[i];}
+  paintDiv($('dW'),w,wMax*0.5); paintGray($('dX'),x); paintDiv($('dP'),prod,wMax*0.5);
+  $('dWl').innerHTML=`w<sub>${sel}</sub>（第 ${sel} 列）`;
+  $('dEq').innerHTML=`<div>加分合計 <span style="color:var(--pos)">+${pos.toFixed(2)}</span>，扣分合計 <span style="color:var(--neg)">${neg.toFixed(2)}</span></div>
+    <div><span class="math">w<sub>${sel}</sub></span>·<span class="math">x</span> = Σ<sub>i</sub> w<sub>${sel},i</sub>x<sub>i</sub> = ${dot.toFixed(2)}</div>
+    <div>+ <span class="math">b<sub>${sel}</sub></span> = ${B[sel].toFixed(2)}</div>
+    <div style="font-size:1.2rem;margin-top:4px"><b><span class="math">z<sub>${sel}</sub></span> = ${z[sel].toFixed(2)}</b></div>`;
+  // bars & table
+  const mx=Math.max(...z),e=z.map(v=>Math.exp((v-mx)/T)),S=e.reduce((a,b)=>a+b,0);
+  $('bars').innerHTML=y.map((p,k)=>`<b>${k}</b><div class="bg"><div class="fg${k===top?' top':''}" style="width:${(p*100).toFixed(1)}%"></div></div><span>${p.toFixed(3)}</span>`).join('');
+  $('tbl').innerHTML=z.map((v,k)=>`<tr${k===top?' style="font-weight:700"':''}><td>${k}</td><td>${v.toFixed(2)}</td><td>${fmtE(Math.exp(v/T))}</td><td>${y[k].toFixed(4)}</td></tr>`).join('');
+  $('sumTxt').innerHTML=`Σ y<sub>k</sub> = ${y.reduce((a,b)=>a+b,0).toFixed(4)}（永遠等於 1）`;
+  const empty=xRaw.every(v=>v===0);
+  $('predTxt').innerHTML=empty?'畫布是空的：x = 0，所以 z = b，輸出只由偏差 b 決定。':`預測：<b style="color:var(--c2);font-size:1.3rem">${top}</b>，信心 ${(y[top]*100).toFixed(1)}%`;
+  // pipeline
+  const nz=x.reduce((a,v)=>a+(v>0.05),0);
+  $('pX').textContent=`[${Array.from(x.subarray(200,204)).map(v=>v.toFixed(2)).join(', ')}, …]（784 個，${nz} 個非零）`;
+  $('pZ').textContent='z = ['+z.map(v=>v.toFixed(1)).join(', ')+']';
+  $('pY').textContent='y = ['+y1.map(v=>v.toFixed(2)).join(', ')+']';
+  $('pC').textContent=top;
+  // many-to-one
+  const same=SAMPLES.filter(s=>!s.hard&&s.y===top).slice(0,3);
+  $('many').innerHTML='';
+  same.forEach(s=>{const zz=logits(s.x),yy=softmax(zz),t=argmax(zz);const d=document.createElement('div');d.className='m';const c=document.createElement('canvas');c.width=c.height=28;paintGray(c,s.x);d.appendChild(c);d.insertAdjacentHTML('beforeend',`<div>→ <b>${t}</b>（${(yy[t]*100).toFixed(0)}%）</div>`);$('many').appendChild(d);});
+  if(!empty){const d=document.createElement('div');d.className='m';const c=document.createElement('canvas');c.width=c.height=28;paintGray(c,x);d.appendChild(c);d.insertAdjacentHTML('beforeend',`<div>你的輸入 → <b>${top}</b></div>`);$('many').appendChild(d);}
+  $('repOut').innerHTML='';
+  drawNet();
+}
+const fmtE=v=>v>=1e4||v<1e-3?v.toExponential(2):v.toFixed(3);
+
+$('T').oninput=e=>{T=+e.target.value;$('Tv').textContent=T.toFixed(2);update();};
+$('noise').oninput=e=>{noise=+e.target.value;$('Nv').textContent=noise.toFixed(2);update();};
+$('rep').onclick=()=>{
+  const ref=softmax(logits(x));let same=true;const t0=performance.now();
+  for(let r=0;r<1000;r++){const y=softmax(logits(x));for(let k=0;k<10;k++) if(y[k]!==ref[k]) same=false;}
+  const ms=(performance.now()-t0).toFixed(0);
+  $('repOut').innerHTML=same?`<span class="ok">1000 次的輸出完全相同 ✔</span>（耗時 ${ms} ms）<br>輸出 = [${ref.map(v=>v.toFixed(3)).join(', ')}]<br>同一個 x 只對應唯一一個 y ⇒ f 是函數。`:'<span class="bad">輸出不同？</span>';
+};
+
+/* ---------- LeCun avatar ---------- */
+const LECUN_SVG=`<svg viewBox="0 0 200 230" aria-label="楊立昆老師動畫">
+ <g class="bodyg">
+  <path d="M14 232 Q20 172 100 162 Q180 172 186 232 Z" fill="#3d4148"/>
+  <path d="M100 176 L100 232" stroke="#2c2f35" stroke-width="10"/>
+  <circle cx="100" cy="194" r="2.6" fill="#1c1d21"/><circle cx="100" cy="212" r="2.6" fill="#1c1d21"/>
+  <rect x="84" y="134" width="32" height="34" rx="10" fill="#e3b69a"/>
+  <path d="M80 158 Q100 176 120 158 Q120 168 116 172 Q100 182 84 172 Q80 168 80 158 Z" fill="#d8a98c"/>
+  <path d="M74 156 L100 180 L86 196 Q72 176 74 156 Z" fill="#474b53" stroke="#2c2f35" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M126 156 L100 180 L114 196 Q128 176 126 156 Z" fill="#474b53" stroke="#2c2f35" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M60 100 Q52 56 92 42 Q140 32 148 76 Q152 104 140 126 L60 126 Z" fill="#3b2f28"/>
+  <ellipse cx="66" cy="106" rx="6" ry="10" fill="#e3b69a"/><ellipse cx="134" cy="106" rx="6" ry="10" fill="#e3b69a"/>
+  <ellipse cx="100" cy="102" rx="33" ry="40" fill="#f0c6aa"/>
+  <ellipse class="blush" cx="80" cy="118" rx="7" ry="4.5" fill="#f08080"/>
+  <ellipse class="blush" cx="120" cy="118" rx="7" ry="4.5" fill="#f08080"/>
+  <path d="M64 92 Q58 58 88 46 Q124 34 142 60 Q150 76 138 92 Q134 72 116 68 Q96 64 82 72 Q70 78 64 92 Z" fill="#3f322a"/>
+  <path d="M82 50 Q104 40 128 52 Q112 50 98 56 Q88 58 82 50 Z" fill="#8f8a85" opacity=".85"/>
+  <path d="M92 60 Q110 52 132 60 M78 64 Q86 56 100 54" stroke="#9a948e" stroke-width="2" fill="none" stroke-linecap="round" opacity=".8"/>
+  <g class="hairL"><path d="M64 88 Q56 100 60 118 Q64 108 68 100 Z" fill="#3f322a"/></g>
+  <g class="hairR"><path d="M138 86 Q146 100 141 118 Q137 108 133 100 Z" fill="#3f322a"/></g>
+  <path class="brow browL" d="M76 84 Q84 80 93 83" stroke="#4a3a30" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path class="brow browR" d="M107 83 Q116 80 124 84" stroke="#4a3a30" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <g class="eyes"><ellipse cx="85" cy="97" rx="3.8" ry="3" fill="#3a2e26"/><ellipse cx="115" cy="97" rx="3.8" ry="3" fill="#3a2e26"/>
+   <circle cx="86.2" cy="95.9" r="1" fill="#fff"/><circle cx="116.2" cy="95.9" r="1" fill="#fff"/></g>
+  <g fill="rgba(200,225,240,.18)" stroke="#16171a" stroke-width="3.6" stroke-linejoin="round">
+   <path d="M71 89 L97 88 Q99 88 98 91 L97 104 Q96 107 93 107 L75 107 Q72 107 72 104 Z"/>
+   <path d="M129 89 L103 88 Q101 88 102 91 L103 104 Q104 107 107 107 L125 107 Q128 107 128 104 Z"/>
+  </g>
+  <path d="M97 93 Q100 91 103 93" stroke="#16171a" stroke-width="3" fill="none"/>
+  <path d="M71 92 L64 94 M129 92 L136 94" stroke="#9aa0a8" stroke-width="3" stroke-linecap="round"/>
+  <path d="M100 104 Q97 116 100 120 Q104 122 108 119" stroke="#c9967a" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <path class="mo n" d="M89 129 Q100 134 111 128" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path class="mo s" d="M87 126 Q100 141 113 126 Q100 131 87 126 Z" fill="#9b3a2c" stroke="#8a4a3a" stroke-width="1.5" stroke-linejoin="round"/>
+  <path class="mo f" d="M89 133 Q100 125 111 133" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path d="M84 120 Q86 128 90 132 M116 120 Q114 128 110 132" stroke="#dca98d" stroke-width="1.1" fill="none"/>
+  <path class="sweat" d="M136 74 Q141 84 136 88 Q131 84 136 74 Z" fill="#7cc3f0"/>
+  <text class="spark" x="30" y="44" font-size="18" fill="#f0b400">✦</text>
+  <text class="spark" x="160" y="40" font-size="14" fill="#f0b400">✦</text>
+  <text class="spark" x="170" y="96" font-size="11" fill="#f0b400">✦</text>
+ </g></svg>`;
+function makeAvatar(el,bubble){
+  el.innerHTML=LECUN_SVG; let tm=null;
+  function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
+  return {mood(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
+    if(m==='smile'){el.classList.add('smile');restart('hop');}
+    if(m==='frown'){el.classList.add('frown');restart('shake');}
+    if(text!==undefined){bubble.innerHTML=text;bubble.className='bubble'+(m==='smile'?' good':m==='frown'?' bad':'');}
+    if(!hold) tm=setTimeout(()=>{el.classList.remove('smile','frown');bubble.className='bubble';},3200);}};
+}
+
+var AV1=makeAvatar($('av1'),$('bub1')), AV2=makeAvatar($('av2'),$('bub2'));
+const QUOTES=['1989 年我在貝爾實驗室用反向傳播訓練卷積網路，辨識手寫郵遞區號。','1998 年我們整理出 MNIST：6 萬張訓練、1 萬張測試的 28×28 手寫數字。','我的 LeNet-5 後來被銀行拿去自動讀支票上的手寫金額。','在我的 MNIST 網頁上，像這頁這樣的單層線性分類器錯誤率大約 12%，卷積網路可以降到 1% 以下。','2018 年我和 Hinton、Bengio 一起獲得圖靈獎。','我的中文名字是「楊立昆」。'];
+let qi=0,curLabel=null,avReact=false;
+$('av1').onclick=()=>{AV1.mood('smile',QUOTES[qi++%QUOTES.length]);};
+function lecunReact(){
+  if(!avReact) return; avReact=false;
+  const t=cur.top,p=(cur.y[t]*100).toFixed(0);
+  if(xRaw.every(v=>v===0)){AV1.mood('','畫布是空的，我只能看偏差 b 來猜……寫一個數字吧！');return;}
+  if(curLabel===null){AV1.mood('smile',`我猜你寫的是 <b>${t}</b>（信心 ${p}%）。猜對了嗎？`);return;}
+  if(t===curLabel) AV1.mood('smile',noise>0?`加了雜訊我還是認得出：<b>${t}</b>（${p}%）！`:`這張是 <b>${t}</b>，我答對了（${p}%）😄`);
+  else AV1.mood('frown',noise>0?`雜訊太大，我把 ${curLabel} 看成 <b>${t}</b> 了……`:`糟糕，這張其實是 ${curLabel}，我卻猜成 <b>${t}</b>。只有一層，能力有限啊！`);
+}
+const _load=loadSample; loadSample=function(s){curLabel=s.y;avReact=true;_load(s);lecunReact();};
+pad.addEventListener('pointerdown',()=>{curLabel=null;});
+pad.addEventListener('pointerup',()=>{avReact=true;lecunReact();});
+let nzT=null;$('noise').addEventListener('input',()=>{clearTimeout(nzT);nzT=setTimeout(()=>{avReact=true;lecunReact();},350);});
+$('clr').addEventListener('click',()=>{curLabel=null;AV1.mood('','清乾淨了！換你寫一個 0～9 的數字。');});
+
+/* ---------- quiz ---------- */
+const PRAISE=['Très bien！答對了 😄','正確！你很懂這個函數。','Parfait！','漂亮！'];
+const QZ=[
+ {q:'輸入影像 28×28 展平後，x 是幾維向量？',o:['28','56','784','10'],a:2,e:'28 × 28 = 784 個像素，逐列接起來成為 784 維向量。',h:'把 28 列、每列 28 個像素全部排成一排。'},
+ {q:'第 r = 2 列、第 c = 5 行的像素，是向量 x 的第幾個分量（從 0 開始）？',o:['25','61','30','56'],a:1,e:'i = 28r + c = 28×2 + 5 = 61。',h:'公式是 i = 28r + c。'},
+ {q:'權重矩陣 W 的大小是？',o:['784×10','10×784','10×10','784×784'],a:1,e:'z = Wx + b，x 是 784×1、z 是 10×1，所以 W 是 10×784：每一列是一個神經元的 784 個權重。',h:'z 有 10 個分量、x 有 784 個分量，矩陣乘法的形狀要對得上。'},
+ {q:'這個模型總共有幾個參數？',o:['784','7840','7850','10'],a:2,e:'W 有 10×784 = 7840 個，再加上 b 的 10 個，共 7850 個。',h:'別忘了偏差 b 也是參數。'},
+ {q:'f(x) = softmax(Wx + b) 寫成合成函數 softmax ∘ g 時，內層 g 是？',o:['softmax','argmax','g(x) = Wx + b','x 本身'],a:2,e:'先做仿射變換 g(x) = Wx + b 得到分數 z，再送進外層 softmax 變成機率。',h:'合成函數：右邊的先做。'},
+ {q:'softmax 的輸出 y 一定滿足？',o:['每個 yₖ > 0 且總和 = 1','每個 yₖ 是 0 或 1','總和 = 10','可能出現負數'],a:0,e:'分子 e^{zₖ} 永遠為正，再除以全部總和，所以每個都 > 0 且加起來等於 1，是機率向量。',h:'e 的任何次方都是正數。'},
+ {q:'很多張不同的「3」都被預測成 3，這違反函數的定義嗎？',o:['違反，一個輸出只能對應一個輸入','不違反，多對一是允許的','要看信心高低'],a:1,e:'函數只要求「一個輸入 → 唯一輸出」。不同輸入對到同一個輸出（多對一）完全允許。',h:'函數禁止的是「一對多」。'},
+ {q:'為什麼同一張影像算 1000 次，輸出都一樣？',o:['因為 W、b 訓練好後固定不變','因為 softmax 會四捨五入','因為影像是黑白的'],a:0,e:'訓練完成後 W、b 固定，f 就是一條固定的規則：同一個 x 只對應唯一一個 y，所以 f 是函數。',h:'想想哪些東西在「使用模型」時不會改變。'}
+];
+let score=0,done=0,streak=0;
+function renderQuiz(){score=0;done=0;streak=0;$('score').innerHTML='';$('againBox').style.display='none';
+  $('quiz').innerHTML=QZ.map((z,i)=>`<div class="q"><div><b>Q${i+1}.</b> ${z.q}</div><div class="opts">${z.o.map((t,j)=>`<button data-q="${i}" data-o="${j}">${t}</button>`).join('')}</div><div class="fb" id="fb${i}"></div></div>`).join('');}
+$('quiz').onclick=e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  const i=+b.dataset.q, j=+b.dataset.o, z=QZ[i], box=b.parentElement;
+  if(box.dataset.done) return; box.dataset.done=1; done++;
+  if(j===z.a){b.classList.add('right');score++;streak++;$('fb'+i).innerHTML='<span class="ok">✔ 正確！</span>'+z.e;
+    AV2.mood('smile',streak>=3?'連續答對 '+streak+' 題！C\'est magnifique！':PRAISE[Math.floor(Math.random()*PRAISE.length)]);}
+  else{b.classList.add('wrong');streak=0;box.children[z.a].classList.add('right');$('fb'+i).innerHTML='<span class="bad">✘</span> '+z.e;AV2.mood('frown',z.h);}
+  if(done===QZ.length){$('score').innerHTML=`得分：<b>${score} / ${QZ.length}</b>`;$('againBox').style.display='block';
+    setTimeout(()=>{if(score===QZ.length)AV2.mood('smile','全對！'+score+'/'+QZ.length+'，你比單層分類器還厲害 🎉',true);
+      else if(score>=5)AV2.mood('smile',score+'/'+QZ.length+'，很好！看一下答錯題目的解析。',true);
+      else AV2.mood('frown',score+'/'+QZ.length+'……回到第 2、3 節再玩一下網路圖和 softmax 吧。',true);},3300);}
+};
+$('again').onclick=()=>{renderQuiz();AV2.mood('','新的一輪！這次目標全對。');};
+renderQuiz();
+
+paintTemplates();
+if(window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',()=>{paintTemplates();update();});
+loadSample(SAMPLES.find(s=>s.y===8));
+</script>
+</body>
+</html>
