@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>梯度互動教學</title>
+<style>
+:root{
+  --bg:#f7f6f2;--card:#fff;--ink:#1d2330;--mute:#667085;--line:#e3e1da;--ok:#1f9d6b;--bad:#d6334f;
+  --grid:#eceae4;--axis:#9aa0ab;--accent:#2f6fdb;--tint:#eaf1fc;
+  --cx:#d6334f;--cy:#2f6fdb;--gd:#1f9d6b;--dir:#e07a1f;--pt:#1d2330;--floor:#efede7;--path:#e07a1f;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+    --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+    --cx:#ff6f86;--cy:#6c9dff;--gd:#4fd19d;--dir:#ffa552;--pt:#f4f5f8;--floor:#222733;--path:#ffa552;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+  --cx:#ff6f86;--cy:#6c9dff;--gd:#4fd19d;--dir:#ffa552;--pt:#f4f5f8;--floor:#222733;--path:#ffa552;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.9rem}
+header p{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:18px}
+.card h2{margin:0 0 12px;font-size:1.22rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:.9rem;flex:none}
+h3{margin:0 0 6px;font-size:1.05rem}
+.m{font-family:"Times New Roman","Cambria Math",serif;font-style:italic}
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 2px;line-height:1.15}
+.frac>span:first-child{padding:0 3px 1px;border-bottom:1.3px solid currentColor}
+.frac>span:last-child{padding:1px 3px 0}
+.vec{display:inline-flex;align-items:center;vertical-align:middle}
+.def{font-size:1.18rem;text-align:center;padding:14px;border-radius:10px;background:var(--tint);line-height:2.1}
+.note{color:var(--mute);font-size:.92rem}
+.cx{color:var(--cx)}.cy{color:var(--cy)}.gd{color:var(--gd)}.dir{color:var(--dir)}.ok{color:var(--ok)}.bad{color:var(--bad)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start}
+.two>*{min-width:0}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.three>div{border:2px solid var(--line);border-radius:12px;padding:10px 14px}
+.three b.t{display:block;color:var(--accent)}
+@media (max-width:860px){.two,.three{grid-template-columns:minmax(0,1fr)}}
+.cvbox{width:100%;min-width:0}
+.sq{max-width:460px;margin:0 auto}
+canvas{width:100%;display:block;border-radius:10px;background:var(--bg);touch-action:none}
+label{font-size:.92rem;color:var(--mute);display:block}
+label b{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 12px}
+select{width:100%}
+button{cursor:pointer}button:hover{border-color:var(--accent)}
+button.pri,button.on{background:var(--accent);color:#fff;border-color:transparent}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:12px 18px;align-items:end}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(130px,100%),1fr));gap:10px;margin-top:10px}
+.stats>div{padding:8px 12px;border-radius:10px;background:var(--bg)}
+.stats small{display:block;color:var(--mute);font-size:.82rem}
+.stats b{font-size:1.2rem;font-variant-numeric:tabular-nums}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.85rem;color:var(--mute);margin-top:6px}
+.legend i{display:inline-block;width:18px;height:4px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.say{margin-top:10px;padding:10px 14px;border-left:4px solid var(--ok);background:var(--bg);border-radius:8px}
+.formula{font-size:1.08rem;line-height:2.3;overflow-x:auto;padding:4px 2px}
+.stepbar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:10px 0 8px}
+.stepbar div{height:100%;background:var(--accent);transition:width .3s}
+.explain{padding:10px 14px;border-radius:10px;background:var(--tint);min-height:3.4em}
+.chk{display:flex;gap:6px;align-items:center;color:var(--ink)}
+.chk input{width:auto}
+/* quiz */
+.quiz .q{padding:12px 0;border-bottom:1px solid var(--line)}
+.quiz .q:last-child{border:none}
+.opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.opts button.right{background:var(--ok);color:#fff;border-color:transparent}
+.opts button.wrong{background:var(--bad);color:#fff;border-color:transparent}
+.fb{font-size:.92rem;margin-top:6px;min-height:1.2em}
+.score{margin-top:12px;font-size:1.15rem;font-weight:700;display:none;align-items:center;gap:12px;flex-wrap:wrap}
+footer{color:var(--mute);font-size:.85rem;text-align:center;margin-top:30px}
+/* ---------- avatar ---------- */
+.avwrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.av{width:100%;max-width:220px;cursor:pointer;user-select:none}
+.av svg{width:100%;display:block;overflow:visible;background:none}
+.av .bodyg{animation:bob 3.2s ease-in-out infinite;transform-origin:100px 200px}
+.av .eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+.av .hairL{animation:sway 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:top center}
+.av .hairR{animation:sway 3.2s ease-in-out infinite reverse;transform-box:fill-box;transform-origin:top center}
+.av .brow{transition:transform .3s;transform-box:fill-box}
+.av .browL{transform-origin:right center}.av .browR{transform-origin:left center}
+.av .mo{opacity:0;transition:opacity .25s}.av .mo.n{opacity:1}
+.av .blush,.av .sweat,.av .spark{opacity:0;transition:opacity .3s}
+.av.smile .mo.n,.av.frown .mo.n{opacity:0}
+.av.smile .mo.s{opacity:1}.av.frown .mo.f{opacity:1}
+.av.smile .blush{opacity:.55}.av.smile .spark{opacity:1}.av.frown .sweat{opacity:.9}
+.av.smile .brow{transform:translateY(-3px)}
+.av.frown .browL{transform:rotate(14deg) translateY(2px)}.av.frown .browR{transform:rotate(-14deg) translateY(2px)}
+.av.hop svg{animation:hop .7s ease}
+.av.shake svg{animation:shake .55s ease}
+.av .spark{animation:twinkle 1s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}
+@keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+@keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.bubble{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.95rem;margin-bottom:10px;min-height:2.6em;max-width:260px;text-align:center;transition:border-color .3s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--line);border-bottom:0}
+.bubble.good{border-color:var(--ok)}.bubble.good::after{border-top-color:var(--ok)}
+.bubble.bad{border-color:var(--bad)}.bubble.bad::after{border-top-color:var(--bad)}
+.intro{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:center}
+.intro>*,.qgrid>*{min-width:0}
+.intro .avwrap{flex-direction:row;gap:10px}.intro .bubble{flex:1;margin:0}.intro .bubble::after{display:none}.intro .av{width:125px;flex:none}
+.qgrid{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:18px;align-items:start}
+.qgrid .avwrap{position:sticky;top:12px}
+@media (max-width:860px){.intro,.qgrid{grid-template-columns:minmax(0,1fr)}.intro .avwrap{flex-direction:column}.intro .bubble{margin-bottom:10px}.intro .bubble::after{display:block}.intro .av,.qgrid .av{width:auto;max-width:140px}.qgrid .avwrap{position:static;order:-1}}
+</style>
+<style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line,#e3e1da);border-radius:12px;background:var(--card,var(--surface,#fff));color:var(--ink,#1d2330);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+.pu-badge img{width:58px;height:58px;display:block}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute,var(--muted,#667085))}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="pu-hd">
+  <div class="pu-hd-main">
+  <h1>梯度（Gradient）互動教學</h1>
+  <p>工程數學 ・ 互動教學：把兩個偏導數組成一支「最陡上坡」的箭頭</p>
+</div>
+  <div class="pu-badge"><img alt="靜宜大學校徽" src="data:image/webp;base64,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"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</header>
+
+<!-- 0 -->
+<section class="card">
+  <h2><span class="num">0</span>一句話直覺：梯度是一支指向最陡上坡的箭頭</h2>
+  <div class="intro">
+    <div>
+      <div class="def">
+        梯度 ∇<i class="m">f</i> =
+        ( <span class="frac"><span>∂<i class="m">f</i></span><span>∂<i class="m">x</i></span></span> ,
+        <span class="frac"><span>∂<i class="m">f</i></span><span>∂<i class="m">y</i></span></span> )
+        ＝ 把兩個偏導數<b>排成一個向量</b>
+      </div>
+      <div class="three">
+        <div><b class="t">方向：最陡上坡</b>站在山坡上，梯度箭頭指向「往上爬最快」的方向。</div>
+        <div><b class="t">長度：有多陡</b>箭頭越長，代表這裡越陡；在山頂、谷底，梯度 = (0, 0)。</div>
+        <div><b class="t">反方向：最快下山</b>AI 訓練的「梯度下降」，就是一直往 −∇<i class="m">f</i> 走，讓損失變小。</div>
+      </div>
+      <p class="note">讀法：∇ 讀作「nabla」或「del」，∇<i class="m">f</i> 讀作「grad f」。</p>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub1">Grüezi！我是歐拉。點我聽故事！</div><div class="av" id="av1"></div></div>
+  </div>
+</section>
+
+<!-- 1 -->
+<section class="card">
+  <h2><span class="num">1</span>定義：兩個偏導數 → 一支箭頭</h2>
+  <div class="ctl">
+    <label>函數<select id="fn"></select></label>
+    <label>位置 <i class="m">x</i> = <b id="x0v"></b><input id="x0" type="range" step="0.05"></label>
+    <label>位置 <i class="m">y</i> = <b id="y0v"></b><input id="y0" type="range" step="0.05"></label>
+  </div>
+  <div class="two" style="margin-top:14px">
+    <div>
+      <h3>山的樣子（3D）</h3>
+      <div class="cvbox"><canvas id="cv3"></canvas></div>
+      <div class="legend"><span><i style="background:var(--gd)"></i>梯度方向（沿著山坡往上）</span><span>🖱 拖曳可旋轉</span></div>
+    </div>
+    <div>
+      <h3>從上往下看（等高線地圖）</h3>
+      <div class="cvbox sq"><canvas id="cv1"></canvas></div>
+      <div class="legend">
+        <span><i style="background:var(--cx)"></i>∂f/∂x（東西向）</span>
+        <span><i style="background:var(--cy)"></i>∂f/∂y（南北向）</span>
+        <span><i style="background:var(--gd)"></i>∇f（合成）</span>
+      </div>
+      <p class="note" style="margin:4px 0 0">👆 點擊或拖曳地圖移動位置</p>
+    </div>
+  </div>
+  <div class="formula" id="g1"></div>
+  <div class="formula" id="g2"></div>
+  <div class="say" id="say1"></div>
+</section>
+
+<!-- 2 -->
+<section class="card">
+  <h2><span class="num">2</span>為什麼是「最陡上坡」？轉一圈試試看</h2>
+  <p style="margin-top:0">站在同一點，朝不同方向 <b class="dir">u</b> 走一小步，坡度都不一樣。往方向 <b class="dir">u</b>（角度 θ）的坡度叫做<b>方向導數</b>：</p>
+  <div class="formula" id="d0"></div>
+  <div class="two">
+    <div>
+      <div class="cvbox sq"><canvas id="cv2"></canvas></div>
+      <div class="legend"><span><i style="background:var(--dir)"></i>走的方向 u</span><span><i style="background:var(--gd)"></i>梯度 ∇f</span></div>
+    </div>
+    <div>
+      <label>方向角 θ = <b id="thv"></b><input id="th" type="range" min="0" max="360" step="1" value="30"></label>
+      <div class="row" style="margin:6px 0"><button id="spin" class="pri">▶ 轉一圈</button><button id="toG">對準梯度</button><button id="toC">沿等高線</button></div>
+      <div class="cvbox"><canvas id="cvD"></canvas></div>
+      <div class="formula" id="d1"></div>
+      <div class="say" id="say2"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="card">
+  <h2><span class="num">3</span>梯度場：每一點都有一支箭頭，而且垂直於等高線</h2>
+  <div class="two">
+    <div>
+      <div class="cvbox sq"><canvas id="cvF"></canvas></div>
+      <div class="row" style="margin-top:6px">
+        <label class="chk"><input type="checkbox" id="fLines" checked>顯示等高線</label>
+        <label class="chk"><input type="checkbox" id="fArr" checked>顯示梯度箭頭</label>
+      </div>
+    </div>
+    <div>
+      <ul>
+        <li>每一個箭頭都和經過那一點的等高線<b>垂直</b>。沿著等高線走高度不變，所以「最陡」一定是橫跨等高線的方向。</li>
+        <li>等高線越<b>密</b>的地方越陡，箭頭越<b>長</b>。</li>
+        <li>箭頭都指向「高處」；在山頂、谷底、鞍點，箭頭縮成一點（∇<i class="m">f</i> = 0）。</li>
+      </ul>
+      <p class="note">函數跟著第 1 節的選擇。換成「馬鞍」看看：中心附近的箭頭有的往外、有的往內。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="card">
+  <h2><span class="num">4</span>梯度下降（Gradient Descent）：反著箭頭走下山</h2>
+  <p style="margin-top:0">AI 訓練時，<i class="m">f</i> 是<b>損失函數</b>，(<i class="m">x</i>, <i class="m">y</i>) 是模型參數。每一步都往 <b>−∇<i class="m">f</i></b>（最陡下坡）走一小步，步伐大小由<b>學習率 η</b> 決定：</p>
+  <div class="formula" id="gdGen"></div>
+  <div class="ctl">
+    <label>損失函數<select id="dfn"></select></label>
+    <label>學習率 η = <b id="etav"></b><input id="eta" type="range" min="0.02" max="0.7" step="0.01" value="0.1"></label>
+    <div class="note">👆 點地圖可以換起點</div>
+  </div>
+  <div class="two" style="margin-top:12px">
+    <div><div class="cvbox sq"><canvas id="cvG"></canvas></div></div>
+    <div>
+      <div class="row"><button id="gR">⟲ 重來</button><button id="gP">◀ 上一步</button><button id="gN" class="pri">下一步 ▶</button><button id="gA">▶ 自動播放</button></div>
+      <div class="stepbar"><div id="gBar"></div></div>
+      <div class="explain" id="gTxt"></div>
+      <div class="formula" id="gNum"></div>
+      <h3 style="margin-top:6px">損失 f 隨步數的變化</h3>
+      <div class="cvbox"><canvas id="cvL"></canvas></div>
+      <p class="note">試試看：在「橢圓碗」把 η 調到 0.45 以上，會看到在 y 方向來回震盪；超過 0.5 就發散了！</p>
+    </div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="card">
+  <h2><span class="num">5</span>觀念小測驗</h2>
+  <div class="qgrid">
+    <div>
+      <div class="quiz" id="quiz"></div>
+      <div class="score" id="score"><span id="scoreTxt"></span><button id="retry" class="pri">再做一次</button></div>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub2">來考考你！答對我會笑，答錯我會皺眉喔。</div><div class="av" id="av2"></div></div>
+  </div>
+</section>
+
+<footer>梯度互動教學 ・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fr=(a,b)=>`<span class="frac"><span>${a}</span><span>${b}</span></span>`;
+const M=s=>`<i class="m">${s}</i>`;
+const fmt=(v,d=3)=>{if(Math.abs(v)<5e-10)v=0;return v.toFixed(d).replace('-','−');};
+const DX=fr('∂'+M('f'),'∂'+M('x')),DY=fr('∂'+M('f'),'∂'+M('y'));
+
+/* ---------- 函數 ---------- */
+const E=(x,y)=>Math.exp(-(x*x+y*y)/2);
+const FN={
+ hill:{lab:'山丘  f = 2e^(−(x²+y²)/2)',tex:`2e<sup>−(${M('x')}²+${M('y')}²)/2</sup>`,r:2.5,
+   f:(x,y)=>2*E(x,y),fx:(x,y)=>-2*x*E(x,y),fy:(x,y)=>-2*y*E(x,y),
+   fxs:`−2${M('x')}e<sup>−(${M('x')}²+${M('y')}²)/2</sup>`,fys:`−2${M('y')}e<sup>−(${M('x')}²+${M('y')}²)/2</sup>`},
+ bowl:{lab:'碗  f = x² + y²',tex:`${M('x')}² + ${M('y')}²`,r:2,
+   f:(x,y)=>x*x+y*y,fx:(x,y)=>2*x,fy:(x,y)=>2*y,fxs:`2${M('x')}`,fys:`2${M('y')}`},
+ ellip:{lab:'橢圓碗  f = 0.5x² + 2y²',tex:`0.5${M('x')}² + 2${M('y')}²`,r:2,
+   f:(x,y)=>0.5*x*x+2*y*y,fx:(x,y)=>x,fy:(x,y)=>4*y,fxs:`${M('x')}`,fys:`4${M('y')}`},
+ saddle:{lab:'馬鞍  f = x² − y²',tex:`${M('x')}² − ${M('y')}²`,r:2,
+   f:(x,y)=>x*x-y*y,fx:(x,y)=>2*x,fy:(x,y)=>-2*y,fxs:`2${M('x')}`,fys:`−2${M('y')}`},
+ wave:{lab:'波浪  f = sin x · cos y',tex:`sin ${M('x')} cos ${M('y')}`,r:3,
+   f:(x,y)=>Math.sin(x)*Math.cos(y),fx:(x,y)=>Math.cos(x)*Math.cos(y),fy:(x,y)=>-Math.sin(x)*Math.sin(y),
+   fxs:`cos ${M('x')} cos ${M('y')}`,fys:`−sin ${M('x')} sin ${M('y')}`}
+};
+const S={fn:'hill',x0:0.6,y0:-0.9,az:-0.75,el:0.55,th:30};
+const INFO={};
+function info(k){
+  if(INFO[k])return INFO[k];const F=FN[k],r=F.r;let lo=1e9,hi=-1e9,gm=0;
+  for(let i=0;i<=60;i++)for(let j=0;j<=60;j++){const x=-r+2*r*i/60,y=-r+2*r*j/60,v=F.f(x,y);if(v<lo)lo=v;if(v>hi)hi=v;gm=Math.max(gm,Math.hypot(F.fx(x,y),F.fy(x,y)));}
+  return INFO[k]={lo,hi,gm};
+}
+function sizeCanvas(cv,ratio,maxH){
+  cv.style.width='0px';const w=cv.parentElement.clientWidth;cv.style.width='100%';
+  let h=Math.round(w*ratio);if(maxH)h=Math.min(h,maxH);
+  const dpr=window.devicePixelRatio||1;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+'px';
+  const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);return {c,w,h};
+}
+const PAL=[[68,1,84],[59,82,139],[33,145,140],[94,201,98],[253,231,37]];
+function pal(t){t=Math.max(0,Math.min(1,t))*(PAL.length-1);const i=Math.min(PAL.length-2,Math.floor(t)),u=t-i;return PAL[i].map((a,k)=>a+(PAL[i+1][k]-a)*u);}
+function niceStep(span){const raw=span/6,p=Math.pow(10,Math.floor(Math.log10(raw))),n=raw/p;return (n<1.5?1:n<3.5?2:n<7.5?5:10)*p;}
+function arrow(c,x1,y1,x2,y2,col,lw){const a=Math.atan2(y2-y1,x2-x1),L=Math.hypot(x2-x1,y2-y1);if(L<2)return;lw=lw||3.5;const hd=Math.min(13,L*0.6);
+  c.strokeStyle=col;c.fillStyle=col;c.lineWidth=lw;c.lineCap='round';c.beginPath();c.moveTo(x1,y1);c.lineTo(x2-hd*0.7*Math.cos(a),y2-hd*0.7*Math.sin(a));c.stroke();
+  c.beginPath();c.moveTo(x2,y2);c.lineTo(x2-hd*Math.cos(a-0.42),y2-hd*Math.sin(a-0.42));c.lineTo(x2-hd*Math.cos(a+0.42),y2-hd*Math.sin(a+0.42));c.closePath();c.fill();}
+
+/* 等高線底圖（快取） */
+const MAPC={};
+function mapImage(k,w,h,lines){
+  const key=k+'|'+w+'|'+h+'|'+lines+'|'+(window.devicePixelRatio||1);if(MAPC[key])return MAPC[key];
+  const F=FN[k],r=F.r,I=info(k),nb=12,cell=3,dpr=window.devicePixelRatio||1;
+  const off=document.createElement('canvas');off.width=Math.round(w*dpr);off.height=Math.round(h*dpr);const c=off.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);
+  const nx=Math.ceil(w/cell),ny=Math.ceil(h/cell),B=[];
+  for(let j=0;j<ny;j++){B[j]=[];for(let i=0;i<nx;i++){const x=-r+2*r*(i+.5)*cell/w,y=r-2*r*(j+.5)*cell/h;
+    B[j][i]=Math.max(0,Math.min(nb-1,Math.floor((F.f(x,y)-I.lo)/(I.hi-I.lo||1)*nb)));}}
+  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const col=pal((B[j][i]+.5)/nb);c.fillStyle=`rgb(${col.map(v=>Math.round(v*.82+40))})`;c.fillRect(i*cell,j*cell,cell+.5,cell+.5);}
+  if(lines){c.fillStyle='rgba(255,255,255,.8)';
+    for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){if(i+1<nx&&B[j][i]!==B[j][i+1])c.fillRect((i+1)*cell-.6,j*cell,1.2,cell);if(j+1<ny&&B[j][i]!==B[j+1][i])c.fillRect(i*cell,(j+1)*cell-.6,cell,1.2);}}
+  c.fillStyle='rgba(255,255,255,.95)';c.font='12px sans-serif';c.textAlign='right';c.textBaseline='bottom';c.fillText('x →',w-6,h-4);
+  c.textAlign='left';c.textBaseline='top';c.fillText('↑ y',6,6);
+  return MAPC[key]=off;
+}
+function drawMap(cv,k,lines){
+  const {c,w,h}=sizeCanvas(cv,1);const r=FN[k].r;
+  c.drawImage(mapImage(k,w,h,lines!==false),0,0,w,h);
+  return {c,w,h,X:x=>(x+r)/(2*r)*w,Y:y=>h-(y+r)/(2*r)*h,s:w/(2*r),inv:(px,py)=>[px/w*2*r-r,r-py/h*2*r]};
+}
+function dot(c,x,y,col){c.fillStyle=col||'#111';c.strokeStyle='#fff';c.lineWidth=2;c.beginPath();c.arc(x,y,6,0,7);c.fill();c.stroke();}
+function onMapDrag(cv,cb){let down=false;
+  const go=e=>{const b=cv.getBoundingClientRect();cb((e.clientX-b.left)/b.width,(e.clientY-b.top)/b.height);};
+  cv.addEventListener('pointerdown',e=>{down=true;cv.setPointerCapture(e.pointerId);go(e);});
+  cv.addEventListener('pointermove',e=>{if(down)go(e);});
+  cv.addEventListener('pointerup',()=>down=false);cv.addEventListener('pointercancel',()=>down=false);}
+const grad=()=>{const F=FN[S.fn];return [F.fx(S.x0,S.y0),F.fy(S.x0,S.y0)];};
+
+/* ---------- 1. 3D ---------- */
+function draw3D(){
+  const {c,w,h}=sizeCanvas($('cv3'),0.85,480);
+  const F=FN[S.fn],r=F.r,R=info(S.fn),zh=r*0.7;
+  const zs=v=>((v-R.lo)/(R.hi-R.lo||1)*2-1)*zh;
+  const ca=Math.cos(S.az),sa=Math.sin(S.az),ce=Math.cos(S.el),se=Math.sin(S.el);
+  const k=Math.min(w/(3.0*r),h/(2*(1.42*r*se+zh*ce)+0.35*r)),cx=w/2,cy=h/2;
+  const P=(x,y,z)=>{const X=x*ca-y*sa,Y=x*sa+y*ca;return [cx+X*k,cy-(Y*se+z*ce)*k,Y*ce-z*se];};
+  const fl=[[-r,-r],[r,-r],[r,r],[-r,r]].map(p=>P(p[0],p[1],-zh));
+  c.fillStyle=css('--floor');c.strokeStyle=css('--axis');c.lineWidth=1;
+  c.beginPath();fl.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.closePath();c.fill();c.stroke();
+  c.fillStyle=css('--mute');c.font='13px sans-serif';c.textAlign='center';c.textBaseline='middle';
+  let lx=P(0,-r*1.2,-zh),ly=P(r*1.2,0,-zh);c.fillText('x',lx[0],lx[1]);c.fillText('y',ly[0],ly[1]);
+  const polys=[],N=34,st=2*r/N;
+  for(let i=0;i<N;i++)for(let j=0;j<N;j++){
+    const x=-r+i*st,y=-r+j*st,z00=F.f(x,y),z10=F.f(x+st,y),z11=F.f(x+st,y+st),z01=F.f(x,y+st);
+    const pts=[P(x,y,zs(z00)),P(x+st,y,zs(z10)),P(x+st,y+st,zs(z11)),P(x,y+st,zs(z01))];
+    const zm=(z00+z10+z11+z01)/4,dzx=(zs(z10)-zs(z00)+zs(z11)-zs(z01))/(2*st),dzy=(zs(z01)-zs(z00)+zs(z11)-zs(z10))/(2*st);
+    const nl=Math.hypot(dzx,dzy,1),lam=Math.max(0,(0.45*dzx+0.5*dzy+0.74)/nl);
+    const col=pal((zm-R.lo)/(R.hi-R.lo||1)).map(v=>Math.round(v*(0.55+0.5*lam)));
+    polys.push({pts,d:(pts[0][2]+pts[1][2]+pts[2][2]+pts[3][2])/4,fill:`rgb(${col})`});
+  }
+  polys.sort((a,b)=>b.d-a.d);
+  for(const p of polys){c.beginPath();p.pts.forEach((q,i)=>i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]));c.closePath();c.fillStyle=p.fill;c.fill();c.strokeStyle='rgba(0,0,0,.12)';c.lineWidth=.5;c.stroke();}
+  // point, drop line, gradient on floor & along surface
+  const [gx,gy]=grad(),gl=Math.hypot(gx,gy),f0=F.f(S.x0,S.y0);
+  const P0=P(S.x0,S.y0,zs(f0)),Pf=P(S.x0,S.y0,-zh);
+  c.strokeStyle=css('--mute');c.setLineDash([4,4]);c.lineWidth=1.3;c.beginPath();c.moveTo(P0[0],P0[1]);c.lineTo(Pf[0],Pf[1]);c.stroke();c.setLineDash([]);
+  if(gl>1e-6){const L=0.32*r,ux=gx/gl,uy=gy/gl;
+    const pts=[];for(let i=0;i<=30;i++){const t=L*i/30;pts.push(P(S.x0+ux*t,S.y0+uy*t,zs(F.f(S.x0+ux*t,S.y0+uy*t))));}
+    c.strokeStyle=css('--gd');c.lineWidth=4;c.beginPath();pts.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.stroke();
+    const e=pts[pts.length-1],e2=pts[pts.length-3];arrow(c,e2[0],e2[1],e[0],e[1],css('--gd'),4);
+    const F2=P(S.x0+ux*L,S.y0+uy*L,-zh);arrow(c,Pf[0],Pf[1],F2[0],F2[1],css('--gd'),2.5);
+  }
+  dot(c,P0[0],P0[1],css('--pt'));dot(c,Pf[0],Pf[1],css('--mute'));
+}
+(function(){const cv=$('cv3');let d=null;
+  cv.addEventListener('pointerdown',e=>{d=[e.clientX,e.clientY];cv.setPointerCapture(e.pointerId);});
+  cv.addEventListener('pointermove',e=>{if(!d)return;S.az-=(e.clientX-d[0])*0.01;S.el=Math.max(0.05,Math.min(1.5,S.el+(e.clientY-d[1])*0.01));d=[e.clientX,e.clientY];draw3D();});
+  cv.addEventListener('pointerup',()=>d=null);cv.addEventListener('pointercancel',()=>d=null);})();
+
+function drawMap1(){
+  const m=drawMap($('cv1'),S.fn),c=m.c,[gx,gy]=grad(),sc=0.45*FN[S.fn].r/info(S.fn).gm*m.s;
+  const px=m.X(S.x0),py=m.Y(S.y0);
+  c.strokeStyle='rgba(255,255,255,.6)';c.setLineDash([3,4]);c.lineWidth=1.2;c.beginPath();
+  c.moveTo(px+gx*sc,py);c.lineTo(px+gx*sc,py-gy*sc);c.lineTo(px,py-gy*sc);c.stroke();c.setLineDash([]);
+  arrow(c,px,py,px+gx*sc,py,css('--cx'));arrow(c,px,py,px,py-gy*sc,css('--cy'));arrow(c,px,py,px+gx*sc,py-gy*sc,css('--gd'),4.5);
+  dot(c,px,py);
+}
+onMapDrag($('cv1'),(u,v)=>{const r=FN[S.fn].r;S.x0=Math.max(-r,Math.min(r,Math.round((u*2*r-r)*20)/20));S.y0=Math.max(-r,Math.min(r,Math.round((r-v*2*r)*20)/20));syncSliders();updateAll();});
+function panel1(){
+  const F=FN[S.fn],[gx,gy]=grad(),gl=Math.hypot(gx,gy),X=fmt(S.x0,2),Y=fmt(S.y0,2);
+  $('x0v').textContent=X;$('y0v').textContent=Y;
+  $('g1').innerHTML=`∇${M('f')}(${M('x')}, ${M('y')}) = ( ${DX} , ${DY} ) = ( ${F.fxs} , ${F.fys} )`;
+  $('g2').innerHTML=`代入 (${X}, ${Y})：∇${M('f')} = ( <b class="cx">${fmt(gx)}</b> , <b class="cy">${fmt(gy)}</b> )，　長度 |∇${M('f')}| = √(${fmt(gx)}² + ${fmt(gy)}²) = <b class="gd">${fmt(gl)}</b>`;
+  $('say1').innerHTML=gl<0.005?'📌 這裡 ∇f ≈ (0, 0)：四面八方都是平的，可能是山頂、谷底或鞍點。'
+    :`📌 紅色往${gx>=0?'東':'西'}、藍色往${gy>=0?'北':'南'}，兩支合成的<b class="gd">綠箭頭</b>就是梯度：在 3D 圖上它正好指著<b>往上爬最快</b>的方向，陡度是 ${fmt(gl)}。`;
+}
+
+/* ---------- 2. 方向導數 ---------- */
+function drawDir(){
+  const m=drawMap($('cv2'),S.fn),c=m.c,[gx,gy]=grad(),gl=Math.hypot(gx,gy),r=FN[S.fn].r;
+  const px=m.X(S.x0),py=m.Y(S.y0),R=0.42*r*m.s,t=S.th*Math.PI/180;
+  c.strokeStyle='rgba(255,255,255,.55)';c.lineWidth=1.2;c.setLineDash([3,4]);c.beginPath();c.arc(px,py,R,0,7);c.stroke();c.setLineDash([]);
+  if(gl>1e-6)arrow(c,px,py,px+gx/gl*R,py-gy/gl*R,css('--gd'),4);
+  arrow(c,px,py,px+Math.cos(t)*R,py-Math.sin(t)*R,css('--dir'),4);
+  dot(c,px,py);
+  // chart
+  const {c:d,w,h}=sizeCanvas($('cvD'),0.5,240),L=40,Rm=20,T=12,B=26;
+  const lim=Math.max(gl,0.1)*1.15,X=a=>L+a/360*(w-L-Rm),Y=v=>T+(lim-v)/(2*lim)*(h-T-B);
+  d.font='11px sans-serif';d.fillStyle=css('--mute');d.strokeStyle=css('--grid');d.lineWidth=1;d.textAlign='center';d.textBaseline='top';
+  for(let a=0;a<=360;a+=90){d.beginPath();d.moveTo(X(a),T);d.lineTo(X(a),h-B);d.stroke();d.fillText(a+'°',X(a),h-B+4);}
+  d.textAlign='right';d.textBaseline='middle';
+  [-gl,0,gl].forEach(v=>{d.beginPath();d.moveTo(L,Y(v));d.lineTo(w-Rm,Y(v));d.stroke();d.fillText(fmt(v,2),L-4,Y(v));});
+  d.strokeStyle=css('--axis');d.beginPath();d.moveTo(L,Y(0));d.lineTo(w-Rm,Y(0));d.stroke();
+  d.strokeStyle=css('--dir');d.lineWidth=2.5;d.beginPath();
+  for(let a=0;a<=360;a+=2){const q=a*Math.PI/180,v=gx*Math.cos(q)+gy*Math.sin(q);a?d.lineTo(X(a),Y(v)):d.moveTo(X(a),Y(v));}d.stroke();
+  if(gl>1e-6){let ga=Math.atan2(gy,gx)*180/Math.PI;if(ga<0)ga+=360;d.fillStyle=css('--gd');d.beginPath();d.arc(X(ga),Y(gl),5,0,7);d.fill();
+    d.font='12px sans-serif';d.textAlign=ga>300?'right':'left';d.textBaseline='bottom';d.fillText('最大 = |∇f|',X(ga)+(ga>300?-6:6),Y(gl)-2);}
+  const v=gx*Math.cos(t)+gy*Math.sin(t);
+  d.fillStyle=css('--pt');d.strokeStyle=css('--card');d.lineWidth=2;d.beginPath();d.arc(X(S.th),Y(v),6,0,7);d.fill();d.stroke();
+  // text
+  $('thv').textContent=S.th+'°';
+  let phi=gl>1e-6?Math.abs(((S.th-Math.atan2(gy,gx)*180/Math.PI)%360+540)%360-180):0;
+  $('d1').innerHTML=`代入：${fmt(gx)} × cos ${S.th}° + (${fmt(gy)}) × sin ${S.th}° = <b class="dir">${fmt(v)}</b>`;
+  let msg;
+  if(gl<0.005)msg='📌 這一點梯度是 0：不管往哪個方向走，坡度都是 0（平坦）。';
+  else if(phi<4)msg=`📌 <b class="ok">對準梯度！</b>坡度達到最大值 |∇f| = ${fmt(gl)}，這就是最陡上坡。`;
+  else if(Math.abs(phi-90)<4)msg='📌 <b>和梯度垂直</b>：坡度 = 0，這正是沿著等高線走，高度不變。';
+  else if(phi>176)msg=`📌 <b class="bad">和梯度相反</b>：坡度 = −|∇f| = ${fmt(-gl)}，最陡下坡（梯度下降就走這邊）。`;
+  else msg=`📌 u 和梯度夾 ${fmt(phi,0)}°，坡度 = |∇f| cos ${fmt(phi,0)}° = ${fmt(v)}。夾角越小，坡度越大。`;
+  $('say2').innerHTML=msg;
+}
+$('d0').innerHTML=`坡度 = ${DX} cos θ + ${DY} sin θ = ∇${M('f')} · ${M('u')} = |∇${M('f')}| cos(夾角)`;
+$('th').addEventListener('input',e=>{S.th=+e.target.value;drawDir();});
+let spinT=null;
+$('spin').onclick=()=>{if(spinT){clearInterval(spinT);spinT=null;$('spin').textContent='▶ 轉一圈';return;}
+  $('spin').textContent='⏸ 暫停';let n=0;spinT=setInterval(()=>{S.th=(S.th+3)%360;$('th').value=S.th;drawDir();if((n+=3)>=360){clearInterval(spinT);spinT=null;$('spin').textContent='▶ 轉一圈';}},40);};
+const setTh=a=>{S.th=Math.round((a%360+360)%360);$('th').value=S.th;drawDir();};
+$('toG').onclick=()=>{const [gx,gy]=grad();setTh(Math.atan2(gy,gx)*180/Math.PI);};
+$('toC').onclick=()=>{const [gx,gy]=grad();setTh(Math.atan2(gy,gx)*180/Math.PI+90);};
+
+/* ---------- 3. 梯度場 ---------- */
+function drawField(){
+  const lines=$('fLines').checked,m=drawMap($('cvF'),S.fn,lines),c=m.c,F=FN[S.fn],r=F.r,I=info(S.fn),n=11;
+  if(!$('fArr').checked)return;
+  const cellw=2*r/n,sc=0.72*cellw/I.gm*m.s;
+  for(let i=0;i<n;i++)for(let j=0;j<n;j++){const x=-r+(i+.5)*cellw,y=-r+(j+.5)*cellw,gx=F.fx(x,y),gy=F.fy(x,y);
+    const px=m.X(x),py=m.Y(y);c.fillStyle='rgba(255,255,255,.9)';c.beginPath();c.arc(px,py,1.6,0,7);c.fill();
+    arrow(c,px,py,px+gx*sc,py-gy*sc,'#ffffff',2.2);}
+}
+$('fLines').onchange=drawField;$('fArr').onchange=drawField;
+
+/* ---------- 4. 梯度下降 ---------- */
+const DF={
+ bowl:{lab:'碗  f = x² + y²',k:'bowl'},
+ ellip:{lab:'橢圓碗  f = 0.5x² + 2y²',k:'ellip'}
+};
+const G={fn:'ellip',x:-1.7,y:1.3,eta:0.1,k:0,path:[]};
+const NST=20;
+function runGD(){const F=FN[G.fn];G.path=[[G.x,G.y]];let x=G.x,y=G.y;
+  for(let i=0;i<NST;i++){const gx=F.fx(x,y),gy=F.fy(x,y);x-=G.eta*gx;y-=G.eta*gy;G.path.push([x,y]);if(Math.abs(x)>1e3||Math.abs(y)>1e3)break;}}
+function drawGD(){
+  const F=FN[G.fn],m=drawMap($('cvG'),G.fn),c=m.c,r=F.r,last=G.path.length-1,k=Math.min(G.k,last);
+  c.save();c.beginPath();c.rect(0,0,m.w,m.h);c.clip();
+  c.strokeStyle=css('--path');c.lineWidth=2.5;c.beginPath();
+  for(let i=0;i<=k;i++){const [x,y]=G.path[i];i?c.lineTo(m.X(x),m.Y(y)):c.moveTo(m.X(x),m.Y(y));}c.stroke();
+  for(let i=0;i<k;i++){const [x,y]=G.path[i];c.fillStyle=css('--path');c.beginPath();c.arc(m.X(x),m.Y(y),3.5,0,7);c.fill();}
+  const [x,y]=G.path[k],gx=F.fx(x,y),gy=F.fy(x,y),gl=Math.hypot(gx,gy);
+  if(k<last&&gl>1e-6){const Lp=Math.min(0.4*r,Math.max(0.18*r,gl*0.45*r/info(G.fn).gm))*m.s,ux=gx/gl*Lp,uy=gy/gl*Lp;
+    arrow(c,m.X(x),m.Y(y),m.X(x)+ux,m.Y(y)-uy,'rgba(255,255,255,.85)',2.5);
+    arrow(c,m.X(x),m.Y(y),m.X(x)-ux,m.Y(y)+uy,css('--gd'),4);}
+  c.fillStyle='#fff';c.font='bold 14px sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('★',m.X(0),m.Y(0));
+  dot(c,m.X(x),m.Y(y));c.restore();
+  // loss chart
+  const {c:d,w,h}=sizeCanvas($('cvL'),0.42,200),L=40,Rm=10,T=10,B=24;
+  const vals=G.path.slice(0,k+1).map(p=>F.f(p[0],p[1])),f0=F.f(G.path[0][0],G.path[0][1]),top=Math.max(f0,...vals.filter(v=>isFinite(v)).map(v=>Math.min(v,f0*3)))*1.08||1;
+  const X=i=>L+i/NST*(w-L-Rm),Y=v=>T+(top-Math.min(v,top))/top*(h-T-B);
+  d.font='11px sans-serif';d.fillStyle=css('--mute');d.strokeStyle=css('--grid');d.lineWidth=1;d.textAlign='center';d.textBaseline='top';
+  for(let i=0;i<=NST;i+=5){d.beginPath();d.moveTo(X(i),T);d.lineTo(X(i),h-B);d.stroke();d.fillText(i,X(i),h-B+4);}
+  d.textAlign='right';d.textBaseline='middle';[0,top/2,top].forEach(v=>{d.beginPath();d.moveTo(L,Y(v));d.lineTo(w-Rm,Y(v));d.stroke();d.fillText(fmt(v,1),L-4,Y(v));});
+  d.strokeStyle=css('--path');d.lineWidth=2.5;d.beginPath();vals.forEach((v,i)=>i?d.lineTo(X(i),Y(v)):d.moveTo(X(i),Y(v)));d.stroke();
+  d.fillStyle=css('--path');vals.forEach((v,i)=>{d.beginPath();d.arc(X(i),Y(v),3,0,7);d.fill();});
+  d.fillStyle=css('--mute');d.textAlign='right';d.textBaseline='bottom';d.fillText('步數 k',w-Rm,h-B-2);
+}
+function panelGD(){
+  const F=FN[G.fn],last=G.path.length-1,k=Math.min(G.k,last),[x,y]=G.path[k],gx=F.fx(x,y),gy=F.fy(x,y),fv=F.f(x,y);
+  $('etav').textContent=G.eta.toFixed(2);$('gBar').style.width=(k/NST*100)+'%';
+  const P=`(${M('x')}, ${M('y')})`;
+  $('gdGen').innerHTML=`${P}<sub>新</sub> = ${P}<sub>舊</sub> − η · ∇${M('f')}${P}<sub>舊</sub>　　其中 ∇${M('f')} = ( ${F.fxs} , ${F.fys} )`;
+  const diverge=last<NST||Math.hypot(x,y)>FN[G.fn].r*3;
+  let t;
+  if(k===0)t=`<b>起點</b>：(${fmt(x,2)}, ${fmt(y,2)})，損失 f = ${fmt(fv)}。綠箭頭是 −∇f（最陡下坡），白箭頭是 ∇f。按「下一步 ▶」開始下山。`;
+  else{const [px,py]=G.path[k-1],pf=F.f(px,py);
+    t=`<b>第 ${k} 步</b>：損失從 ${fmt(pf)} ${fv<pf?'<b class="ok">降到</b>':'<b class="bad">變成</b>'} ${fmt(fv)}。${fv<1e-3?'已經非常接近谷底 ★！':''}`;
+    if(fv>pf)t+=' 步伐太大，跳過了谷底！';
+    if(diverge&&k>=3&&fv>F.f(G.path[0][0],G.path[0][1]))t+=' <b class="bad">η 太大，越跳越遠（發散）！</b>';}
+  $('gTxt').innerHTML=t;
+  if(k<last||k===0){const nx=x-G.eta*gx,ny=y-G.eta*gy;
+    $('gNum').innerHTML=`下一步：(${fmt(x,3)}, ${fmt(y,3)}) − ${G.eta.toFixed(2)} × (${fmt(gx,3)}, ${fmt(gy,3)}) = <b class="dir">(${fmt(nx,3)}, ${fmt(ny,3)})</b>`;}
+  else $('gNum').innerHTML='<span class="note">已走完 '+last+' 步。</span>';
+}
+function updGD(){drawGD();panelGD();}
+let gT=null;function stopG(){clearInterval(gT);gT=null;$('gA').textContent='▶ 自動播放';}
+const setK=k=>{G.k=Math.max(0,Math.min(G.path.length-1,k));updGD();};
+$('gR').onclick=()=>{stopG();setK(0);};$('gP').onclick=()=>{stopG();setK(G.k-1);};$('gN').onclick=()=>{stopG();setK(G.k+1);};
+$('gA').onclick=()=>{if(gT){stopG();return;}if(G.k>=G.path.length-1)setK(0);$('gA').textContent='⏸ 暫停';
+  gT=setInterval(()=>{if(G.k>=G.path.length-1){stopG();return;}setK(G.k+1);},1100);};
+const dsel=$('dfn');Object.entries(DF).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=v.lab;dsel.appendChild(o);});dsel.value=G.fn;
+dsel.onchange=()=>{stopG();G.fn=dsel.value;runGD();setK(0);};
+$('eta').addEventListener('input',e=>{G.eta=+e.target.value;runGD();setK(Math.min(G.k,G.path.length-1));});
+onMapDrag($('cvG'),(u,v)=>{const r=FN[G.fn].r;stopG();G.x=Math.round((u*2*r-r)*20)/20;G.y=Math.round((r-v*2*r)*20)/20;runGD();setK(0);});
+
+/* ---------- 共用控制 ---------- */
+const sel=$('fn');Object.entries(FN).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=v.lab;sel.appendChild(o);});sel.value=S.fn;
+function syncSliders(){const r=FN[S.fn].r;['x0','y0'].forEach(id=>{const e=$(id);e.min=-r;e.max=r;S[id]=Math.max(-r,Math.min(r,S[id]));e.value=S[id];});}
+function updateAll(){panel1();draw3D();drawMap1();drawDir();drawField();}
+sel.onchange=()=>{S.fn=sel.value;syncSliders();updateAll();};
+['x0','y0'].forEach(id=>$(id).addEventListener('input',e=>{S[id]=parseFloat(e.target.value);updateAll();}));
+
+/* ---------- 歐拉老師 ---------- */
+const EU_SVG=`<svg viewBox="0 0 200 230" aria-label="歐拉老師動畫">
+ <g class="bodyg">
+  <path d="M12 232 Q18 174 100 162 Q182 174 188 232 Z" fill="#5b4633"/>
+  <path d="M34 196 Q60 166 100 168 Q140 166 166 196 Q150 206 134 198 Q118 180 100 182 Q82 180 66 198 Q50 206 34 196 Z" fill="#7b6249"/>
+  <circle cx="100" cy="214" r="3" fill="#c9a24a"/><circle cx="100" cy="226" r="3" fill="#c9a24a"/>
+  <rect x="85" y="132" width="30" height="34" rx="10" fill="#e9bf9f"/>
+  <path d="M84 156 Q100 168 116 156 L113 184 Q100 192 87 184 Z" fill="#f6f3eb" stroke="#d4cdbd" stroke-width="1.4"/>
+  <ellipse cx="65" cy="110" rx="6.5" ry="10" fill="#e9bf9f"/><ellipse cx="135" cy="110" rx="6.5" ry="10" fill="#e9bf9f"/>
+  <ellipse cx="100" cy="106" rx="35" ry="41" fill="#f2caad"/>
+  <path d="M76 132 Q100 156 124 132 Q114 148 100 149 Q86 148 76 132 Z" fill="#e6b998"/>
+  <ellipse class="blush" cx="79" cy="120" rx="7.5" ry="4.5" fill="#f08080"/>
+  <ellipse class="blush" cx="121" cy="120" rx="7.5" ry="4.5" fill="#f08080"/>
+  <g class="hairL"><path d="M60 82 Q50 92 54 108 Q60 114 66 104 Q62 94 66 86 Z" fill="#e7dcc3" stroke="#c4b594" stroke-width="1.4"/></g>
+  <g class="hairR"><path d="M140 82 Q150 92 146 108 Q140 114 134 104 Q138 94 134 86 Z" fill="#e7dcc3" stroke="#c4b594" stroke-width="1.4"/></g>
+  <path d="M60 84 Q50 34 100 26 Q150 34 140 84 Q122 70 100 72 Q78 70 60 84 Z" fill="#f1e9d6" stroke="#c4b594" stroke-width="1.6"/>
+  <path d="M68 70 Q72 48 96 40 M80 74 Q86 50 112 36 M100 70 Q108 50 130 48 M118 72 Q124 60 136 62" stroke="#cdbf9f" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <ellipse cx="104" cy="30" rx="9" ry="6" fill="#ece2cb" stroke="#c4b594" stroke-width="1.4"/>
+  <path d="M57 84 Q100 62 143 84 Q146 94 139 97 Q100 78 61 97 Q54 94 57 84 Z" fill="#e7dcc3" stroke="#c4b594" stroke-width="1.6"/>
+  <path d="M66 88 Q100 72 134 88" stroke="#d3c5a6" stroke-width="1.4" fill="none"/>
+  <path class="brow browL" d="M75 98 Q84 93 94 96" stroke="#6a5240" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path class="brow browR" d="M106 96 Q116 93 125 98" stroke="#6a5240" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <g class="eyes"><ellipse cx="85" cy="107" rx="5.4" ry="3.8" fill="#fff"/><ellipse cx="115" cy="107" rx="5.4" ry="3.8" fill="#fff"/>
+   <circle cx="85.6" cy="107.4" r="2.9" fill="#4a3424"/><circle cx="115.6" cy="107.4" r="2.9" fill="#4a3424"/>
+   <circle cx="86.6" cy="106.2" r="1" fill="#fff"/><circle cx="116.6" cy="106.2" r="1" fill="#fff"/></g>
+  <path d="M79 103.5 Q85 101 91 103.5 M109 103.5 Q115 101 121 103.5" stroke="#c99a7e" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <path d="M101 104 Q100 118 94 125 Q98 131 105 129 Q111 128 109 123" stroke="#c48f72" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path class="mo n" d="M90 137 Q100 142 110 136" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path class="mo s" d="M88 134 Q100 148 112 134 Q100 139 88 134 Z" fill="#9b3a2c" stroke="#8a4a3a" stroke-width="1.5" stroke-linejoin="round"/>
+  <path class="mo f" d="M90 141 Q100 133 110 141" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path class="sweat" d="M136 100 Q141 110 136 114 Q131 110 136 100 Z" fill="#7cc3f0"/>
+  <text class="spark" x="30" y="44" font-size="18" fill="#f0b400">✦</text>
+  <text class="spark" x="160" y="40" font-size="14" fill="#f0b400">✦</text>
+  <text class="spark" x="170" y="96" font-size="11" fill="#f0b400">✦</text>
+ </g></svg>`;
+function makeAvatar(el,bubble){
+  el.innerHTML=EU_SVG;let tm=null;
+  function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
+  return {mood(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
+    if(m==='smile'){el.classList.add('smile');restart('hop');}
+    if(m==='frown'){el.classList.add('frown');restart('shake');}
+    if(text!==undefined){bubble.innerHTML=text;bubble.className='bubble'+(m==='smile'?' good':m==='frown'?' bad':'');}
+    if(!hold)tm=setTimeout(()=>{el.classList.remove('smile','frown');bubble.className='bubble';},3200);}};
+}
+var AV1=makeAvatar($('av1'),$('bub1')),AV2=makeAvatar($('av2'),$('bub2'));
+const QUOTES=[
+ '我 1707 年生於瑞士巴塞爾，老師是大數學家約翰・伯努利。',
+ '我一生寫了八百多篇論文和著作，是史上最多產的數學家之一。',
+ 'f(x)、e、Σ、i 這些符號，都是靠我推廣才變得通用的。',
+ '我三十多歲右眼失明，晚年幾乎全盲，卻靠心算和口述，產量反而更多！',
+ '我研究過偏微分方程，還寫下描述流體運動的「歐拉方程」。',
+ '梯度的符號 ∇（nabla）是 19 世紀才出現的，比我晚了一百多年；它的名字來自一種三角形的豎琴。'];
+let qi=0;$('av1').onclick=()=>AV1.mood('smile',QUOTES[qi++%QUOTES.length]);
+
+/* ---------- 5. 小測驗 ---------- */
+const QZ=[
+ {q:'∇f(x, y) 是什麼？',o:['由 ∂f/∂x 與 ∂f/∂y 組成的向量','一個數字','f 的最大值','一條等高線'],a:0,
+  e:'梯度把兩個偏導數排成向量：∇f = (∂f/∂x, ∂f/∂y)。',h:'看第 0 節的定義：梯度有「方向」。'},
+ {q:'梯度 ∇f 的方向代表？',o:['往上爬最快（最陡上坡）的方向','往下走最快的方向','沿著等高線的方向','永遠指向 +x'],a:0,
+  e:'方向導數 = |∇f| cos(夾角)，夾角 0° 時最大。',h:'回到第 2 節按「對準梯度」，看坡度是不是最大。'},
+ {q:'梯度的長度 |∇f| 代表？',o:['最陡方向的坡度有多大','這一點的高度','這一點到原點的距離','等高線的條數'],a:0,
+  e:'|∇f| 是方向導數的最大值，也就是最陡的坡度。',h:'箭頭越長，山越陡。'},
+ {q:'梯度和等高線的關係是？',o:['互相垂直','互相平行','夾 45°','沒有關係'],a:0,
+  e:'沿等高線走坡度 = 0，最陡方向必然橫跨等高線，兩者垂直。',h:'看第 3 節的梯度場，箭頭怎麼穿過等高線？'},
+ {q:'在山頂（區域最高點），∇f = ？',o:['(0, 0)','非常大','指向天空','不存在'],a:0,
+  e:'山頂四面都平，兩個偏導數都是 0。',h:'在第 1 節把點移到山丘的中心看看。'},
+ {q:'梯度下降（AI 訓練）每一步往哪個方向走？',o:['−∇f（梯度的反方向）','+∇f（梯度的方向）','沿著等高線','隨機方向'],a:0,
+  e:'要讓損失變小，就往最陡下坡 −∇f 走。',h:'我們要「下山」，不是上山。'},
+ {q:'學習率 η 設得太大，會發生什麼事？',o:['來回震盪，甚至發散','收斂得更快更穩','完全不會動','一定停在山頂'],a:0,
+  e:'步伐太大會跳過谷底；在第 4 節的橢圓碗中，η > 0.5 就會發散。',h:'到第 4 節把 η 調大，按自動播放看看。'}
+];
+const PRAISE=['Sehr gut！答對了 😄','Perfekt！你抓到梯度的精神了！','完全正確！比我心算還快！','Bravo！一路往最陡的方向前進！'];
+let sc=0,dn=0,streak=0;
+function shuffle(a){return a.map(v=>[Math.random(),v]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);}
+function buildQuiz(){
+  sc=0;dn=0;streak=0;$('score').style.display='none';
+  $('quiz').innerHTML=QZ.map((z,i)=>{const ord=shuffle(z.o.map((t,j)=>j));
+    return `<div class="q"><div><b>Q${i+1}.</b> ${z.q}</div><div class="opts">${ord.map(j=>`<button data-q="${i}" data-o="${j}">${z.o[j]}</button>`).join('')}</div><div class="fb" id="fb${i}"></div></div>`;}).join('');
+}
+$('quiz').onclick=e=>{const b=e.target.closest('button');if(!b)return;const i=+b.dataset.q,j=+b.dataset.o,z=QZ[i],box=b.parentElement;if(box.dataset.done)return;box.dataset.done=1;dn++;
+  if(j===z.a){b.classList.add('right');sc++;streak++;$('fb'+i).innerHTML='✔ 正確！'+z.e;
+    AV2.mood('smile',streak>=3?`連對 ${streak} 題！Ausgezeichnet！你正沿著梯度一路往上 🎉`:PRAISE[Math.floor(Math.random()*PRAISE.length)]);}
+  else{b.classList.add('wrong');streak=0;[...box.children].forEach(x=>{if(+x.dataset.o===z.a)x.classList.add('right');});$('fb'+i).innerHTML='✘ '+z.e;AV2.mood('frown',z.h);}
+  if(dn===QZ.length){$('scoreTxt').textContent=`得分：${sc} / ${QZ.length}`;$('score').style.display='flex';
+    setTimeout(()=>{if(sc===QZ.length)AV2.mood('smile','滿分！你已經站上梯度的山頂了 🏆',true);
+      else if(sc>=QZ.length-2)AV2.mood('smile',`${sc} 分，很不錯！錯的題目回到對應小節再玩一下。`,true);
+      else AV2.mood('frown','建議回到第 1、2 節，轉一圈方向箭頭，再來挑戰！',true);},3300);}
+};
+$('retry').onclick=()=>{buildQuiz();AV2.mood('','新的一輪！選項順序都換過了喔。');};
+
+/* ---------- init ---------- */
+syncSliders();buildQuiz();updateAll();runGD();updGD();
+let rz=null;window.addEventListener('resize',()=>{cancelAnimationFrame(rz);rz=requestAnimationFrame(()=>{updateAll();updGD();});});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{updateAll();updGD();});
+</script>
+</body>
+</html>

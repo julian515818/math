@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PLA 互動教學</title>
+<style>
+
+:root{
+  --bg:#f7f6f2;--card:#fff;--ink:#1d2330;--mute:#667085;--line:#e3e1da;--ok:#1f9d6b;--bad:#d6334f;
+  --grid:#eceae4;--axis:#9aa0ab;--accent:#2f6fdb;--tint:#eaf1fc;
+  --pos:#2f6fdb;--neg:#d6334f;--c1:#2f6fdb;--c0:#e07a1f;--r1:rgba(47,111,219,.13);--r0:rgba(224,122,31,.13);--hl:#8b45d6;--fw:#2f6fdb;
+}
+media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+    --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+    --pos:#6c9dff;--neg:#ff6f86;--c1:#6c9dff;--c0:#ffa552;--r1:rgba(108,157,255,.16);--r0:rgba(255,165,82,.16);--hl:#b98bff;--fw:#6c9dff;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+  --pos:#6c9dff;--neg:#ff6f86;--c1:#6c9dff;--c0:#ffa552;--r1:rgba(108,157,255,.16);--r0:rgba(255,165,82,.16);--hl:#b98bff;--fw:#6c9dff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.9rem}
+header p{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:18px}
+.card h2{margin:0 0 12px;font-size:1.22rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:.9rem;flex:none}
+h3{margin:0 0 6px;font-size:1.05rem}
+.m{font-family:"Times New Roman","Cambria Math",serif;font-style:italic}
+.def{font-size:1.15rem;text-align:center;padding:14px;border-radius:10px;background:var(--tint);line-height:2.1}
+.note{color:var(--mute);font-size:.92rem}
+.ok{color:var(--ok)}.bad{color:var(--bad)}.c1{color:var(--c1)}.c0{color:var(--c0)}.hl{color:var(--hl)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start}
+.two>*{min-width:0}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.three>div{border:2px solid var(--line);border-radius:12px;padding:10px 14px}
+.three b.t{display:block;color:var(--accent)}
+media (max-width:860px){.two,.three{grid-template-columns:minmax(0,1fr)}}
+.cvbox{width:100%;min-width:0}.sq{max-width:440px;margin:0 auto}
+canvas{width:100%;display:block;border-radius:10px;background:var(--bg);touch-action:none}
+svg.net{width:100%;height:auto;display:block}
+.netbox{overflow-x:auto}.netbox svg{min-width:420px}
+label{font-size:.92rem;color:var(--mute);display:block}
+label b{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 12px}
+button{cursor:pointer}button:hover{border-color:var(--accent)}
+button.pri,button.on{background:var(--accent);color:#fff;border-color:transparent}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(170px,100%),1fr));gap:10px 18px;align-items:end}
+.say{margin-top:10px;padding:10px 14px;border-left:4px solid var(--ok);background:var(--bg);border-radius:8px}
+.formula{font-size:1.08rem;line-height:2.2;overflow-x:auto;padding:4px 2px}
+.tog{display:flex;gap:6px}.tog button{min-width:48px}
+.tblwrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.95rem;font-variant-numeric:tabular-nums}
+th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:center}
+th{color:var(--mute);font-weight:600}
+tr.cur td{background:var(--tint);font-weight:700}
+.btab td{vertical-align:top}
+.chip{display:inline-block;min-width:26px;padding:0 8px;border-radius:999px;color:#fff;font-weight:700}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.85rem;color:var(--mute);margin-top:6px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;margin-right:5px}
+/* quiz */
+.quiz .q{padding:12px 0;border-bottom:1px solid var(--line)}
+.quiz .q:last-child{border:none}
+.opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.opts button.right{background:var(--ok);color:#fff;border-color:transparent}
+.opts button.wrong{background:var(--bad);color:#fff;border-color:transparent}
+.fb{font-size:.92rem;margin-top:6px;min-height:1.2em}
+.score{margin-top:12px;font-size:1.15rem;font-weight:700;display:none;align-items:center;gap:12px;flex-wrap:wrap}
+footer{color:var(--mute);font-size:.85rem;text-align:center;margin-top:30px}
+/* ---------- avatar ---------- */
+.avwrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.av{width:100%;max-width:220px;cursor:pointer;user-select:none}
+.av svg{width:100%;display:block;overflow:visible;background:none}
+.av .bodyg{animation:bob 3.2s ease-in-out infinite;transform-origin:100px 200px}
+.av .eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+.av .hairL{animation:sway 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:top center}
+.av .hairR{animation:sway 3.2s ease-in-out infinite reverse;transform-box:fill-box;transform-origin:top center}
+.av .brow{transition:transform .3s;transform-box:fill-box}
+.av .browL{transform-origin:right center}.av .browR{transform-origin:left center}
+.av .mo{opacity:0;transition:opacity .25s}.av .mo.n{opacity:1}
+.av .blush,.av .sweat,.av .spark{opacity:0;transition:opacity .3s}
+.av.smile .mo.n,.av.frown .mo.n{opacity:0}
+.av.smile .mo.s{opacity:1}.av.frown .mo.f{opacity:1}
+.av.smile .blush{opacity:.55}.av.smile .spark{opacity:1}.av.frown .sweat{opacity:.9}
+.av.smile .brow{transform:translateY(-3px)}
+.av.frown .browL{transform:rotate(14deg) translateY(2px)}.av.frown .browR{transform:rotate(-14deg) translateY(2px)}
+.av.hop svg{animation:hop .7s ease}
+.av.shake svg{animation:shake .55s ease}
+.av .spark{animation:twinkle 1s ease-in-out infinite}
+keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+keyframes blink{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}
+keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.bubble{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.95rem;margin-bottom:10px;min-height:2.6em;max-width:260px;text-align:center;transition:border-color .3s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--line);border-bottom:0}
+.bubble.good{border-color:var(--ok)}.bubble.good::after{border-top-color:var(--ok)}
+.bubble.bad{border-color:var(--bad)}.bubble.bad::after{border-top-color:var(--bad)}
+.intro{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:center}
+.intro>*,.qgrid>*{min-width:0}
+.intro .avwrap{flex-direction:row;gap:10px}.intro .bubble{flex:1;margin:0}.intro .bubble::after{display:none}.intro .av{width:125px;flex:none}
+.qgrid{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:18px;align-items:start}
+.qgrid .avwrap{position:sticky;top:12px}
+media (max-width:860px){.intro,.qgrid{grid-template-columns:minmax(0,1fr)}.intro .avwrap{flex-direction:column}.intro .bubble{margin-bottom:10px}.intro .bubble::after{display:block}.intro .av,.qgrid .av{width:auto;max-width:140px}.qgrid .avwrap{position:static;order:-1}}
+
+.stepbar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:10px 0 8px}
+.stepbar div{height:100%;background:var(--accent);transition:width .25s}
+.explain{padding:10px 14px;border-radius:10px;background:var(--tint);min-height:3.4em}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(110px,100%),1fr));gap:10px;margin-top:10px}
+.stats>div{padding:8px 12px;border-radius:10px;background:var(--bg)}
+.stats small{display:block;color:var(--mute);font-size:.82rem}
+.stats b{font-size:1.15rem;font-variant-numeric:tabular-nums}
+.code{background:#1e2230;color:#e6e8ef;font-family:ui-monospace,Consolas,"Noto Sans TC",monospace;font-size:.9rem;border-radius:10px;padding:10px 0;overflow-x:auto;line-height:1.75}
+.code .ln{padding:0 14px;border-left:3px solid transparent;white-space:pre}
+.code .ln.on{background:rgba(224,122,31,.22);border-left-color:#e07a1f}
+.code .cm{color:#8b93a7}.code .kw{color:#ffa552}
+.vec{color:var(--hl);font-weight:700}
+</style>
+<style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line,#e3e1da);border-radius:12px;background:var(--card,var(--surface,#fff));color:var(--ink,#1d2330);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+.pu-badge img{width:58px;height:58px;display:block}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute,var(--muted,#667085))}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="pu-hd">
+  <div class="pu-hd-main">
+  <h1>感知器學習演算法（PLA）互動教學</h1>
+  <p>工程數學 ・ 互動教學：知錯能改——每遇到一個分錯的點，就把直線往正確的方向轉一下</p>
+</div>
+  <div class="pu-badge"><img alt="靜宜大學校徽" src="data:image/webp;base64,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"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</header>
+
+<!-- 0 -->
+<section class="card">
+  <h2><span class="num">0</span>一句話直覺：找錯、修正、再找錯</h2>
+  <div class="intro">
+    <div>
+      <div class="def">
+        預測：<i class="m">ŷ</i> = sign(<b class="vec">w</b> · <b>x</b>)
+        分錯時更新：<b class="vec">w</b> ← <b class="vec">w</b> + <i class="m">y</i> <b>x</b>
+      </div>
+      <div class="three">
+        <div><b class="t">① 標籤用 ±1</b>正類 <i class="m">y</i> = +1、負類 <i class="m">y</i> = −1。sign 是「正號給 +1、負號給 −1」。</div>
+        <div><b class="t">② 偏差併進權重</b>每個點補一個恆為 1 的 <i class="m">x</i>₀：<b>x</b> = (1, <i class="m">x</i>₁, <i class="m">x</i>₂)，<b class="vec">w</b> = (<i class="m">w</i>₀, <i class="m">w</i>₁, <i class="m">w</i>₂)，<i class="m">w</i>₀ 就是偏差 <i class="m">b</i>。</div>
+        <div><b class="t">③ 只在犯錯時學</b>答對不動；分錯就把 <i class="m">y</i><b>x</b> 加進 <b class="vec">w</b>。重複到沒有分錯的點為止。</div>
+      </div>
+      <p class="note">判斷「分錯」的條件：<i class="m">y</i>（<b class="vec">w</b> · <b>x</b>）≤ 0，也就是預測的正負號和正確答案不同（剛好落在線上也算錯）。</p>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub1">Hi！我是羅森布拉特（Frank Rosenblatt）。點我聽故事！</div><div class="av" id="av1"></div></div>
+  </div>
+</section>
+
+<!-- 1 -->
+<section class="card">
+  <h2><span class="num">1</span>幾何直覺：為什麼「w + y x」會修正錯誤？</h2>
+  <p style="margin-top:0">先忽略偏差，只看兩個權重。<b class="vec">w</b> 是紫色箭頭，決策邊界是和它<b>垂直</b>的直線；<b class="vec">w</b> 指的那一側預測 +1。拖曳圖上的<b>點 x</b> 或<b>紫色箭頭的尖端</b>，再按「更新一次」：</p>
+  <div class="two">
+    <div><div class="cvbox sq"><canvas id="c1"></canvas></div></div>
+    <div>
+      <div class="row"><span class="note">點 x 的正確答案：</span><div class="tog" id="y1"><button data-v="1">y = +1</button><button data-v="-1">y = −1</button></div></div>
+      <div class="row" style="margin-top:8px"><button id="u1" class="pri">⟳ 更新一次：w ← w + y x</button><button id="r1">⟲ 重設</button></div>
+      <div class="formula" id="f1"></div>
+      <div class="say" id="s1"></div>
+      <p class="note">為什麼一定會變好？因為更新後 <i class="m">y</i>(<b class="vec">w</b><sub>新</sub>·<b>x</b>) = <i class="m">y</i>(<b class="vec">w</b>·<b>x</b>) + <i class="m">y</i>²‖<b>x</b>‖² = <i class="m">y</i>(<b class="vec">w</b>·<b>x</b>) + ‖<b>x</b>‖²，多加了一個<b>正數</b>，所以這個點「被分對的程度」一定增加。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="card">
+  <h2><span class="num">2</span>PLA 一步一步跑</h2>
+  <p style="margin-top:0">從 <b class="vec">w</b> = (0, 0, 0) 開始，<b>依序</b>檢查每個點，找到第一個分錯的點就更新，再從下一個點接著找，直到整輪都沒有錯為止。</p>
+  <div class="two">
+    <div>
+      <div class="cvbox sq"><canvas id="c2"></canvas></div>
+      <div class="row" style="margin-top:6px"><span class="note">點圖新增：</span><div class="tog" id="addc"><button data-v="1">○ y = +1</button><button data-v="-1">□ y = −1</button></div><button id="rnd2">🎲 換一組資料</button><button id="clr2">🧽 清空</button></div>
+      <div class="legend"><span><i style="background:var(--c1)"></i>y = +1</span><span><i style="background:var(--c0);border-radius:2px"></i>y = −1</span><span>紫圈 = 這一步修正的點；紅叉 = 目前分錯的點</span></div>
+    </div>
+    <div>
+      <div class="code" id="code2"></div>
+      <div class="row" style="margin-top:8px"><button id="r2">⟲ 重來</button><button id="p2">◀ 上一步</button><button id="n2" class="pri">下一步 ▶</button><button id="a2">▶ 自動播放</button></div>
+      <div class="stepbar"><div id="b2"></div></div>
+      <div class="explain" id="t2"></div>
+      <div class="formula" id="f2"></div>
+      <div class="stats">
+        <div><small>更新次數</small><b id="s2k"></b></div>
+        <div><small>w₀（偏差）</small><b id="s2w0"></b></div>
+        <div><small>w₁</small><b id="s2w1"></b></div>
+        <div><small>w₂</small><b id="s2w2"></b></div>
+        <div><small>分錯幾個點</small><b id="s2e"></b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="card">
+  <h2><span class="num">3</span>生物學觀點：PLA 就像突觸在「從錯誤中學習」</h2>
+  <p style="margin-top:0">把感知器想成一個真正的神經元：權重是<b>突觸強度</b>，學習就是突觸變強或變弱（<b>突觸可塑性</b>）。下面這個神經元要學會「看到蘋果就放電」，每看一樣東西，老師會告訴它對不對。</p>
+  <div class="two">
+    <div>
+      <div class="netbox"><svg class="net" id="bioL" viewBox="0 0 560 300"></svg></div>
+      <div class="legend"><span><i style="background:var(--pos)"></i>增強的突觸（正權重）</span><span><i style="background:var(--neg)"></i>抑制的突觸（負權重）</span><span>突觸越大 = 連結越強</span></div>
+    </div>
+    <div>
+      <div class="row"><button id="rB">⟲ 重來</button><button id="pB">◀ 上一步</button><button id="nB" class="pri">下一步 ▶</button><button id="aB">▶ 自動播放</button></div>
+      <div class="stepbar"><div id="bB"></div></div>
+      <div class="explain" id="tB"></div>
+      <div class="formula" id="fB"></div>
+      <div class="tblwrap"><table id="obB"></table></div>
+    </div>
+  </div>
+  <h3 style="margin-top:14px">PLA 與生物學習的對照</h3>
+  <div class="tblwrap"><table id="mapB"></table></div>
+  <div class="three" style="grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr))">
+    <div><b class="t">赫布學習（Hebb, 1949）</b>「一起放電的神經元，連結會變強」：Δ<i class="m">w</i> = η · <i class="m">x</i> · <i class="m">ŷ</i>。不需要老師，但只會越來越強，也不管對錯。</div>
+    <div><b class="t">PLA：錯誤驅動的赫布學習</b>Δ<b class="vec">w</b> = <i class="m">y</i> <b>x</b>，而且<b>只在犯錯時</b>才改。多了一個「老師」告訴神經元對不對，強弱都能調。</div>
+    <div><b class="t">只是類比，不是說大腦在跑 PLA</b>真實大腦的學習還牽涉神經傳導物質、放電時間差、多巴胺等獎勵訊號。但「看錯誤調整連結強度」是兩者共同的核心想法。</div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="card">
+  <h2><span class="num">4</span>保證會停嗎？——線性可分就一定收斂</h2>
+  <p style="margin-top:0">只要資料<b>線性可分</b>（存在一條直線完全分開兩類），PLA 一定會在有限次更新內停下來。諾維科夫（Novikoff, 1962）證明了更新次數的上限：</p>
+  <div class="def" style="font-size:1.05rem">更新次數 ≤ ( <i class="m">R</i> / <i class="m">ρ</i> )²　　<span class="note" style="font-size:.9rem"><i class="m">R</i> = 最遠的點有多遠；<i class="m">ρ</i> = 兩類離「理想直線」最近的距離（間距 margin）</span></div>
+  <div class="two" style="margin-top:12px">
+    <div>
+      <div class="cvbox sq"><canvas id="c3"></canvas></div>
+      <div class="legend"><span><i style="background:var(--mute);border-radius:2px"></i>虛線：產生資料用的理想直線</span><span><i style="background:var(--ink);border-radius:2px"></i>實線：PLA 學到的直線</span></div>
+    </div>
+    <div>
+      <label>兩類之間的間距（margin）= <b id="m3v"></b><input id="m3" type="range" min="0.1" max="1.5" step="0.05" value="0.6"></label>
+      <div class="row" style="margin-top:6px"><button id="rnd3">🎲 換一組資料</button></div>
+      <div class="stats">
+        <div><small>PLA 實際更新次數</small><b id="s3k" class="ok"></b></div>
+        <div><small>R</small><b id="s3R"></b></div>
+        <div><small>ρ</small><b id="s3r"></b></div>
+        <div><small>理論上限 (R/ρ)²</small><b id="s3B"></b></div>
+      </div>
+      <h3 style="margin-top:10px">間距越小，要更新越多次（每種間距 10 組資料的平均）</h3>
+      <div class="cvbox"><canvas id="c3b"></canvas></div>
+      <div class="say" id="s3"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="card">
+  <h2><span class="num">5</span>線性可分（Linearly Separable）：OR 可以，XOR 不行</h2>
+  <p style="margin-top:0"><b>線性可分</b>的意思是：存在一條直線（更高維時是平面、超平面），能把兩類資料<b>完全</b>分到兩側。用數學寫就是：存在 <b class="vec">w</b> 讓<b>每一個</b>點都滿足 <i class="m">y</i>(<b class="vec">w</b>·<b>x</b>) &gt; 0。第 4 節的收斂保證，前提就是線性可分。</p>
+  <div class="two">
+    <div>
+      <div class="row"><span class="note">選邏輯閘：</span><div class="tog" id="g4"><button data-g="OR">OR</button><button data-g="XOR">XOR</button></div></div>
+      <div class="cvbox sq" style="margin-top:8px"><canvas id="c4"></canvas></div>
+      <p class="note" style="margin:4px 0 0">👆 拖曳直線兩端的<b>紫色圓點</b>，試著把 ○（輸出 1）和 □（輸出 0）分到兩側。</p>
+    </div>
+    <div>
+      <div class="tblwrap"><table id="tt4"></table></div>
+      <div class="say" id="s4"></div>
+      <div class="row" style="margin-top:8px"><button id="pla4" class="pri">🤖 讓 PLA 自己試（最多 10 輪）</button><button id="rst4">⟲ 直線歸位</button></div>
+      <h3 style="margin-top:10px">PLA 每一輪分錯幾次</h3>
+      <div class="cvbox"><canvas id="c4b"></canvas></div>
+      <div class="explain" id="t4" style="margin-top:6px"></div>
+    </div>
+  </div>
+  <h3 style="margin-top:14px">為什麼 XOR 一定分不開？四個不等式互相矛盾</h3>
+  <div class="two">
+    <div class="tblwrap"><table id="tt4p"></table></div>
+    <div class="say" style="margin-top:0">把中間兩條相加：2<i class="m">w</i>₀ + <i class="m">w</i>₁ + <i class="m">w</i>₂ <b>&gt; 0</b>。<br>
+      把第一條和最後一條相加：2<i class="m">w</i>₀ + <i class="m">w</i>₁ + <i class="m">w</i>₂ <b>&lt; 0</b>。<br>
+      同一個數不可能同時大於 0 又小於 0 ⇒ <b class="bad">找不到任何 w</b>，XOR 不是線性可分的。<br>
+      <span class="note">換成 OR，四個條件可以同時成立（例如 w = (−0.5, 1, 1)），所以 OR 是線性可分的。</span></div>
+  </div>
+</section>
+
+<!-- 6 -->
+<section class="card">
+  <h2><span class="num">6</span>觀念小測驗</h2>
+  <div class="qgrid">
+    <div>
+      <div class="quiz" id="quiz"></div>
+      <div class="score" id="score"><span id="scoreTxt"></span><button id="retry" class="pri">再做一次</button></div>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub2">來考考你！答對我會笑，答錯我會皺眉喔。</div><div class="av" id="av2"></div></div>
+  </div>
+</section>
+
+<footer>PLA 互動教學 ・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmt=(v,d=2)=>{if(Math.abs(v)<5e-10)v=0;return (+v.toFixed(d)).toString().replace('-','−');};
+const dot3=(w,x)=>w[0]*x[0]+w[1]*x[1]+w[2]*x[2];
+function sizeCanvas(cv,ratio,maxH){cv.style.width='0px';const w=cv.parentElement.clientWidth;cv.style.width='100%';let h=Math.round(w*ratio);if(maxH)h=Math.min(h,maxH);
+  const dpr=window.devicePixelRatio||1;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+'px';const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);return {c,w,h};}
+function arrow(c,x1,y1,x2,y2,col,lw){const a=Math.atan2(y2-y1,x2-x1),L=Math.hypot(x2-x1,y2-y1);if(L<3)return;const hd=Math.min(13,L*.5);
+  c.strokeStyle=col;c.fillStyle=col;c.lineWidth=lw||3;c.lineCap='round';c.beginPath();c.moveTo(x1,y1);c.lineTo(x2-hd*.7*Math.cos(a),y2-hd*.7*Math.sin(a));c.stroke();
+  c.beginPath();c.moveTo(x2,y2);c.lineTo(x2-hd*Math.cos(a-.42),y2-hd*Math.sin(a-.42));c.lineTo(x2-hd*Math.cos(a+.42),y2-hd*Math.sin(a+.42));c.closePath();c.fill();}
+/* 平面：w = [w0,w1,w2]，區域 sign(w·x) */
+function plane(cv,R,w,opt){
+  opt=opt||{};const {c,w:W,h:H}=sizeCanvas(cv,1);const X=x=>(x+R)/(2*R)*W,Y=y=>H-(y+R)/(2*R)*H;
+  const inv=(px,py)=>[px/W*2*R-R,R-py/H*2*R];
+  const has=w&&Math.abs(w[1])+Math.abs(w[2])>1e-9;
+  if(has&&!opt.noRegion){const cell=4;for(let py=0;py<H;py+=cell)for(let px=0;px<W;px+=cell){const [x,y]=inv(px+cell/2,py+cell/2);c.fillStyle=dot3(w,[1,x,y])>0?css('--r1'):css('--r0');c.fillRect(px,py,cell,cell);}}
+  c.strokeStyle=css('--grid');c.lineWidth=1;for(let v=-Math.floor(R);v<=R;v++){c.beginPath();c.moveTo(X(v),0);c.lineTo(X(v),H);c.moveTo(0,Y(v));c.lineTo(W,Y(v));c.stroke();}
+  c.strokeStyle=css('--axis');c.beginPath();c.moveTo(X(0),0);c.lineTo(X(0),H);c.moveTo(0,Y(0));c.lineTo(W,Y(0));c.stroke();
+  c.fillStyle=css('--mute');c.font='11px sans-serif';c.textAlign='right';c.textBaseline='bottom';c.fillText('x₁ →',W-6,Y(0)-3);c.textAlign='left';c.textBaseline='top';c.fillText('↑ x₂',X(0)+5,4);
+  const P={c,W,H,X,Y,inv,R};
+  if(has)line(P,w,css('--ink'),2.5);
+  return P;
+}
+function line(P,w,col,lw,dash){const {c,X,Y,R}=P;if(Math.abs(w[1])+Math.abs(w[2])<1e-9)return;c.strokeStyle=col;c.lineWidth=lw;c.setLineDash(dash||[]);c.beginPath();
+  if(Math.abs(w[2])>Math.abs(w[1])){c.moveTo(X(-R),Y(-(w[0]+w[1]*-R)/w[2]));c.lineTo(X(R),Y(-(w[0]+w[1]*R)/w[2]));}
+  else{c.moveTo(X(-(w[0]+w[2]*-R)/w[1]),Y(-R));c.lineTo(X(-(w[0]+w[2]*R)/w[1]),Y(R));}c.stroke();c.setLineDash([]);}
+function wArrow(P,w,len){ // 從邊界上離中心最近的點畫出 w 方向
+  const n2=w[1]*w[1]+w[2]*w[2];if(n2<1e-12)return;const t=-w[0]/n2,fx=t*w[1],fy=t*w[2],nl=Math.sqrt(n2),L=len||P.R*0.3;
+  arrow(P.c,P.X(fx),P.Y(fy),P.X(fx+w[1]/nl*L),P.Y(fy+w[2]/nl*L),css('--hl'),3.5);}
+function pt(P,x,y,lab,r,opt){opt=opt||{};const c=P.c,px=P.X(x),py=P.Y(y);r=r||7;c.fillStyle=lab>0?css('--c1'):css('--c0');c.strokeStyle=css('--card');c.lineWidth=2;
+  c.beginPath();if(lab>0)c.arc(px,py,r,0,7);else c.rect(px-r*.9,py-r*.9,r*1.8,r*1.8);c.fill();c.stroke();
+  if(opt.wrong){c.strokeStyle=css('--bad');c.lineWidth=2.2;c.beginPath();c.moveTo(px-r-3,py-r-3);c.lineTo(px+r+3,py+r+3);c.moveTo(px+r+3,py-r-3);c.lineTo(px-r-3,py+r+3);c.stroke();}
+  if(opt.ring){c.strokeStyle=css('--hl');c.lineWidth=3;c.beginPath();c.arc(px,py,r+7,0,7);c.stroke();}}
+let seed=11;function rand(){seed=(seed*16807)%2147483647;return (seed-1)/2147483646;}
+/* 產生線性可分資料：回傳 {pts, wstar=[c,n1,n2]（‖n‖=1）} */
+function genData(N,margin,R){const a=rand()*Math.PI*2,n=[Math.cos(a),Math.sin(a)],c=(rand()-.5)*1.6,pts=[];let guard=0;
+  while(pts.length<N&&guard++<20000){const x=+(rand()*2*R-R).toFixed(2),y=+(rand()*2*R-R).toFixed(2),d=n[0]*x+n[1]*y+c;if(Math.abs(d)<margin)continue;pts.push({x,y,l:d>0?1:-1});}
+  return {pts,ws:[c,n[0],n[1]]};}
+/* PLA（依序循環），回傳每次更新的紀錄 */
+function pla(pts,maxUp){const H=[];let w=[0,0,0],i=0,since=0;if(!pts.length)return {H,w,conv:true};
+  while(H.length<maxUp){const p=pts[i],x=[1,p.x,p.y];
+    if(p.l*dot3(w,x)<=0){const before=w.slice();w=[w[0]+p.l,w[1]+p.l*p.x,w[2]+p.l*p.y];H.push({i,before,w:w.slice()});since=0;}else since++;
+    i=(i+1)%pts.length;if(since>=pts.length)return {H,w,conv:true};}
+  return {H,w,conv:false};}
+const errs=(pts,w)=>pts.filter(p=>p.l*dot3(w,[1,p.x,p.y])<=0).length;
+
+/* ---------- 1. 幾何直覺 ---------- */
+const S1={w:[0,1.6,0.6],x:[-1.2,1.8],y:1,prev:null};
+function draw1(){
+  const P=plane($('c1'),3,S1.w,{}),c=P.c;
+  if(S1.prev){line(P,S1.prev,css('--mute'),1.5,[5,5]);c.globalAlpha=.45;arrow(c,P.X(0),P.Y(0),P.X(S1.prev[1]),P.Y(S1.prev[2]),css('--hl'),3);c.globalAlpha=1;}
+  // y x 向量（虛線）接在 w 尖端
+  const yx=[S1.y*S1.x[0],S1.y*S1.x[1]];
+  c.setLineDash([5,4]);arrow(c,P.X(S1.w[1]),P.Y(S1.w[2]),P.X(S1.w[1]+yx[0]),P.Y(S1.w[2]+yx[1]),css('--ok'),2.5);c.setLineDash([]);
+  c.fillStyle=css('--ok');c.font='bold 13px sans-serif';c.textAlign='left';c.fillText(S1.y>0?'+x':'−x',P.X(S1.w[1]+yx[0]/2)+6,P.Y(S1.w[2]+yx[1]/2));
+  c.strokeStyle=css('--mute');c.setLineDash([3,3]);c.lineWidth=1.2;c.beginPath();c.moveTo(P.X(0),P.Y(0));c.lineTo(P.X(S1.x[0]),P.Y(S1.x[1]));c.stroke();c.setLineDash([]);
+  arrow(c,P.X(0),P.Y(0),P.X(S1.w[1]),P.Y(S1.w[2]),css('--hl'),4);
+  c.fillStyle=css('--hl');c.fillText('w',P.X(S1.w[1])+6,P.Y(S1.w[2])-6);
+  const s=S1.y*(S1.w[1]*S1.x[0]+S1.w[2]*S1.x[1]),wrong=s<=0;
+  pt(P,S1.x[0],S1.x[1],S1.y,9,{wrong});c.fillStyle=css('--ink');c.font='bold 13px sans-serif';c.fillText('x',P.X(S1.x[0])+12,P.Y(S1.x[1])+4);
+  [...$('y1').children].forEach(b=>b.classList.toggle('on',+b.dataset.v===S1.y));
+  const wx=S1.w[1]*S1.x[0]+S1.w[2]*S1.x[1],nw=[S1.w[1]+yx[0],S1.w[2]+yx[1]],nwx=nw[0]*S1.x[0]+nw[1]*S1.x[1],xx=S1.x[0]**2+S1.x[1]**2;
+  $('f1').innerHTML=`<b class="vec">w</b> = (${fmt(S1.w[1])}, ${fmt(S1.w[2])})，<b>x</b> = (${fmt(S1.x[0])}, ${fmt(S1.x[1])})，<i class="m">y</i> = ${S1.y>0?'+1':'−1'}<br>
+   <i class="m">y</i>(<b class="vec">w</b>·<b>x</b>) = ${S1.y>0?'':'−'}(${fmt(wx)}) = <b class="${wrong?'bad':'ok'}">${fmt(S1.y*wx)}</b>　${wrong?'≤ 0 → <b class="bad">分錯了</b>':'&gt; 0 → <b class="ok">分對了</b>'}<br>
+   若更新：<b class="vec">w</b><sub>新</sub> = (${fmt(nw[0])}, ${fmt(nw[1])})，<i class="m">y</i>(<b class="vec">w</b><sub>新</sub>·<b>x</b>) = ${fmt(S1.y*wx)} + ‖<b>x</b>‖² = ${fmt(S1.y*wx)} + ${fmt(xx)} = <b>${fmt(S1.y*nwx)}</b>`;
+  const ang=Math.acos(Math.max(-1,Math.min(1,wx/Math.hypot(S1.w[1],S1.w[2])/Math.sqrt(xx))))*180/Math.PI;
+  $('s1').innerHTML=wrong?(S1.y>0?`📌 x 應該是 +1，但它和 <b class="vec">w</b> 夾了 ${fmt(ang,0)}°（超過 90°），落在 −1 那一側。<b>把 x 加進 w</b>（綠色虛線），w 就會轉向 x。`
+      :`📌 x 應該是 −1，但它和 <b class="vec">w</b> 只夾 ${fmt(ang,0)}°（小於 90°），落在 +1 那一側。<b>把 x 從 w 減掉</b>，w 就會轉離 x。`)
+    :`📌 這個點已經分對了（${S1.y>0?'夾角小於 90°':'夾角大於 90°'}），PLA 不會更新。拖動 x 或 w 讓它分錯看看！`;
+}
+$('u1').onclick=()=>{S1.prev=S1.w.slice();S1.w=[0,S1.w[1]+S1.y*S1.x[0],S1.w[2]+S1.y*S1.x[1]];draw1();};
+$('r1').onclick=()=>{S1.w=[0,1.6,0.6];S1.x=[-1.2,1.8];S1.y=1;S1.prev=null;draw1();};
+$('y1').onclick=e=>{const b=e.target.closest('button');if(!b)return;S1.y=+b.dataset.v;S1.prev=null;draw1();};
+(function(){const cv=$('c1');let drag=null;
+  const at=e=>{const r=cv.getBoundingClientRect();return [(e.clientX-r.left)/r.width*6-3,3-(e.clientY-r.top)/r.height*6];};
+  cv.addEventListener('pointerdown',e=>{const [x,y]=at(e);const dx=Math.hypot(x-S1.x[0],y-S1.x[1]),dw=Math.hypot(x-S1.w[1],y-S1.w[2]);drag=dx<dw?'x':'w';cv.setPointerCapture(e.pointerId);move(e);});
+  const move=e=>{if(!drag)return;let [x,y]=at(e);x=Math.max(-2.9,Math.min(2.9,+x.toFixed(1)));y=Math.max(-2.9,Math.min(2.9,+y.toFixed(1)));
+    if(drag==='x')S1.x=[x,y];else S1.w=[0,x,y];S1.prev=null;draw1();};
+  cv.addEventListener('pointermove',move);cv.addEventListener('pointerup',()=>drag=null);cv.addEventListener('pointercancel',()=>drag=null);})();
+
+/* ---------- 2. 逐步 PLA ---------- */
+let D2=[],R2=null,K2=0,addL=1;
+const CODE=[
+ ['<span class="kw">w</span> = (0, 0, 0)                 <span class="cm"># w₀ 是偏差</span>'],
+ ['<span class="kw">while</span> 還有分錯的點:'],
+ ['    找下一個 y(w·x) ≤ 0 的點 (x, y)'],
+ ['    <span class="kw">w</span> = <span class="kw">w</span> + y · x            <span class="cm"># 修正</span>'],
+ ['輸出 <span class="kw">w</span>                       <span class="cm"># 全部分對了！</span>']];
+function code2(on){$('code2').innerHTML=CODE.map((l,i)=>`<div class="ln ${on.includes(i)?'on':''}">${l[0]}</div>`).join('');}
+function data2(){seed=Math.floor(rand()*1e6)+7;const g=genData(14,0.5,4.2);D2=g.pts;}
+function run2(){R2=pla(D2,300);K2=0;draw2();}
+function draw2(){
+  const last=R2.H.length,w=K2?R2.H[K2-1].w:[0,0,0],cur=K2?R2.H[K2-1]:null;
+  const P=plane($('c2'),5,w,{});if(K2)wArrow(P,w,1.4);
+  D2.forEach((p,i)=>pt(P,p.x,p.y,p.l,7,{wrong:p.l*dot3(w,[1,p.x,p.y])<=0,ring:cur&&cur.i===i}));
+  const E=errs(D2,w),done=K2===last&&R2.conv;
+  $('s2k').textContent=K2;$('s2w0').textContent=fmt(w[0]);$('s2w1').textContent=fmt(w[1]);$('s2w2').textContent=fmt(w[2]);$('s2e').textContent=E+' / '+D2.length;
+  $('b2').style.width=(last?K2/last*100:0)+'%';
+  if(!D2.length){code2([]);$('t2').innerHTML='目前沒有資料：點左圖新增幾個點，或按「🎲 換一組資料」。';$('f2').innerHTML='';return;}
+  if(K2===0){code2([0]);$('t2').innerHTML='<b>初始化</b>：<b class="vec">w</b> = (0, 0, 0)。這時每個點的 w·x 都是 0，全部都算「分錯」。按「下一步 ▶」開始修正。';$('f2').innerHTML='';return;}
+  if(done){code2([1,4]);$('t2').innerHTML=`🎉 <b class="ok">整輪檢查都沒有分錯的點，PLA 停止！</b>共更新 ${last} 次，學到的直線：${fmt(w[0])} + ${fmt(w[1])}·x₁ + ${fmt(w[2])}·x₂ = 0。`;
+    const p=D2[cur.i];$('f2').innerHTML=lastUpd(cur,p);return;}
+  code2([2,3]);const p=D2[cur.i];
+  $('t2').innerHTML=`<b>第 ${K2} 次更新</b>：找到分錯的第 ${cur.i+1} 個點 (${p.x}, ${p.y})，y = ${p.l>0?'+1':'−1'}，${p.l>0?'該在 +1 側卻被分到 −1 側 → <b>加上</b> x':'該在 −1 側卻被分到 +1 側 → <b>減去</b> x'}。現在還有 ${E} 個點分錯。`;
+  $('f2').innerHTML=lastUpd(cur,p);
+}
+function lastUpd(cur,p){const b=cur.before;return `y(w·x) = ${p.l>0?'+':'−'}(${fmt(b[0])}×1 + ${fmt(b[1])}×${p.x} + ${fmt(b[2])}×${p.y}) = <b class="bad">${fmt(p.l*dot3(b,[1,p.x,p.y]))}</b> ≤ 0<br>
+  <b class="vec">w</b> ← (${fmt(b[0])}, ${fmt(b[1])}, ${fmt(b[2])}) ${p.l>0?'+':'−'} (1, ${p.x}, ${p.y}) = <b class="vec">(${fmt(cur.w[0])}, ${fmt(cur.w[1])}, ${fmt(cur.w[2])})</b>`;}
+let T2=null;const stop2=()=>{clearInterval(T2);T2=null;$('a2').textContent='▶ 自動播放';};
+$('r2').onclick=()=>{stop2();K2=0;draw2();};$('p2').onclick=()=>{stop2();K2=Math.max(0,K2-1);draw2();};$('n2').onclick=()=>{stop2();K2=Math.min(R2.H.length,K2+1);draw2();};
+$('a2').onclick=()=>{if(T2){stop2();return;}if(K2>=R2.H.length)K2=0;$('a2').textContent='⏸ 暫停';T2=setInterval(()=>{if(K2>=R2.H.length){stop2();return;}K2++;draw2();},1100);};
+$('addc').onclick=e=>{const b=e.target.closest('button');if(!b)return;addL=+b.dataset.v;[...$('addc').children].forEach(x=>x.classList.toggle('on',x===b));};
+$('rnd2').onclick=()=>{stop2();data2();run2();};$('clr2').onclick=()=>{stop2();D2=[];run2();};
+$('c2').addEventListener('pointerdown',e=>{const r=$('c2').getBoundingClientRect();const x=+((e.clientX-r.left)/r.width*10-5).toFixed(1),y=+(5-(e.clientY-r.top)/r.height*10).toFixed(1);stop2();D2.push({x,y,l:addL});run2();});
+
+/* ---------- 3. 生物學觀點 ---------- */
+const FEAT=[['🔴','紅色'],['⚪','圓形'],['🌿','有長梗']];
+const OBJ=[{n:'紅蘋果',e:'🍎',x:[1,1,1],y:1},{n:'番茄',e:'🍅',x:[1,1,0],y:-1},{n:'青蘋果',e:'🍏',x:[0,1,1],y:1},{n:'紅色球',e:'🔴',x:[1,1,0],y:-1}];
+let BH=[],KB=0;
+function runB(){BH=[];let w=[0,0,0,0],i=0,since=0;
+  while(since<OBJ.length&&BH.length<60){const o=OBJ[i],x=[1,...o.x],z=w.reduce((s,v,k)=>s+v*x[k],0),ok=o.y*z>0,before=w.slice();
+    if(!ok){w=w.map((v,k)=>v+o.y*x[k]);since=0;}else since++;
+    BH.push({i,z,ok,before,after:w.slice()});i=(i+1)%OBJ.length;}}
+function drawB(){
+  const s=KB?BH[KB-1]:null,o=s?OBJ[s.i]:null,w=s?s.after:[0,0,0,0],shown=s?s.before:[0,0,0,0];
+  const pos=css('--pos'),neg=css('--neg'),ink=css('--ink'),mute=css('--mute'),card=css('--card'),ok=css('--ok'),bad=css('--bad'),hl=css('--hl');
+  const fire=s?s.z>0:false,ys=[70,150,230];let g='';
+  g+=`<defs><filter id="glB" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="${hl}" flood-opacity=".9"/></filter></defs>`;
+  // 輸入 → 突觸 → 細胞體
+  FEAT.forEach((f,k)=>{const act=o?o.x[k]:0,y=ys[k],wv=w[k+1],dw=s&&!s.ok?o.y*o.x[k]:0;
+    g+=`<path d="M70 ${y} L200 ${y} Q260 ${y} 300 ${150+(y-150)*0.25}" stroke="${act?'#d9a07a':'#e9dccf'}" stroke-width="${act?6:4}" fill="none" stroke-linecap="round"/>`;
+    g+=`<circle cx="40" cy="${y}" r="24" fill="${act?css('--fw'):card}" stroke="${act?css('--fw'):mute}" stroke-width="2"/><text x="40" y="${y+7}" text-anchor="middle" font-size="20">${f[0]}</text>`;
+    g+=`<text x="40" y="${y+40}" text-anchor="middle" font-size="12" fill="${act?ink:mute}" font-weight="${act?700:400}">${f[1]}${act?'（有）':''}</text>`;
+    const r=5+Math.min(4,Math.abs(wv))*4,col=wv>0?pos:wv<0?neg:mute;
+    g+=`<circle cx="200" cy="${y}" r="${r}" fill="${col}" opacity="${wv?0.92:0.35}" ${dw?'filter="url(#glB)"':''}/>`;
+    g+=`<text x="200" y="${y-r-6}" text-anchor="middle" font-size="12" font-weight="700" fill="${col}">w=${dw?fmt(shown[k+1])+'→'+fmt(wv):fmt(wv)}</text>`;
+    if(dw)g+=`<rect x="226" y="${y-30}" width="74" height="22" rx="6" fill="${dw>0?ok:bad}"/><text x="263" y="${y-14}" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">${dw>0?'LTP 增強 +1':'LTD 減弱 −1'}</text>`;
+    else if(s&&!s.ok)g+=`<text x="263" y="${y-14}" text-anchor="middle" font-size="11" fill="${mute}">沒參與，不變</text>`;});
+  // 教師訊號
+  if(o){g+=`<line x1="345" y1="34" x2="345" y2="104" stroke="${s.ok?ok:bad}" stroke-width="3" stroke-dasharray="5 4"/>`;
+    g+=`<text x="345" y="22" text-anchor="middle" font-size="12.5" font-weight="700" fill="${s.ok?ok:bad}">👩‍🏫 老師：${o.y>0?'這是蘋果':'這不是蘋果'}${s.ok?' ✔':' ✘'}</text>`;}
+  // 細胞體
+  g+=`<ellipse cx="345" cy="150" rx="46" ry="42" fill="${fire?'#f6c28b':'#f3d2b4'}" stroke="#c98d68" stroke-width="3"/>`;
+  g+=`<text x="345" y="146" text-anchor="middle" font-size="13" fill="#5a3a26" font-weight="700">z = ${s?fmt(s.z):'0'}</text><text x="345" y="164" text-anchor="middle" font-size="11" fill="#5a3a26">w₀=${s&&!s.ok?fmt(shown[0])+'→'+fmt(w[0]):fmt(w[0])}</text>`;
+  if(s&&!s.ok)g+=`<text x="398" y="110" text-anchor="start" font-size="11" font-weight="700" fill="${o.y>0?ok:bad}">閾值${o.y>0?'降低（更容易放電）':'提高（更難放電）'}</text>`;
+  // 軸突與輸出
+  g+=`<line x1="391" y1="150" x2="490" y2="150" stroke="#d9a07a" stroke-width="6"/>`;
+  g+=`<circle cx="518" cy="150" r="26" fill="${fire?'#ffd166':card}" stroke="${fire?'#e07a1f':mute}" stroke-width="3"/><text x="518" y="157" text-anchor="middle" font-size="18">${fire?'⚡':'·'}</text>`;
+  g+=`<text x="518" y="194" text-anchor="middle" font-size="12" fill="${fire?ink:mute}" font-weight="700">${s?(fire?'放電：是蘋果！':'不放電'):''}</text>`;
+  if(o)g+=`<text x="110" y="290" font-size="14" fill="${ink}">看到：<tspan font-size="22">${o.e}</tspan> ${o.n}</text>`;
+  $('bioL').innerHTML=g;
+  // 文字
+  const last=BH.length;$('bB').style.width=(KB/last*100)+'%';
+  if(!s){$('tB').innerHTML='<b>起點</b>：所有突觸強度都是 0，神經元還不認識蘋果。按「下一步 ▶」讓它看第一樣東西。';$('fB').innerHTML='';}
+  else{const head=`<b>第 ${KB} 步</b>：看到 ${o.e} <b>${o.n}</b>，神經元${fire?'<b>放電</b>（猜是蘋果）':'<b>沒放電</b>（猜不是蘋果）'}，老師說「${o.y>0?'是蘋果':'不是蘋果'}」。`;
+    if(s.ok)$('tB').innerHTML=head+' <b class="ok">答對了！沒有錯誤訊號，突觸都不改變。</b>';
+    else $('tB').innerHTML=head+(o.y>0?' <b class="bad">漏掉了（該放電卻沒放）！</b>剛剛<b>有參與的</b>突觸都<b class="ok">增強</b>（像 LTP），神經元也變得更容易興奮。'
+      :' <b class="bad">誤報了（不該放電卻放電）！</b>剛剛<b>有參與的</b>突觸都<b class="bad">減弱</b>（像 LTD），神經元也變得更難興奮。');
+    if(KB===last)$('tB').innerHTML+=` <br>🎉 <b class="ok">連續看完一輪都答對，學會了！</b>最後「有長梗」的突觸最強（w = ${fmt(w[3])}），「紅色」反而變成抑制（w = ${fmt(w[1])}）——因為番茄和紅色球都是紅的，卻不是蘋果。`;
+    const xs=[1,...o.x];
+    $('fB').innerHTML=s.ok?`<i class="m">y</i>·<i class="m">z</i> = (${o.y>0?'+1':'−1'})(${fmt(s.z)}) &gt; 0　→　不更新`
+      :`Δ<b class="vec">w</b> = <i class="m">y</i> <b>x</b> = (${o.y>0?'+1':'−1'}) × (1, ${o.x.join(', ')}) = (${xs.map(v=>fmt(o.y*v)).join(', ')})<br><b class="vec">w</b>：(${shown.map(v=>fmt(v)).join(', ')}) → <b class="vec">(${w.map(v=>fmt(v)).join(', ')})</b>`;}
+  // 物件表
+  $('obB').innerHTML='<tr><th>東西</th><th>🔴 紅色</th><th>⚪ 圓形</th><th>🌿 有長梗</th><th>正確答案</th><th>這一步更新後</th></tr>'+OBJ.map((q,i)=>{const z=w[0]+w[1]*q.x[0]+w[2]*q.x[1]+w[3]*q.x[2],f=z>0;
+    return `<tr class="${o&&s.i===i?'cur':''}"><td>${q.e} ${q.n}</td>${q.x.map(v=>`<td>${v}</td>`).join('')}<td>${q.y>0?'是蘋果':'不是'}</td><td class="${(f?1:-1)===q.y?'ok':'bad'}">${f?'⚡ 放電':'不放電'} ${(f?1:-1)===q.y?'✔':'✘'}</td></tr>`;}).join('');
+}
+$('mapB').innerHTML='<tr><th>PLA</th><th>生物學類比</th></tr>'+[
+ ['權重 w<sub>i</sub>','突觸強度（正 = 興奮性、負 = 抑制性）'],
+ ['輸入 x<sub>i</sub> = 1','前一個神經元有放電、這個突觸有「參與」'],
+ ['預測 ŷ = sign(w·x)','神經元有沒有放電'],
+ ['正確答案 y','老師／錯誤訊號（例如獎懲訊號；也有理論認為小腦的攀緣纖維負責傳遞錯誤訊號）'],
+ ['漏掉（y = +1 卻沒放電）→ w ← w + x','<b class="ok">長期增強（LTP）</b>：有參與的突觸變強'],
+ ['誤報（y = −1 卻放電）→ w ← w − x','<b class="bad">長期抑制（LTD）</b>：有參與的突觸變弱'],
+ ['x<sub>i</sub> = 0 的權重不變','只有參與的突觸會改變（突觸可塑性的「特異性」）'],
+ ['偏差 w₀ 改變','神經元本身的興奮性（閾值）改變'],
+ ['答對就不更新','沒有錯誤訊號，就沒有理由改變連結']].map(r=>`<tr><td><b>${r[0]}</b></td><td style="text-align:left">${r[1]}</td></tr>`).join('');
+const setB=k=>{KB=Math.max(0,Math.min(BH.length,k));drawB();};
+let TB=null;const stopB=()=>{clearInterval(TB);TB=null;$('aB').textContent='▶ 自動播放';};
+$('rB').onclick=()=>{stopB();setB(0);};$('pB').onclick=()=>{stopB();setB(KB-1);};$('nB').onclick=()=>{stopB();setB(KB+1);};
+$('aB').onclick=()=>{if(TB){stopB();return;}if(KB>=BH.length)setB(0);$('aB').textContent='⏸ 暫停';TB=setInterval(()=>{if(KB>=BH.length){stopB();return;}setB(KB+1);},1400);};
+
+/* ---------- 4. 收斂 ---------- */
+let M3=0.6,seed3=101,AVG=null;
+function run3data(margin,sd){seed=sd;const g=genData(30,margin,4);const r=pla(g.pts,20000);
+  const R=Math.sqrt(Math.max(...g.pts.map(p=>1+p.x*p.x+p.y*p.y))),nw=Math.sqrt(1+g.ws[0]**2),rho=Math.min(...g.pts.map(p=>p.l*dot3(g.ws,[1,p.x,p.y])))/nw;
+  return {g,r,R,rho,bound:(R/rho)**2};}
+const MG=[0.1,0.2,0.4,0.6,0.9,1.2,1.5];
+function avg3(){AVG=MG.map(m=>{let s=0;for(let k=0;k<10;k++)s+=run3data(m,500+k*37).r.H.length;return s/10;});}
+function draw3(){
+  const o=run3data(M3,seed3),P=plane($('c3'),4.5,o.r.w,{});
+  line(P,o.g.ws,css('--mute'),1.8,[6,5]);
+  o.g.pts.forEach(p=>pt(P,p.x,p.y,p.l,6));
+  $('m3v').textContent=M3.toFixed(2);$('s3k').textContent=o.r.H.length;$('s3R').textContent=fmt(o.R);$('s3r').textContent=fmt(o.rho,3);$('s3B').textContent=Math.ceil(o.bound).toLocaleString();
+  $('s3').innerHTML=`📌 這組資料 PLA 更新了 <b class="ok">${o.r.H.length}</b> 次就全部分對；理論保證不會超過 (${fmt(o.R)} / ${fmt(o.rho,3)})² ≈ <b>${Math.ceil(o.bound).toLocaleString()}</b> 次。上限通常很寬鬆，但它保證了「一定會停」。`;
+  // bar chart
+  const {c,w,h}=sizeCanvas($('c3b'),0.42,190),L=36,B=24,bw=(w-L-10)/MG.length,mx=Math.max(...AVG)*1.1;
+  c.font='11px sans-serif';
+  for(let k=0;k<=4;k++){const y=h-B-(h-B-10)*k/4;c.strokeStyle=css('--grid');c.beginPath();c.moveTo(L,y);c.lineTo(w-10,y);c.stroke();c.fillStyle=css('--mute');c.textAlign='right';c.textBaseline='middle';c.fillText(Math.round(mx*k/4),L-4,y);}
+  MG.forEach((m,i)=>{const bh=(h-B-10)*AVG[i]/mx,on=Math.abs(m-M3)<0.13&&MG.reduce((b,v)=>Math.abs(v-M3)<Math.abs(b-M3)?v:b)===m;
+    c.fillStyle=on?css('--accent'):css('--line');c.fillRect(L+bw*i+bw*.15,h-B-bh,bw*.7,bh);
+    c.fillStyle=css('--mute');c.textAlign='center';c.textBaseline='top';c.fillText(m,L+bw*(i+.5),h-B+4);
+    c.fillStyle=css('--ink');c.textBaseline='bottom';c.fillText(Math.round(AVG[i]),L+bw*(i+.5),h-B-bh-2);});
+  c.fillStyle=css('--mute');c.textAlign='right';c.textBaseline='bottom';c.fillText('間距 →',w-10,h-B-2);
+}
+$('m3').addEventListener('input',e=>{M3=+e.target.value;draw3();});
+$('rnd3').onclick=()=>{seed3=Math.floor(Math.random()*1e6)+3;draw3();};
+
+/* ---------- 5. 線性可分：OR vs XOR ---------- */
+const IN4=[[0,0],[0,1],[1,0],[1,1]],GT={OR:[-1,1,1,1],XOR:[-1,1,1,-1]};
+let G4='OR',L4=null,PR4=null;const L4def={OR:[[0.5,-0.45],[0.5,1.45]],XOR:[[0.5,-0.45],[0.5,1.45]]};
+const XR=[-0.6,1.6];
+function line4w(){const [A,B]=L4,nx=-(B[1]-A[1]),ny=B[0]-A[0];return [-(nx*A[0]+ny*A[1]),nx,ny];} // w·(1,x,y)=0 過 A、B
+function err4(w){const Y=GT[G4];return IN4.filter((p,i)=>Y[i]*dot3(w,[1,p[0],p[1]])<=0).length;}
+function best4(){const w=line4w(),e1=err4(w),neg=w.map(v=>-v),e2=err4(neg);return e1<=e2?{w,e:e1}:{w:neg,e:e2};}
+function gatePlane(cv,w){const {c,w:W,h:H}=sizeCanvas(cv,1),X=x=>(x-XR[0])/(XR[1]-XR[0])*W,Y=y=>H-(y-XR[0])/(XR[1]-XR[0])*H;
+  const inv=(px,py)=>[XR[0]+px/W*(XR[1]-XR[0]),XR[0]+(H-py)/H*(XR[1]-XR[0])];
+  if(w){const cell=4;for(let py=0;py<H;py+=cell)for(let px=0;px<W;px+=cell){const [x,y]=inv(px+2,py+2);c.fillStyle=dot3(w,[1,x,y])>0?css('--r1'):css('--r0');c.fillRect(px,py,cell,cell);}}
+  c.strokeStyle=css('--grid');c.lineWidth=1;[-.5,0,.5,1,1.5].forEach(v=>{c.beginPath();c.moveTo(X(v),0);c.lineTo(X(v),H);c.moveTo(0,Y(v));c.lineTo(W,Y(v));c.stroke();});
+  c.strokeStyle=css('--axis');c.beginPath();c.moveTo(X(0),0);c.lineTo(X(0),H);c.moveTo(0,Y(0));c.lineTo(W,Y(0));c.stroke();
+  c.fillStyle=css('--mute');c.font='11px sans-serif';c.textAlign='center';c.textBaseline='top';[0,1].forEach(v=>c.fillText(v,X(v),Y(0)+3));c.textAlign='right';c.textBaseline='middle';c.fillText('1',X(0)-4,Y(1));
+  c.textAlign='right';c.textBaseline='bottom';c.fillText('x₁ →',W-6,Y(0)-3);c.textAlign='left';c.textBaseline='top';c.fillText('↑ x₂',X(0)+5,4);
+  return {c,W,H,X,Y,inv,R:XR[1]};}
+function draw4(){
+  [...$('g4').children].forEach(b=>b.classList.toggle('on',b.dataset.g===G4));
+  const Yl=GT[G4],B=best4(),P=gatePlane($('c4'),B.w),c=P.c,[A,Bp]=L4;
+  // 直線延伸畫滿
+  const dx=Bp[0]-A[0],dy=Bp[1]-A[1];c.strokeStyle=css('--ink');c.lineWidth=2.5;c.beginPath();c.moveTo(P.X(A[0]-dx*5),P.Y(A[1]-dy*5));c.lineTo(P.X(A[0]+dx*5),P.Y(A[1]+dy*5));c.stroke();
+  IN4.forEach((p,i)=>{const wrong=Yl[i]*dot3(B.w,[1,p[0],p[1]])<=0,px=P.X(p[0]),py=P.Y(p[1]),r=11;c.fillStyle=Yl[i]>0?css('--c1'):css('--c0');c.strokeStyle=css('--card');c.lineWidth=2;c.beginPath();
+    if(Yl[i]>0)c.arc(px,py,r,0,7);else c.rect(px-r*.9,py-r*.9,r*1.8,r*1.8);c.fill();c.stroke();
+    if(wrong){c.strokeStyle=css('--bad');c.lineWidth=3;c.beginPath();c.moveTo(px-15,py-15);c.lineTo(px+15,py+15);c.moveTo(px+15,py-15);c.lineTo(px-15,py+15);c.stroke();}});
+  [A,Bp].forEach(q=>{c.fillStyle=css('--hl');c.strokeStyle='#fff';c.lineWidth=2;c.beginPath();c.arc(P.X(q[0]),P.Y(q[1]),8,0,7);c.fill();c.stroke();});
+  let t=`<tr><th>x₁</th><th>x₂</th><th>${G4}</th><th>標籤 y</th><th>這條線的分類</th></tr>`;
+  IN4.forEach((p,i)=>{const s=dot3(B.w,[1,p[0],p[1]])>0?1:-1;t+=`<tr><td>${p[0]}</td><td>${p[1]}</td><td>${Yl[i]>0?1:0}</td><td>${Yl[i]>0?'+1 ○':'−1 □'}</td><td class="${s===Yl[i]?'ok':'bad'}"><b>${s>0?'+1':'−1'}</b> ${s===Yl[i]?'✔':'✘'}</td></tr>`;});
+  $('tt4').innerHTML=t;
+  $('s4').innerHTML=B.e===0?`📌 <b class="ok">成功！</b>這條直線把 ${G4} 的兩類完全分開了——${G4} 是<b>線性可分</b>的。`
+    :(G4==='XOR'?`📌 目前分錯 <b class="bad">${B.e}</b> 個點。XOR 的兩個 ○ 在一條對角線上、兩個 □ 在另一條對角線上——不管怎麼拖，一條直線<b>最少也會錯 1 個</b>。`
+      :`📌 目前分錯 <b class="bad">${B.e}</b> 個點，繼續拖曳紫色圓點試試看！提示：OR 只有 (0,0) 是 □。`);
+  drawPR4();
+}
+function plaGate(Y){let w=[0,0,0];const ep=[];for(let e=0;e<10;e++){let n=0;IN4.forEach((p,i)=>{const x=[1,p[0],p[1]];if(Y[i]*dot3(w,x)<=0){w=[w[0]+Y[i],w[1]+Y[i]*p[0],w[2]+Y[i]*p[1]];n++;}});ep.push(n);if(!n)break;}return {w,ep};}
+function drawPR4(){
+  const {c,w,h}=sizeCanvas($('c4b'),0.36,150),L=28,B=20,bw=(w-L-10)/10;
+  c.font='11px sans-serif';for(let k=0;k<=4;k++){const y=h-B-(h-B-8)*k/4;c.strokeStyle=css('--grid');c.beginPath();c.moveTo(L,y);c.lineTo(w-10,y);c.stroke();c.fillStyle=css('--mute');c.textAlign='right';c.textBaseline='middle';c.fillText(k,L-4,y);}
+  for(let i=0;i<10;i++){c.textAlign='center';c.textBaseline='top';c.fillStyle=css('--mute');c.fillText(i+1,L+bw*(i+.5),h-B+3);
+    if(PR4&&i<PR4.ep.length){const v=PR4.ep[i],bh=(h-B-8)*v/4;c.fillStyle=v?css('--bad'):css('--ok');c.fillRect(L+bw*i+bw*.18,h-B-Math.max(bh,v?0:3),bw*.64,Math.max(bh,v?0:3));}}
+  c.fillStyle=css('--mute');c.textAlign='right';c.textBaseline='bottom';c.fillText('輪 →',w-10,h-B-2);
+  if(!PR4){$('t4').innerHTML='按「🤖 讓 PLA 自己試」，看 PLA 在這個邏輯閘上能不能停下來。';return;}
+  const ok=PR4.ep[PR4.ep.length-1]===0,tot=PR4.ep.reduce((a,b)=>a+b,0);
+  $('t4').innerHTML=ok?`<b class="ok">PLA 在第 ${PR4.ep.length} 輪全部分對，停下來了！</b>共更新 ${tot} 次，w = (${fmt(PR4.w[0])}, ${fmt(PR4.w[1])}, ${fmt(PR4.w[2])})，左圖已換成 PLA 學到的直線。`
+    :`<b class="bad">跑了 10 輪，每一輪都還在更新——PLA 永遠停不下來。</b>因為 XOR 不是線性可分的，不存在讓它停下的 w。`;
+}
+$('g4').onclick=e=>{const b=e.target.closest('button');if(!b)return;G4=b.dataset.g;L4=L4def[G4].map(p=>p.slice());PR4=null;draw4();};
+$('rst4').onclick=()=>{L4=L4def[G4].map(p=>p.slice());PR4=null;draw4();};
+$('pla4').onclick=()=>{PR4=plaGate(GT[G4]);const w=PR4.w;
+  if(Math.abs(w[1])+Math.abs(w[2])>1e-9){ // 用 PLA 的 w 重新放兩個端點（取直線在畫面中的一段）
+    const n2=w[1]*w[1]+w[2]*w[2],cx=0.5,cy=0.5,t=-(w[0]+w[1]*cx+w[2]*cy)/n2,fx=cx+t*w[1],fy=cy+t*w[2],nl=Math.sqrt(n2),dx=-w[2]/nl*0.75,dy=w[1]/nl*0.75;
+    L4=[[fx-dx,fy-dy],[fx+dx,fy+dy]];}
+  draw4();};
+(function(){const cv=$('c4');let k=-1;
+  const at=e=>{const r=cv.getBoundingClientRect();return [XR[0]+(e.clientX-r.left)/r.width*(XR[1]-XR[0]),XR[0]+(1-(e.clientY-r.top)/r.height)*(XR[1]-XR[0])];};
+  cv.addEventListener('pointerdown',e=>{const q=at(e),d=L4.map(p=>Math.hypot(p[0]-q[0],p[1]-q[1]));k=d[0]<d[1]?0:1;if(d[k]>0.35){k=-1;return;}cv.setPointerCapture(e.pointerId);});
+  cv.addEventListener('pointermove',e=>{if(k<0)return;const q=at(e);L4[k]=[Math.max(XR[0],Math.min(XR[1],q[0])),Math.max(XR[0],Math.min(XR[1],q[1]))];if(Math.hypot(L4[0][0]-L4[1][0],L4[0][1]-L4[1][1])<0.05)return;PR4=null;draw4();});
+  cv.addEventListener('pointerup',()=>k=-1);cv.addEventListener('pointercancel',()=>k=-1);})();
+$('tt4p').innerHTML='<tr><th>點 (x₁, x₂)</th><th>XOR 標籤</th><th>需要的條件 y(w·x) &gt; 0</th></tr>'+
+  '<tr><td>(0, 0)</td><td>−1 □</td><td><i class="m">w</i>₀ &lt; 0</td></tr><tr><td>(0, 1)</td><td>+1 ○</td><td><i class="m">w</i>₀ + <i class="m">w</i>₂ &gt; 0</td></tr>'+
+  '<tr><td>(1, 0)</td><td>+1 ○</td><td><i class="m">w</i>₀ + <i class="m">w</i>₁ &gt; 0</td></tr><tr><td>(1, 1)</td><td>−1 □</td><td><i class="m">w</i>₀ + <i class="m">w</i>₁ + <i class="m">w</i>₂ &lt; 0</td></tr>';
+
+/* ---------- 羅森布拉特老師 ---------- */
+const FR_SVG=`<svg viewBox="0 0 200 230" aria-label="羅森布拉特老師動畫">
+ <defs><pattern id="tweed" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="#8d8478"/><path d="M0 6 L3 0 M3 6 L6 0" stroke="#7a7266" stroke-width="1"/><circle cx="4.5" cy="4.5" r=".7" fill="#a59c90"/></pattern></defs>
+ <g class="bodyg">
+  <path d="M10 232 Q16 176 100 164 Q184 176 190 232 Z" fill="url(#tweed)"/>
+  <path d="M84 160 L100 232 L116 160 Z" fill="#f6f4ee"/>
+  <path d="M72 168 L100 214 L90 232 L54 232 Q58 196 72 168 Z M128 168 L100 214 L110 232 L146 232 Q142 196 128 168 Z" fill="#7d7468" stroke="#5f584e" stroke-width="1.2"/>
+  <path d="M95 168 L105 168 L108 178 L104 232 L96 232 L92 178 Z" fill="#26283a"/>
+  <circle cx="99" cy="186" r="1.6" fill="#e9e3d2"/><circle cx="102" cy="196" r="1.6" fill="#e9e3d2"/><circle cx="98" cy="206" r="1.6" fill="#e9e3d2"/><circle cx="101" cy="218" r="1.6" fill="#e9e3d2"/>
+  <rect x="88" y="132" width="24" height="32" rx="8" fill="#ecc9ad"/>
+  <path d="M84 158 L95 168 L90 176 Z M116 158 L105 168 L110 176 Z" fill="#fbfaf6" stroke="#d7d2c6" stroke-width="1"/>
+  <ellipse cx="68" cy="104" rx="6.5" ry="11" fill="#ecc9ad"/><ellipse cx="132" cy="104" rx="6.5" ry="11" fill="#ecc9ad"/>
+  <ellipse cx="100" cy="102" rx="30" ry="41" fill="#f4d3b8"/>
+  <ellipse class="blush" cx="81" cy="118" rx="6.5" ry="4.2" fill="#f08080"/>
+  <ellipse class="blush" cx="119" cy="118" rx="6.5" ry="4.2" fill="#f08080"/>
+  <g class="hairL"><path d="M70 92 Q66 80 70 70 Q74 66 76 74 Q73 82 74 92 Z" fill="#6e5038"/></g>
+  <g class="hairR"><path d="M130 92 Q134 80 130 70 Q126 66 124 74 Q127 82 126 92 Z" fill="#6e5038"/></g>
+  <path d="M67 94 Q58 62 72 46 Q86 30 110 31 Q134 33 139 54 Q142 72 133 92 Q131 78 124 71 Q116 65 107 67 Q97 61 86 67 Q74 74 67 94 Z" fill="#6f5039"/>
+  <path d="M72 56 Q80 34 104 30 Q126 28 136 44 Q124 37 110 40 Q96 40 86 48 Q78 54 72 56 Z" fill="#87664b"/>
+  <path d="M78 62 Q86 46 102 44 M90 58 Q102 46 120 48 M106 40 Q122 40 132 52 M76 50 Q86 38 100 36" stroke="#55402e" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <path class="brow browL" d="M76 86 Q85 82 94 85" stroke="#4e3a2a" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+  <path class="brow browR" d="M106 85 Q115 82 124 86" stroke="#4e3a2a" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+  <g class="eyes"><ellipse cx="85" cy="96" rx="5" ry="3.4" fill="#fff"/><ellipse cx="115" cy="96" rx="5" ry="3.4" fill="#fff"/>
+   <circle cx="85.4" cy="96.3" r="2.7" fill="#5b7088"/><circle cx="115.4" cy="96.3" r="2.7" fill="#5b7088"/>
+   <circle cx="85.4" cy="96.3" r="1.2" fill="#1d1d1d"/><circle cx="115.4" cy="96.3" r="1.2" fill="#1d1d1d"/>
+   <circle cx="86.4" cy="95.2" r=".9" fill="#fff"/><circle cx="116.4" cy="95.2" r=".9" fill="#fff"/></g>
+  <path d="M101 97 Q100 110 97 117 Q100 122 105 120 Q108 119 106 116" stroke="#c9987c" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path class="mo n" d="M90 130 Q100 133 110 129" stroke="#9a5446" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path class="mo s" d="M88 127 Q100 140 112 127 Q100 132 88 127 Z" fill="#9b3a2c" stroke="#8a4a3a" stroke-width="1.5" stroke-linejoin="round"/>
+  <path class="mo f" d="M90 134 Q100 126 110 134" stroke="#9a5446" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path class="sweat" d="M134 72 Q139 82 134 86 Q129 82 134 72 Z" fill="#7cc3f0"/>
+  <text class="spark" x="30" y="44" font-size="18" fill="#f0b400">✦</text>
+  <text class="spark" x="160" y="40" font-size="14" fill="#f0b400">✦</text>
+  <text class="spark" x="170" y="96" font-size="11" fill="#f0b400">✦</text>
+ </g></svg>`;
+function makeAvatar(el,bubble){
+  el.innerHTML=FR_SVG;let tm=null;
+  function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
+  return {mood(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
+    if(m==='smile'){el.classList.add('smile');restart('hop');}
+    if(m==='frown'){el.classList.add('frown');restart('shake');}
+    if(text!==undefined){bubble.innerHTML=text;bubble.className='bubble'+(m==='smile'?' good':m==='frown'?' bad':'');}
+    if(!hold)tm=setTimeout(()=>{el.classList.remove('smile','frown');bubble.className='bubble';},3200);}};
+}
+
+var AV1=makeAvatar($('av1'),$('bub1')),AV2=makeAvatar($('av2'),$('bub2'));
+const QUOTES=[
+ '1957 年，我在康乃爾航空實驗室提出了感知器和它的學習規則——讓機器從錯誤中自己調整。',
+ '我們的硬體「Mark I 感知器」真的會「學」：權重是一個個可變電阻，學習時由電動馬達轉動它們來調整。',
+ '我的想法受到心理學家赫布（Hebb）的啟發：經常一起作用的連結，就應該變得更強。',
+ '1962 年，諾維科夫（Novikoff）證明了：只要資料線性可分，感知器學習一定會在有限步內收斂。',
+ '1962 年，我把這些研究整理成一本書《神經動力學原理》（Principles of Neurodynamics）。',
+ '今天訓練神經網路的「梯度下降」和我的規則很像：都是看錯了多少，就往減少錯誤的方向調整權重。'];
+let qi=0;$('av1').onclick=()=>AV1.mood('smile',QUOTES[qi++%QUOTES.length]);
+
+/* ---------- 6. 小測驗 ---------- */
+const QZ=[
+ {q:'PLA 什麼時候會更新權重 w？',o:['只有遇到分錯的點時','每看一個點都更新','只有分對時','每輪結束才更新一次'],a:0,
+  e:'答對的點不動，只有 y(w·x) ≤ 0 的點才會觸發修正。',h:'PLA 的精神是「知錯能改」。'},
+ {q:'遇到一個分錯的點，它的正確答案 y = +1，w 要怎麼更新？',o:['w ← w + x','w ← w − x','w ← 0','w 不變'],a:0,
+  e:'w ← w + y·x，y = +1 就是加上 x，讓 w 轉向 x。',h:'把 y = +1 代進 w + y·x。'},
+ {q:'為什麼 w ← w + y·x 能讓這個點「更接近分對」？',o:['因為 y(w_新·x) = y(w·x) + ‖x‖²，多了一個正數','因為 w 變成 0','因為 x 被刪掉了','因為學習率很大'],a:0,
+  e:'y² = 1，所以多加的 ‖x‖² 一定是正的。',h:'回第 1 節，看「若更新」那一行的計算。'},
+ {q:'PLA 中的偏差 b 是怎麼處理的？',o:['每個點補一個恆為 1 的 x₀，b 就是 w₀','偏差固定為 0','偏差另外用梯度下降算','偏差等於資料的平均值'],a:0,
+  e:'x = (1, x₁, x₂)、w = (w₀, w₁, w₂)，偏差就併進權重一起更新。',h:'看第 0 節第 ② 張卡片。'},
+ {q:'如果資料線性可分，PLA 會怎樣？',o:['保證在有限次更新後停止，且全部分對','永遠停不下來','一定只更新一次','一定會找到間距最大的直線'],a:0,
+  e:'這是諾維科夫的收斂定理；但它不保證找到「最好看」的那條線。',h:'看第 4 節的定理。'},
+ {q:'兩類資料之間的間距（margin）越小，PLA 通常？',o:['需要更新更多次','更新次數更少','完全不受影響','一定會失敗'],a:0,
+  e:'上限 (R/ρ)² 中 ρ 越小，上限越大；第 4 節的長條圖也看得出來。',h:'第 4 節把間距拉到 0.1 試試看。'},
+ {q:'從生物學角度看，PLA 遇到「該放電卻沒放電」時增強有參與的突觸，最像哪種現象？',o:['長期增強（LTP）','長期抑制（LTD）','神經元死亡','所有突觸一起變強'],a:0,
+  e:'漏掉時 w ← w + x，有參與（x = 1）的突觸變強，類似 LTP；沒參與的突觸不變。',h:'回第 3 節，看綠色的「LTP 增強」標籤在什麼時候出現。'},
+ {q:'為什麼 PLA 學不會 XOR？',o:['XOR 不是線性可分的，找不到一條直線把兩類分開','因為 XOR 的資料太多','因為學習率太小','因為 XOR 的點都在原點'],a:0,
+  e:'XOR 的四個條件互相矛盾，不存在讓所有點 y(w·x) > 0 的 w，所以 PLA 永遠停不下來。',h:'回第 5 節選 XOR，試著拖拖看直線。'}
+];
+const PRAISE=['Great！答對了 😄','Excellent！y(w·x) &gt; 0，分類正確！','Perfect！這一題不用更新權重！','Bravo！你就是會學習的感知器！'];
+let sc=0,dn=0,streak=0;
+function shuffle(a){return a.map(v=>[Math.random(),v]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);}
+function buildQuiz(){sc=0;dn=0;streak=0;$('score').style.display='none';
+  $('quiz').innerHTML=QZ.map((z,i)=>{const ord=shuffle(z.o.map((t,j)=>j));
+    return `<div class="q"><div><b>Q${i+1}.</b> ${z.q}</div><div class="opts">${ord.map(j=>`<button data-q="${i}" data-o="${j}">${z.o[j]}</button>`).join('')}</div><div class="fb" id="fb${i}"></div></div>`;}).join('');}
+$('quiz').onclick=e=>{const b=e.target.closest('button');if(!b)return;const i=+b.dataset.q,j=+b.dataset.o,z=QZ[i],box=b.parentElement;if(box.dataset.done)return;box.dataset.done=1;dn++;
+  if(j===z.a){b.classList.add('right');sc++;streak++;$('fb'+i).innerHTML='✔ 正確！'+z.e;
+    AV2.mood('smile',streak>=3?`連對 ${streak} 題！Amazing！整輪都沒有分錯的點，收斂了 🎉`:PRAISE[Math.floor(Math.random()*PRAISE.length)]);}
+  else{b.classList.add('wrong');streak=0;[...box.children].forEach(x=>{if(+x.dataset.o===z.a)x.classList.add('right');});$('fb'+i).innerHTML='✘ '+z.e;AV2.mood('frown',z.h);}
+  if(dn===QZ.length){$('scoreTxt').textContent=`得分：${sc} / ${QZ.length}`;$('score').style.display='flex';
+    setTimeout(()=>{if(sc===QZ.length)AV2.mood('smile','滿分！你的 PLA 已經完美收斂 🏆',true);
+      else if(sc>=QZ.length-2)AV2.mood('smile',`${sc} 分，很不錯！錯的題目就像分錯的點，回去「w + y x」修正一下吧。`,true);
+      else AV2.mood('frown','建議回到第 1、2 節，看 w 怎麼一步步被修正，再來挑戰！',true);},3300);}
+};
+$('retry').onclick=()=>{buildQuiz();AV2.mood('','新的一輪！選項順序都換過了喔。');};
+
+/* ---------- init ---------- */
+[...$('addc').children][0].classList.add('on');
+seed=109;data2();run2();avg3();L4=L4def.OR.map(p=>p.slice());runB();KB=0;buildQuiz();drawB();draw1();draw3();draw4();
+function redraw(){draw1();draw2();drawB();draw3();draw4();}
+let rz=null;window.addEventListener('resize',()=>{cancelAnimationFrame(rz);rz=requestAnimationFrame(redraw);});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redraw);
+window.__PLA={D2:()=>D2,R2:()=>R2,run3data,pla,plaGate,GT,BH:()=>BH};
+</script>
+</body>
+</html>

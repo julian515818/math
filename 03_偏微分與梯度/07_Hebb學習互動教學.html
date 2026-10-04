@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hebb 學習互動教學</title>
+<style>
+
+:root{
+  --bg:#f7f6f2;--card:#fff;--ink:#1d2330;--mute:#667085;--line:#e3e1da;--ok:#1f9d6b;--bad:#d6334f;
+  --grid:#eceae4;--axis:#9aa0ab;--accent:#2f6fdb;--tint:#eaf1fc;
+  --pos:#2f6fdb;--neg:#d6334f;--c1:#2f6fdb;--c0:#e07a1f;--r1:rgba(47,111,219,.13);--r0:rgba(224,122,31,.13);--hl:#8b45d6;--fw:#2f6fdb;
+}
+media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+    --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+    --pos:#6c9dff;--neg:#ff6f86;--c1:#6c9dff;--c0:#ffa552;--r1:rgba(108,157,255,.16);--r0:rgba(255,165,82,.16);--hl:#b98bff;--fw:#6c9dff;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+  --pos:#6c9dff;--neg:#ff6f86;--c1:#6c9dff;--c0:#ffa552;--r1:rgba(108,157,255,.16);--r0:rgba(255,165,82,.16);--hl:#b98bff;--fw:#6c9dff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.9rem}
+header p{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:18px}
+.card h2{margin:0 0 12px;font-size:1.22rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:.9rem;flex:none}
+h3{margin:0 0 6px;font-size:1.05rem}
+.m{font-family:"Times New Roman","Cambria Math",serif;font-style:italic}
+.def{font-size:1.15rem;text-align:center;padding:14px;border-radius:10px;background:var(--tint);line-height:2.1}
+.note{color:var(--mute);font-size:.92rem}
+.ok{color:var(--ok)}.bad{color:var(--bad)}.c1{color:var(--c1)}.c0{color:var(--c0)}.hl{color:var(--hl)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start}
+.two>*{min-width:0}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.three>div{border:2px solid var(--line);border-radius:12px;padding:10px 14px}
+.three b.t{display:block;color:var(--accent)}
+media (max-width:860px){.two,.three{grid-template-columns:minmax(0,1fr)}}
+.cvbox{width:100%;min-width:0}.sq{max-width:440px;margin:0 auto}
+canvas{width:100%;display:block;border-radius:10px;background:var(--bg);touch-action:none}
+svg.net{width:100%;height:auto;display:block}
+.netbox{overflow-x:auto}.netbox svg{min-width:420px}
+label{font-size:.92rem;color:var(--mute);display:block}
+label b{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 12px}
+button{cursor:pointer}button:hover{border-color:var(--accent)}
+button.pri,button.on{background:var(--accent);color:#fff;border-color:transparent}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(170px,100%),1fr));gap:10px 18px;align-items:end}
+.say{margin-top:10px;padding:10px 14px;border-left:4px solid var(--ok);background:var(--bg);border-radius:8px}
+.formula{font-size:1.08rem;line-height:2.2;overflow-x:auto;padding:4px 2px}
+.tog{display:flex;gap:6px}.tog button{min-width:48px}
+.tblwrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.95rem;font-variant-numeric:tabular-nums}
+th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:center}
+th{color:var(--mute);font-weight:600}
+tr.cur td{background:var(--tint);font-weight:700}
+.btab td{vertical-align:top}
+.chip{display:inline-block;min-width:26px;padding:0 8px;border-radius:999px;color:#fff;font-weight:700}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.85rem;color:var(--mute);margin-top:6px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;margin-right:5px}
+/* quiz */
+.quiz .q{padding:12px 0;border-bottom:1px solid var(--line)}
+.quiz .q:last-child{border:none}
+.opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.opts button.right{background:var(--ok);color:#fff;border-color:transparent}
+.opts button.wrong{background:var(--bad);color:#fff;border-color:transparent}
+.fb{font-size:.92rem;margin-top:6px;min-height:1.2em}
+.score{margin-top:12px;font-size:1.15rem;font-weight:700;display:none;align-items:center;gap:12px;flex-wrap:wrap}
+footer{color:var(--mute);font-size:.85rem;text-align:center;margin-top:30px}
+/* ---------- avatar ---------- */
+.avwrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.av{width:100%;max-width:220px;cursor:pointer;user-select:none}
+.av svg{width:100%;display:block;overflow:visible;background:none}
+.av .bodyg{animation:bob 3.2s ease-in-out infinite;transform-origin:100px 200px}
+.av .eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+.av .hairL{animation:sway 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:top center}
+.av .hairR{animation:sway 3.2s ease-in-out infinite reverse;transform-box:fill-box;transform-origin:top center}
+.av .brow{transition:transform .3s;transform-box:fill-box}
+.av .browL{transform-origin:right center}.av .browR{transform-origin:left center}
+.av .mo{opacity:0;transition:opacity .25s}.av .mo.n{opacity:1}
+.av .blush,.av .sweat,.av .spark{opacity:0;transition:opacity .3s}
+.av.smile .mo.n,.av.frown .mo.n{opacity:0}
+.av.smile .mo.s{opacity:1}.av.frown .mo.f{opacity:1}
+.av.smile .blush{opacity:.55}.av.smile .spark{opacity:1}.av.frown .sweat{opacity:.9}
+.av.smile .brow{transform:translateY(-3px)}
+.av.frown .browL{transform:rotate(14deg) translateY(2px)}.av.frown .browR{transform:rotate(-14deg) translateY(2px)}
+.av.hop svg{animation:hop .7s ease}
+.av.shake svg{animation:shake .55s ease}
+.av .spark{animation:twinkle 1s ease-in-out infinite}
+keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+keyframes blink{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}
+keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.bubble{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.95rem;margin-bottom:10px;min-height:2.6em;max-width:260px;text-align:center;transition:border-color .3s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--line);border-bottom:0}
+.bubble.good{border-color:var(--ok)}.bubble.good::after{border-top-color:var(--ok)}
+.bubble.bad{border-color:var(--bad)}.bubble.bad::after{border-top-color:var(--bad)}
+.intro{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:center}
+.intro>*,.qgrid>*{min-width:0}
+.intro .avwrap{flex-direction:row;gap:10px}.intro .bubble{flex:1;margin:0}.intro .bubble::after{display:none}.intro .av{width:125px;flex:none}
+.qgrid{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:18px;align-items:start}
+.qgrid .avwrap{position:sticky;top:12px}
+media (max-width:860px){.intro,.qgrid{grid-template-columns:minmax(0,1fr)}.intro .avwrap{flex-direction:column}.intro .bubble{margin-bottom:10px}.intro .bubble::after{display:block}.intro .av,.qgrid .av{width:auto;max-width:140px}.qgrid .avwrap{position:static;order:-1}}
+
+.stepbar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:10px 0 8px}
+.stepbar div{height:100%;background:var(--accent);transition:width .25s}
+.explain{padding:10px 14px;border-radius:10px;background:var(--tint);min-height:3.4em}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(110px,100%),1fr));gap:10px;margin-top:10px}
+.stats>div{padding:8px 12px;border-radius:10px;background:var(--bg)}
+.stats small{display:block;color:var(--mute);font-size:.82rem}
+.stats b{font-size:1.15rem;font-variant-numeric:tabular-nums}
+.quote{border-left:4px solid var(--accent);background:var(--bg);padding:10px 14px;border-radius:8px;font-size:.98rem}
+.grid5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;width:100%;max-width:220px;touch-action:none}
+.grid5 div{aspect-ratio:1/1;border-radius:4px;cursor:pointer;transition:background .2s}
+.pats{display:flex;gap:12px;flex-wrap:wrap}
+.pats label{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:var(--ink)}
+.pats .mini{display:grid;grid-template-columns:repeat(5,9px);gap:1px}
+.pats .mini i{width:9px;height:9px;border-radius:1px;display:block}
+.ov{display:grid;grid-template-columns:40px minmax(0,1fr) 54px;gap:8px;align-items:center;margin-top:4px;font-variant-numeric:tabular-nums}
+.ov .bar{height:14px;border-radius:4px;background:var(--line);overflow:hidden}.ov .bar div{height:100%;background:var(--accent)}
+.ov.top b{color:var(--ok)}.ov.top .bar div{background:var(--ok)}
+</style>
+<style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line,#e3e1da);border-radius:12px;background:var(--card,var(--surface,#fff));color:var(--ink,#1d2330);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+.pu-badge img{width:58px;height:58px;display:block}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute,var(--muted,#667085))}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="pu-hd">
+  <div class="pu-hd-main">
+  <h1>赫布學習（Hebbian Learning）互動教學</h1>
+  <p>工程數學 ・ 互動教學：同時激發的神經元，會連結在一起（Cells that fire together, wire together）</p>
+</div>
+  <div class="pu-badge"><img alt="靜宜大學校徽" src="data:image/webp;base64,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"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</header>
+
+<!-- 0 -->
+<section class="card">
+  <h2><span class="num">0</span>一句話直覺：一起放電，就連得更緊</h2>
+  <div class="intro">
+    <div>
+      <div class="def">
+        Δ<i class="m">w</i> = η · <i class="m">x</i> · <i class="m">y</i><br>
+        <span class="note" style="font-size:.92rem">突觸前神經元的活動 <i class="m">x</i> × 突觸後神經元的活動 <i class="m">y</i> × 學習率 η</span>
+      </div>
+      <div class="three">
+        <div><b class="t">① 同時活化 → 變強</b>兩個神經元經常<b>同時</b>放電，它們之間的突觸強度 <i class="m">w</i> 就會增加。</div>
+        <div><b class="t">② 不需要老師</b>沒有「正確答案」，只看兩邊是否一起活動——這是一種<b>非監督式學習</b>。</div>
+        <div><b class="t">③ 學習 ＝ 改變連結</b>記憶和習慣，就儲存在被反覆強化的突觸連結裡。</div>
+      </div>
+      <div class="quote" style="margin-top:12px">📜 Hebb（1949）原文大意：「當細胞 A 的軸突靠近細胞 B 並能刺激它，而且<b>反覆、持續地</b>參與讓 B 放電時，其中一方或雙方會發生某種生長或代謝上的變化，使 A 讓 B 放電的<b>效率增加</b>。」</div>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub1">Hello！我是赫布（Donald Hebb）。點我聽故事！</div><div class="av" id="av1"></div></div>
+  </div>
+</section>
+
+<!-- 1 -->
+<section class="card">
+  <h2><span class="num">1</span>兩個神經元：一起放電，突觸就變強</h2>
+  <p style="margin-top:0">神經元 A（突觸前）連到神經元 B（突觸後）。每一個時間點，按按鈕讓它們放電，看看突觸強度 <i class="m">w</i> 什麼時候會增加：</p>
+  <div class="two">
+    <div>
+      <div class="netbox"><svg class="net" id="ab" viewBox="0 0 520 200"></svg></div>
+      <h3 style="margin-top:8px">放電紀錄（最近 30 個時間點）</h3>
+      <div class="cvbox"><canvas id="ras"></canvas></div>
+      <div class="legend"><span><i style="background:var(--ok)"></i>A、B 同時放電 → w 增加</span></div>
+    </div>
+    <div>
+      <div class="row"><button data-f="10">只有 A 放電</button><button data-f="01">只有 B 放電</button><button data-f="11" class="pri">A、B 一起放電 ⚡⚡</button><button data-f="00">都不放電</button></div>
+      <div class="row" style="margin-top:8px"><span class="note">自動模式：</span><button id="modeT">▶ 常常一起放電</button><button id="modeI">▶ 各放各的</button><button id="rs1">⟲ 重來</button></div>
+      <label style="margin-top:8px">學習率 η = <b id="e1v"></b><input id="e1" type="range" min="0.02" max="0.3" step="0.02" value="0.1"></label>
+      <div class="formula" id="f1"></div>
+      <div class="tblwrap"><table id="t1"></table></div>
+      <h3 style="margin-top:8px">突觸強度 w 隨時間變化</h3>
+      <div class="cvbox"><canvas id="wt"></canvas></div>
+      <div class="say" id="s1"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="card">
+  <h2><span class="num">2</span>生活中的赫布學習：巴夫洛夫的狗</h2>
+  <p style="margin-top:0">「流口水」神經元原本只會被<b>食物</b>觸發（食物 → 流口水的突觸天生就很強，w = 1）。<b>鈴聲</b> → 流口水的突觸一開始是 0。每次「搖鈴 + 給食物」一起出現，鈴聲神經元和流口水神經元就<b>同時放電</b>——赫布規則會讓鈴聲突觸慢慢變強。</p>
+  <div class="two">
+    <div>
+      <div class="netbox"><svg class="net" id="dog" viewBox="0 0 520 260"></svg></div>
+    </div>
+    <div>
+      <div class="row"><button id="dB">🔔 只搖鈴</button><button id="dF">🍖 只給食物</button><button id="dBF" class="pri">🔔＋🍖 一起出現</button><button id="dR">⟲ 重來</button></div>
+      <div class="explain" id="tD" style="margin-top:8px"></div>
+      <div class="formula" id="fD"></div>
+      <div class="stats">
+        <div><small>配對次數</small><b id="sDn"></b></div>
+        <div><small>鈴聲突觸 w<sub>鈴</sub></small><b id="sDw"></b></div>
+        <div><small>放電門檻</small><b>0.5</b></div>
+        <div><small>只搖鈴會流口水嗎？</small><b id="sDy"></b></div>
+      </div>
+      <h3 style="margin-top:8px">w<sub>鈴</sub> 隨每次經驗的變化</h3>
+      <div class="cvbox"><canvas id="dw"></canvas></div>
+      <p class="note">試試看：先按幾次「只搖鈴」（w 不會變，因為流口水神經元沒放電），再按「一起出現」。這就是<b>古典制約</b>（Classical Conditioning）的神經基礎之一。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="card">
+  <h2><span class="num">3</span>純赫布規則的問題：權重會無限長大</h2>
+  <p style="margin-top:0">Δ<i class="m">w</i> = η<i class="m">xy</i> 永遠 ≥ 0（活動都是正的），所以只要一直一起放電，<i class="m">w</i> 就會<b>一直變大、停不下來</b>——真實的大腦不可能這樣。常見的修正是加上<b>遺忘（衰減）</b>：</p>
+  <div class="def" style="font-size:1.05rem">Δ<i class="m">w</i> = η · <i class="m">x</i> · <i class="m">y</i> − λ · <i class="m">w</i>　　<span class="note" style="font-size:.9rem">越強的突觸，忘得越多；最後會停在 <i class="m">w</i>* = η<i class="m">xy</i> / λ</span></div>
+  <div class="two" style="margin-top:12px">
+    <div><div class="cvbox"><canvas id="dec"></canvas></div>
+      <div class="legend"><span><i style="background:var(--bad)"></i>純赫布：一直往上衝</span><span><i style="background:var(--ok)"></i>加上衰減：趨於穩定</span></div></div>
+    <div>
+      <label>衰減率 λ = <b id="lv"></b><input id="lam" type="range" min="0.02" max="0.3" step="0.01" value="0.1"></label>
+      <label>學習率 η = <b id="e3v"></b><input id="e3" type="range" min="0.05" max="0.3" step="0.01" value="0.1"></label>
+      <div class="say" id="s3"></div>
+      <p class="note">其他常見的修正還有：讓所有突觸的總強度固定（正規化），或歐亞（Oja, 1982）規則 Δ<i class="m">w</i> = η<i class="m">y</i>(<i class="m">x</i> − <i class="m">y</i><i class="m">w</i>)。此外，真實大腦中「不一起放電」也會讓突觸變弱（長期抑制 LTD）。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="card">
+  <h2><span class="num">4</span>聯想記憶：用赫布規則把圖案「存」進突觸</h2>
+  <p style="margin-top:0">25 個神經元排成 5×5，亮（+1）或暗（−1）。用赫布規則 <i class="m">w<sub>ij</sub></i> = Σ <i class="m">x<sub>i</sub></i><i class="m">x<sub>j</sub></i>：圖案中<b>一起亮</b>或<b>一起暗</b>的兩個神經元，連結變強；一亮一暗的就變成抑制。存好之後，給它一個<b>殘缺的圖案</b>，網路會自己「想起」完整的記憶。這就是霍普菲爾德網路（Hopfield Network）。</p>
+  <div class="two">
+    <div>
+      <h3>① 選要存進大腦的記憶</h3>
+      <div class="pats" id="pats"></div>
+      <h3 style="margin-top:12px">② 給一個殘缺的線索（點格子可以翻轉）</h3>
+      <div class="row" style="align-items:flex-start;gap:18px">
+        <div class="grid5" id="cue"></div>
+        <div style="flex:1;min-width:170px">
+          <div class="row"><span class="note">從記憶</span><select id="src"></select><span class="note">開始，翻轉</span></div>
+          <label>雜訊格數 = <b id="nzv"></b><input id="nz" type="range" min="0" max="10" step="1" value="5"></label>
+          <button id="mk">🎲 產生殘缺線索</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <h3>③ 讓網路回想</h3>
+      <div class="row"><button id="r4">⟲ 回到線索</button><button id="n4" class="pri">更新一個神經元 ▶</button><button id="a4">▶ 自動回想</button></div>
+      <div class="stepbar"><div id="b4"></div></div>
+      <div class="explain" id="t4"></div>
+      <h3 style="margin-top:8px">目前狀態最像哪個記憶？</h3>
+      <div id="ov"></div>
+      <p class="note">試試看：再勾選第 4 個記憶「O」。存太多相似的記憶，網路就容易<b>記混</b>——25 個神經元大約只能可靠地存 3 個圖案（約 0.14 × 神經元數）。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="card">
+  <h2><span class="num">5</span>觀念小測驗</h2>
+  <div class="qgrid">
+    <div>
+      <div class="quiz" id="quiz"></div>
+      <div class="score" id="score"><span id="scoreTxt"></span><button id="retry" class="pri">再做一次</button></div>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub2">來考考你！答對我會笑，答錯我會皺眉喔。</div><div class="av" id="av2"></div></div>
+  </div>
+</section>
+
+<footer>Hebb 學習互動教學 ・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmt=(v,d=2)=>{if(Math.abs(v)<5e-10)v=0;return (+v.toFixed(d)).toString().replace('-','−');};
+function sizeCanvas(cv,ratio,maxH){cv.style.width='0px';const w=cv.parentElement.clientWidth;cv.style.width='100%';let h=Math.round(w*ratio);if(maxH)h=Math.min(h,maxH);
+  const dpr=window.devicePixelRatio||1;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+'px';const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);return {c,w,h};}
+function lineChart(cv,series,N,opt){opt=opt||{};const {c,w,h}=sizeCanvas(cv,opt.ratio||0.42,opt.maxH||190),L=36,R=10,T=10,B=24;
+  let top=opt.top||Math.max(0.1,...series.flatMap(s=>s.v))*1.12;const X=i=>L+i/Math.max(1,N)*(w-L-R),Y=v=>T+(top-Math.min(v,top*1.05))/top*(h-T-B);
+  c.font='11px sans-serif';for(let k=0;k<=4;k++){const v=top*k/4;c.strokeStyle=css('--grid');c.beginPath();c.moveTo(L,Y(v));c.lineTo(w-R,Y(v));c.stroke();c.fillStyle=css('--mute');c.textAlign='right';c.textBaseline='middle';c.fillText(fmt(v,1),L-4,Y(v));}
+  const st=N<=10?1:N<=40?5:10;for(let i=0;i<=N;i+=st){c.fillStyle=css('--mute');c.textAlign='center';c.textBaseline='top';c.fillText(i,X(i),h-B+3);}
+  if(opt.hline!==undefined){c.strokeStyle=css('--bad');c.setLineDash([5,4]);c.beginPath();c.moveTo(L,Y(opt.hline));c.lineTo(w-R,Y(opt.hline));c.stroke();c.setLineDash([]);c.fillStyle=css('--bad');c.textAlign='left';c.textBaseline='bottom';c.fillText(opt.hlab||'',L+4,Y(opt.hline)-2);}
+  series.forEach(s=>{c.strokeStyle=s.col;c.lineWidth=2.5;c.beginPath();s.v.forEach((v,i)=>i?c.lineTo(X(i),Y(v)):c.moveTo(X(i),Y(v)));c.stroke();if(s.dots){c.fillStyle=s.col;s.v.forEach((v,i)=>{c.beginPath();c.arc(X(i),Y(v),3,0,7);c.fill();});}});
+  if(opt.xl){c.fillStyle=css('--mute');c.textAlign='right';c.textBaseline='bottom';c.fillText(opt.xl,w-R,h-B-2);}}
+
+/* ---------- 1. 兩個神經元 ---------- */
+const S1={w:0.2,eta:0.1,hist:[],ws:[0.2]};let T1=null;
+function fire(a,b){const dw=S1.eta*a*b;S1.w+=dw;S1.hist.push([a,b,dw]);S1.ws.push(S1.w);draw1();}
+function draw1(){
+  const last=S1.hist[S1.hist.length-1]||[0,0,0],[a,b,dw]=last,pos=css('--pos'),ink=css('--ink'),mute=css('--mute'),card=css('--card'),ok=css('--ok');
+  const sw=2+Math.min(10,S1.w*3.2),kr=6+Math.min(14,S1.w*4);
+  let g=`<defs><filter id="gl1" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="0" stdDeviation="5" flood-color="${ok}" flood-opacity=".9"/></filter></defs>`;
+  const neuron=(cx,lab,on)=>`<circle cx="${cx}" cy="100" r="42" fill="${on?'#f6c28b':'#f3d2b4'}" stroke="#c98d68" stroke-width="3" ${on?'filter="url(#gl1)"':''}/><circle cx="${cx-6}" cy="96" r="11" fill="#b07a9a" opacity=".7"/><text x="${cx}" y="164" text-anchor="middle" font-size="14" font-weight="700" fill="${ink}">${lab}</text>${on?`<text x="${cx}" y="46" text-anchor="middle" font-size="20">⚡</text>`:''}`;
+  g+=neuron(80,'神經元 A（突觸前）',a)+neuron(440,'神經元 B（突觸後）',b);
+  g+=`<line x1="122" y1="100" x2="${398-kr}" y2="100" stroke="#d9a07a" stroke-width="${sw}" stroke-linecap="round"/>`;
+  g+=`<circle cx="${398-kr*0.6}" cy="100" r="${kr}" fill="${pos}" opacity=".9" ${dw>0?'filter="url(#gl1)"':''}/>`;
+  g+=`<text x="260" y="80" text-anchor="middle" font-size="15" font-weight="800" fill="${pos}">突觸強度 w = ${fmt(S1.w)}</text>`;
+  if(dw>0)g+=`<rect x="205" y="118" width="110" height="26" rx="7" fill="${ok}"/><text x="260" y="136" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">一起放電！+${fmt(dw)}</text>`;
+  else if(S1.hist.length)g+=`<text x="260" y="136" text-anchor="middle" font-size="12" fill="${mute}">沒有一起放電，w 不變</text>`;
+  $('ab').innerHTML=g;
+  $('e1v').textContent=S1.eta.toFixed(2);
+  $('f1').innerHTML=S1.hist.length?`Δ<i class="m">w</i> = η · <i class="m">x</i><sub>A</sub> · <i class="m">y</i><sub>B</sub> = ${S1.eta.toFixed(2)} × ${a} × ${b} = <b class="${dw>0?'ok':''}">${fmt(dw)}</b>　→　<i class="m">w</i> = <b>${fmt(S1.w)}</b>`:'按上面的按鈕讓神經元放電。';
+  $('t1').innerHTML='<tr><th>A 放電 x</th><th>B 放電 y</th><th>Δw = η·x·y</th><th>意義</th></tr>'+[[0,0,'都安靜'],[1,0,'A 放電，B 沒反應'],[0,1,'B 自己放電'],[1,1,'<b class="ok">一起放電 → 連結變強</b>']].map(([x,y,t])=>`<tr class="${x===a&&y===b&&S1.hist.length?'cur':''}"><td>${x}</td><td>${y}</td><td>${fmt(S1.eta*x*y)}</td><td style="text-align:left">${t}</td></tr>`).join('');
+  // raster
+  const {c,w,h}=sizeCanvas($('ras'),0.22,90),H=S1.hist.slice(-30),cw=(w-30)/30;
+  c.font='12px sans-serif';c.fillStyle=css('--mute');c.textAlign='left';c.textBaseline='middle';c.fillText('A',4,h*0.3);c.fillText('B',4,h*0.72);
+  H.forEach((e,i)=>{const x=24+i*cw;if(e[0]&&e[1]){c.fillStyle=css('--r1');c.fillStyle='rgba(31,157,107,.18)';c.fillRect(x,4,cw,h-8);}
+    c.fillStyle=css('--ink');if(e[0])c.fillRect(x+cw*.3,h*0.14,Math.max(2,cw*.4),h*0.3);if(e[1])c.fillRect(x+cw*.3,h*0.56,Math.max(2,cw*.4),h*0.3);});
+  c.strokeStyle=css('--grid');c.beginPath();c.moveTo(22,h/2);c.lineTo(w,h/2);c.stroke();
+  lineChart($('wt'),[{v:S1.ws,col:css('--pos')}],Math.max(10,S1.ws.length-1),{xl:'時間'});
+  const n11=S1.hist.filter(e=>e[0]&&e[1]).length;
+  $('s1').innerHTML=`📌 目前為止共 ${S1.hist.length} 個時間點，其中 <b class="ok">${n11}</b> 次 A、B 同時放電，所以 w 從 0.2 增加了 ${n11} × η = <b>${fmt(S1.w-0.2)}</b>。<b>只有「同時」才算數</b>，單獨放電再多次也沒用。`;
+}
+document.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{stop1();fire(+b.dataset.f[0],+b.dataset.f[1]);});
+let rng1=12345;const r1=()=>{rng1=(rng1*16807)%2147483647;return (rng1-1)/2147483646;};
+function stop1(){clearInterval(T1);T1=null;$('modeT').textContent='▶ 常常一起放電';$('modeI').textContent='▶ 各放各的';}
+function auto(mode){if(T1){const was=T1;stop1();return;}let n=0;
+  $(mode==='T'?'modeT':'modeI').textContent='⏸ 暫停';
+  T1=setInterval(()=>{let a,b;if(mode==='T'){const u=r1();if(u<0.45){a=1;b=1;}else if(u<0.6){a=1;b=0;}else if(u<0.75){a=0;b=1;}else{a=0;b=0;}}
+    else{a=r1()<0.4?1:0;b=r1()<0.4?1:0;}fire(a,b);if(++n>=30)stop1();},180);}
+$('modeT').onclick=()=>auto('T');$('modeI').onclick=()=>auto('I');
+$('rs1').onclick=()=>{stop1();S1.w=0.2;S1.hist=[];S1.ws=[0.2];draw1();};
+$('e1').addEventListener('input',e=>{S1.eta=+e.target.value;draw1();});
+
+/* ---------- 2. 巴夫洛夫 ---------- */
+const DG={wB:0,wF:1,eta:0.1,th:0.5,n:0,ws:[0],last:null};
+function trial(bell,food){const z=DG.wB*bell+DG.wF*food,sal=z>=DG.th?1:0,dw=DG.eta*bell*sal,before=DG.wB;DG.wB=+(DG.wB+dw).toFixed(10);if(bell&&food)DG.n++;DG.ws.push(DG.wB);DG.last={bell,food,z,sal,dw,before};drawD();}
+function drawD(){
+  const L=DG.last||{bell:0,food:0,z:0,sal:0,dw:0},pos=css('--pos'),ink=css('--ink'),mute=css('--mute'),ok=css('--ok');
+  let g=`<defs><filter id="glD" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="0" stdDeviation="5" flood-color="${ok}" flood-opacity=".9"/></filter></defs>`;
+  const nrn=(cx,cy,emoji,lab,on)=>`<circle cx="${cx}" cy="${cy}" r="34" fill="${on?'#f6c28b':'#f3d2b4'}" stroke="#c98d68" stroke-width="3" ${on?'filter="url(#glD)"':''}/><text x="${cx}" y="${cy+9}" text-anchor="middle" font-size="26">${emoji}</text><text x="${cx}" y="${cy+52}" text-anchor="middle" font-size="13" font-weight="700" fill="${on?ink:mute}">${lab}</text>`;
+  const syn=(y1,w,lab,col)=>{const sw=1.5+w*7,r=4+w*10;return `<line x1="114" y1="${y1}" x2="${356-r}" y2="${130+(y1-130)*0.15}" stroke="#d9a07a" stroke-width="${Math.max(1.5,sw)}" stroke-linecap="round" opacity="${w?1:.4}"/>`+
+    `<circle cx="${356-r*0.5}" cy="${130+(y1-130)*0.15}" r="${Math.max(3,r)}" fill="${col}" opacity="${w?0.9:0.35}"/><text x="235" y="${y1+(y1<130?-14:28)+(130-y1)*0.4}" text-anchor="middle" font-size="13" font-weight="700" fill="${col}">${lab} = ${fmt(w)}</text>`;};
+  g+=syn(60,DG.wB,'w鈴',pos)+syn(200,DG.wF,'w食物',css('--hl'));
+  g+=nrn(80,60,'🔔','鈴聲神經元',L.bell)+nrn(80,200,'🍖','食物神經元',L.food)+nrn(400,130,'🤤','流口水神經元',L.sal);
+  if(DG.last&&L.dw>0)g+=`<rect x="190" y="98" width="96" height="24" rx="7" fill="${ok}"/><text x="238" y="115" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">w鈴 +${fmt(L.dw)}</text>`;
+  g+=`<text x="400" y="206" text-anchor="middle" font-size="13" fill="${L.sal?ok:mute}" font-weight="700">${DG.last?(L.sal?'💧流口水':'不流'):''}</text>`;
+  $('dog').innerHTML=g;
+  const bellOnly=DG.wB>=DG.th;
+  $('sDn').textContent=DG.n;$('sDw').textContent=fmt(DG.wB);$('sDy').innerHTML=bellOnly?'<span class="ok">會！</span>':'還不會';
+  if(!DG.last){$('tD').innerHTML='狗狗還沒有任何經驗：鈴聲對牠沒有意義（w<sub>鈴</sub> = 0）。';$('fD').innerHTML='';}
+  else{const what=L.bell&&L.food?'鈴聲和食物一起出現':L.bell?'只有鈴聲':'只有食物';
+    $('tD').innerHTML=`${what}：流口水神經元的總輸入 = ${fmt(L.z)} ${L.sal?'≥':'&lt;'} 門檻 0.5，所以${L.sal?'<b class="ok">流口水了</b>':'<b>沒有流口水</b>'}。`+
+      (L.dw>0?' 鈴聲神經元和流口水神經元<b class="ok">同時放電</b> → 鈴聲突觸變強！':L.bell?' 雖然鈴聲響了，但流口水神經元沒放電 → 鈴聲突觸<b>不變</b>。':' 鈴聲沒響，所以鈴聲突觸不變。')+
+      (L.bell&&!L.food&&L.sal?' 🎉 <b class="ok">只聽到鈴聲就流口水了——制約形成！</b>':'');
+    $('fD').innerHTML=`Δ<i class="m">w</i><sub>鈴</sub> = η · <i class="m">x</i><sub>鈴</sub> · <i class="m">y</i><sub>流口水</sub> = 0.1 × ${L.bell} × ${L.sal} = <b>${fmt(L.dw)}</b>　→　<i class="m">w</i><sub>鈴</sub> = ${fmt(L.before)} + ${fmt(L.dw)} = <b>${fmt(DG.wB)}</b>`;}
+  lineChart($('dw'),[{v:DG.ws,col:pos,dots:true}],Math.max(8,DG.ws.length-1),{top:1,hline:0.5,hlab:'門檻 0.5：超過後只搖鈴也會流口水',xl:'經驗次數'});
+}
+$('dB').onclick=()=>trial(1,0);$('dF').onclick=()=>trial(0,1);$('dBF').onclick=()=>trial(1,1);
+$('dR').onclick=()=>{DG.wB=0;DG.n=0;DG.ws=[0];DG.last=null;drawD();};
+
+/* ---------- 3. 衰減 ---------- */
+let LAM=0.1,ETA3=0.1;
+function draw3(){const N=60,a=[0],b=[0];for(let t=1;t<=N;t++){a.push(a[t-1]+ETA3);b.push(b[t-1]+ETA3-LAM*b[t-1]);}
+  const ws=ETA3/LAM;lineChart($('dec'),[{v:a,col:css('--bad')},{v:b,col:css('--ok')}],N,{ratio:0.6,maxH:300,top:Math.max(ws*1.6,2),hline:ws,hlab:`w* = η/λ = ${fmt(ws)}`,xl:'一起放電的次數'});
+  $('lv').textContent=LAM.toFixed(2);$('e3v').textContent=ETA3.toFixed(2);
+  $('s3').innerHTML=`📌 一起放電 60 次後：純赫布 w = <b class="bad">${fmt(a[N])}</b>（還在變大）；加上衰減 w = <b class="ok">${fmt(b[N])}</b>，穩定在 η·x·y/λ = ${ETA3.toFixed(2)}/${LAM.toFixed(2)} = <b>${fmt(ws)}</b> 附近。λ 越大，忘得越快，平衡值越低。`;}
+$('lam').addEventListener('input',e=>{LAM=+e.target.value;draw3();});$('e3').addEventListener('input',e=>{ETA3=+e.target.value;draw3();});
+
+/* ---------- 4. Hopfield 聯想記憶 ---------- */
+const PAT={H:'1000110001111111000110001',X:'1000101010001000101010001',L:'1000010000100001000011111',O:'0111010001100011000101110'};
+const PV={};Object.entries(PAT).forEach(([k,s])=>PV[k]=s.split('').map(c=>c==='1'?1:-1));
+let STORE=['H','X','L'],W=null,CUE=null,ST=null,ORD=[],K4=0,T4=null,SRC='H',NZ=5,seed4=7;
+const r4=()=>{seed4=(seed4*16807)%2147483647;return (seed4-1)/2147483646;};
+function buildW(){W=Array.from({length:25},()=>new Array(25).fill(0));STORE.forEach(k=>{const p=PV[k];for(let i=0;i<25;i++)for(let j=0;j<25;j++)if(i!==j)W[i][j]+=p[i]*p[j]/25;});}
+function cell(v,hl){return `background:${v>0?css('--accent'):css('--line')};${hl?'outline:3px solid '+css('--hl')+';outline-offset:1px':''}`;}
+function buildPats(){$('pats').innerHTML=Object.keys(PV).map(k=>`<label><input type="checkbox" data-k="${k}" ${STORE.includes(k)?'checked':''}><span class="mini">${PV[k].map(v=>`<i style="background:${v>0?css('--accent'):css('--line')}"></i>`).join('')}</span><b>${k}</b></label>`).join('');
+  $('pats').querySelectorAll('input').forEach(cb=>cb.onchange=()=>{STORE=[...$('pats').querySelectorAll('input:checked')].map(x=>x.dataset.k);if(!STORE.length){cb.checked=true;STORE=[cb.dataset.k];}
+    buildW();fillSrc();resetRecall();});}
+function fillSrc(){if(!STORE.includes(SRC))SRC=STORE[0];$('src').innerHTML=STORE.map(k=>`<option ${k===SRC?'selected':''}>${k}</option>`).join('');}
+function makeCue(){const p=PV[SRC].slice(),idx=[];while(idx.length<NZ){const k=Math.floor(r4()*25);if(!idx.includes(k))idx.push(k);}idx.forEach(k=>p[k]*=-1);CUE=p;resetRecall();}
+function resetRecall(){stop4();ST=CUE.slice();ORD=[];for(let s=0;s<3;s++){const o=[...Array(25).keys()];for(let i=24;i>0;i--){const j=Math.floor(r4()*(i+1));[o[i],o[j]]=[o[j],o[i]];}ORD.push(...o);}K4=0;HIST4=[ST.slice()];LASTI=-1;draw4();}
+let HIST4=[],LASTI=-1;
+function step4(){if(K4>=ORD.length)return false;const i=ORD[K4++],h=W[i].reduce((s,w,j)=>s+w*ST[j],0),old=ST[i];if(h!==0)ST[i]=h>0?1:-1;LASTI=i;LASTH=h;LASTCH=old!==ST[i];HIST4.push(ST.slice());return true;}
+let LASTH=0,LASTCH=false;
+function overlaps(){return STORE.map(k=>({k,m:PV[k].reduce((s,v,i)=>s+v*ST[i],0)/25}));}
+function draw4(){
+  $('cue').innerHTML=ST.map((v,i)=>`<div data-i="${i}" style="${cell(v,i===LASTI)}"></div>`).join('');
+  $('nzv').textContent=NZ;$('b4').style.width=(K4/ORD.length*100)+'%';
+  const ov=overlaps(),best=ov.reduce((a,b)=>b.m>a.m?b:a);
+  $('ov').innerHTML=ov.map(o=>`<div class="ov ${o===best?'top':''}"><b>${o.k}</b><div class="bar"><div style="width:${Math.max(0,o.m)*100}%"></div></div><span>${(o.m*100).toFixed(0)}%</span></div>`).join('');
+  const done=K4>0&&(()=>{for(let i=0;i<25;i++){const h=W[i].reduce((s,w,j)=>s+w*ST[j],0);if(h!==0&&(h>0?1:-1)!==ST[i])return false;}return true;})();
+  if(K4===0)$('t4').innerHTML=`這是殘缺的線索（和記憶「${SRC}」差了 ${PV[SRC].filter((v,i)=>v!==ST[i]).length} 格）。按「更新一個神經元」：每個神經元會看<b>其他神經元透過突觸傳來的總訊號</b>，正的就亮、負的就暗。`;
+  else{const r=Math.floor(LASTI/5)+1,c=LASTI%5+1;
+    $('t4').innerHTML=`第 ${K4} 次更新：第 ${r} 列第 ${c} 行的神經元收到總訊號 h = Σ w·x = <b>${fmt(LASTH)}</b> → ${LASTH>0?'亮':'暗'}${LASTCH?'（<b class="ok">翻轉了！</b>）':'（不變）'}。`+
+      (done?` <br>🎉 <b class="ok">網路穩定了！</b>回想出的圖案和「${best.k}」相似度 ${(best.m*100).toFixed(0)}%${best.m===1?'，完全正確！':'。'}`:'');}
+  if(done)stop4();
+}
+$('cue').addEventListener('pointerdown',e=>{const d=e.target.closest('[data-i]');if(!d)return;const i=+d.dataset.i;CUE=ST.slice();CUE[i]*=-1;resetRecall();});
+function stop4(){clearInterval(T4);T4=null;$('a4').textContent='▶ 自動回想';}
+$('n4').onclick=()=>{stop4();step4();draw4();};
+$('r4').onclick=()=>resetRecall();
+$('a4').onclick=()=>{if(T4){stop4();return;}if(K4>=ORD.length)resetRecall();$('a4').textContent='⏸ 暫停';T4=setInterval(()=>{if(!step4()){stop4();return;}draw4();},120);};
+$('src').onchange=e=>{SRC=e.target.value;makeCue();};
+$('nz').addEventListener('input',e=>{NZ=+e.target.value;$('nzv').textContent=NZ;});
+$('mk').onclick=makeCue;
+
+/* ---------- 赫布老師 ---------- */
+const HB_SVG=`<svg viewBox="0 0 200 230" aria-label="赫布老師動畫">
+ <g class="bodyg">
+  <path d="M10 232 Q16 176 100 164 Q184 176 190 232 Z" fill="#2b2e36"/>
+  <path d="M84 160 L100 232 L116 160 Z" fill="#f5f4f0"/>
+  <path d="M70 168 L100 212 L90 232 L52 232 Q58 196 70 168 Z M130 168 L100 212 L110 232 L148 232 Q142 196 130 168 Z" fill="#363a44" stroke="#1d1f25" stroke-width="1.2"/>
+  <path d="M95 166 L105 166 L108 176 L104 232 L96 232 L92 176 Z" fill="#3b3f4a"/>
+  <path d="M96 184 l6 4 M97 198 l6 4 M96 212 l6 4" stroke="#8a8f9c" stroke-width="1.6" stroke-linecap="round"/>
+  <rect x="87" y="130" width="26" height="34" rx="8" fill="#e6c0a4"/>
+  <path d="M84 156 L95 166 L90 174 Z M116 156 L105 166 L110 174 Z" fill="#fbfaf6" stroke="#d7d2c6" stroke-width="1"/>
+  <ellipse cx="67" cy="104" rx="6.5" ry="11" fill="#e6c0a4"/><ellipse cx="133" cy="104" rx="6.5" ry="11" fill="#e6c0a4"/>
+  <ellipse cx="100" cy="100" rx="32" ry="43" fill="#f0cdb2"/>
+  <path d="M74 66 Q86 56 100 56 Q114 56 126 66" stroke="#e2b89c" stroke-width="1.4" fill="none"/>
+  <ellipse class="blush" cx="81" cy="118" rx="6.5" ry="4.2" fill="#f08080"/>
+  <ellipse class="blush" cx="119" cy="118" rx="6.5" ry="4.2" fill="#f08080"/>
+  <path d="M67 98 Q60 60 80 46 Q100 36 120 46 Q140 60 133 98 Q131 80 125 70 Q116 60 100 59 Q84 60 75 70 Q69 80 67 98 Z" fill="#b8b5ae"/>
+  <path d="M78 54 Q100 42 122 54 M74 64 Q86 52 100 51 M126 64 Q114 52 100 51" stroke="#9e9b94" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+  <g class="hairL"><path d="M67 86 Q65 96 67 104 Q71 102 71 92 Z" fill="#a8a59f"/></g>
+  <g class="hairR"><path d="M133 86 Q135 96 133 104 Q129 102 129 92 Z" fill="#a8a59f"/></g>
+  <path class="brow browL" d="M76 84 Q85 80 94 83" stroke="#6b665e" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path class="brow browR" d="M106 83 Q115 80 124 84" stroke="#6b665e" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <g class="eyes"><ellipse cx="85" cy="96" rx="4.8" ry="3.3" fill="#fff"/><ellipse cx="115" cy="96" rx="4.8" ry="3.3" fill="#fff"/>
+   <circle cx="85.5" cy="96.3" r="2.6" fill="#3e3a36"/><circle cx="115.5" cy="96.3" r="2.6" fill="#3e3a36"/>
+   <circle cx="86.4" cy="95.2" r=".9" fill="#fff"/><circle cx="116.4" cy="95.2" r=".9" fill="#fff"/></g>
+  <path d="M72 89 Q72 86 76 86 L94 86 Q98 86 98 90 L97 101 Q96 106 91 106 L78 106 Q73 106 73 101 Z" fill="rgba(255,255,255,.1)" stroke="#16171b" stroke-width="3.4"/>
+  <path d="M102 90 Q102 86 106 86 L124 86 Q128 86 128 89 L127 101 Q127 106 122 106 L109 106 Q104 106 103 101 Z" fill="rgba(255,255,255,.1)" stroke="#16171b" stroke-width="3.4"/>
+  <path d="M72 87 L94 86 M106 86 L128 87" stroke="#16171b" stroke-width="5" stroke-linecap="round"/>
+  <path d="M98 92 Q100 90 102 92 M72 92 L67 94 M128 92 L133 94" stroke="#16171b" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+  <path d="M101 104 Q100 114 97 120 Q100 124 105 122 Q108 121 106 118" stroke="#c9987c" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M86 122 Q84 128 88 132 M114 122 Q116 128 112 132" stroke="#dcae92" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+  <path class="mo n" d="M90 131 Q100 135 110 130" stroke="#9a5446" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path class="mo s" d="M88 128 Q100 141 112 128 Q100 133 88 128 Z" fill="#9b3a2c" stroke="#8a4a3a" stroke-width="1.5" stroke-linejoin="round"/>
+  <path class="mo f" d="M90 135 Q100 127 110 135" stroke="#9a5446" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path class="sweat" d="M136 70 Q141 80 136 84 Q131 80 136 70 Z" fill="#7cc3f0"/>
+  <text class="spark" x="30" y="44" font-size="18" fill="#f0b400">✦</text>
+  <text class="spark" x="160" y="40" font-size="14" fill="#f0b400">✦</text>
+  <text class="spark" x="170" y="96" font-size="11" fill="#f0b400">✦</text>
+ </g></svg>`;
+function makeAvatar(el,bubble){
+  el.innerHTML=HB_SVG;let tm=null;
+  function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
+  return {mood(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
+    if(m==='smile'){el.classList.add('smile');restart('hop');}
+    if(m==='frown'){el.classList.add('frown');restart('shake');}
+    if(text!==undefined){bubble.innerHTML=text;bubble.className='bubble'+(m==='smile'?' good':m==='frown'?' bad':'');}
+    if(!hold)tm=setTimeout(()=>{el.classList.remove('smile','frown');bubble.className='bubble';},3200);}};
+}
+
+var AV1=makeAvatar($('av1'),$('bub1')),AV2=makeAvatar($('av2'),$('bub2'));
+const QUOTES=[
+ '我 1904 年出生在加拿大新斯科細亞省，後來在蒙特婁的麥基爾大學（McGill）教書和做研究。',
+ '1949 年，我出版了《行為的組織》（The Organization of Behavior），提出突觸會因為一起活化而增強的想法。',
+ '「Cells that fire together, wire together」這句順口的話其實不是我說的，是後來神經科學家夏茲（Carla Shatz）幫我濃縮的。',
+ '我還提出「細胞集群」（cell assembly）：一群經常一起放電的神經元會連成一個團隊，代表一個概念或記憶。',
+ '1973 年，科學家在兔子的海馬迴發現了「長期增強」（LTP）：反覆刺激後突觸真的會變強，替我的理論找到了生理證據。',
+ '我的規則不需要老師，所以是非監督式學習。羅森布拉特的感知器，就受到了這個想法的啟發。'];
+let qi=0;$('av1').onclick=()=>AV1.mood('smile',QUOTES[qi++%QUOTES.length]);
+
+/* ---------- 5. 小測驗 ---------- */
+const QZ=[
+ {q:'赫布理論的核心想法是什麼？',o:['經常同時活化的神經元，彼此的連結會增強','神經元越少用越強','只有老師糾正時連結才改變','神經元的數量會一直增加'],a:0,
+  e:'Cells that fire together, wire together。',h:'回第 0 節看那句英文口號。'},
+ {q:'在 Δw = η·x·y 中，什麼情況下 w 會增加？',o:['x 和 y 都活化（都等於 1）','只有 x 活化','只有 y 活化','兩個都不活化'],a:0,
+  e:'x·y 只有在兩者都是 1 時才是 1，其他情況都是 0。',h:'看第 1 節的表格，哪一列的 Δw 不是 0？'},
+ {q:'赫布學習需要「正確答案」或老師嗎？',o:['不需要，是非監督式學習','需要，每次都要老師給答案','只有第一次需要','需要先算梯度'],a:0,
+  e:'它只看兩個神經元是否一起活動，不需要標籤。',h:'和感知器的 y（正確答案）比較看看。'},
+ {q:'巴夫洛夫的狗為什麼最後「只聽到鈴聲」也會流口水？',o:['鈴聲和食物反覆一起出現，讓鈴聲→流口水的突觸被增強','狗的耳朵變得比較靈敏','食物的突觸變弱了','鈴聲本來就會讓狗流口水'],a:0,
+  e:'每次配對時，鈴聲神經元和流口水神經元同時放電，w鈴 一直增加到超過門檻。',h:'回第 2 節，先只搖鈴幾次，再一起出現幾次。'},
+ {q:'純赫布規則 Δw = η·x·y 有什麼問題？',o:['權重會無限變大，需要衰減或正規化','權重一定會變成負的','學習速度太慢無法使用','它只能用在兩個神經元'],a:0,
+  e:'Δw 永遠 ≥ 0，所以要加上遺忘項 −λw 等方式讓它穩定。',h:'看第 3 節紅色那條線。'},
+ {q:'在聯想記憶（Hopfield 網路）中，圖案是怎麼存起來的？',o:['用赫布規則 wᵢⱼ = Σ xᵢxⱼ，存在突觸權重裡','把圖案直接複製到每個神經元','存在一個獨立的硬碟裡','用梯度下降一步步訓練'],a:0,
+  e:'一起亮或一起暗的神經元之間連結變強，記憶就分散存在所有突觸裡。',h:'看第 4 節的公式。'},
+ {q:'哪一個生理現象被認為支持赫布理論？',o:['長期增強（LTP）','近視','肌肉痠痛','膝跳反射'],a:0,
+  e:'1973 年發現反覆刺激後突觸會長期增強，正是赫布預測的現象。',h:'點第 0 節的赫布老師聽故事。'}
+];
+const PRAISE=['Excellent！我們的突觸又變強了 😄','Well done！一起放電，一起答對！','Great！這條連結越來越穩固了！','Bravo！你的細胞集群運作良好！'];
+let sc=0,dn=0,streak=0;
+function shuffle(a){return a.map(v=>[Math.random(),v]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);}
+function buildQuiz(){sc=0;dn=0;streak=0;$('score').style.display='none';
+  $('quiz').innerHTML=QZ.map((z,i)=>{const ord=shuffle(z.o.map((t,j)=>j));
+    return `<div class="q"><div><b>Q${i+1}.</b> ${z.q}</div><div class="opts">${ord.map(j=>`<button data-q="${i}" data-o="${j}">${z.o[j]}</button>`).join('')}</div><div class="fb" id="fb${i}"></div></div>`;}).join('');}
+$('quiz').onclick=e=>{const b=e.target.closest('button');if(!b)return;const i=+b.dataset.q,j=+b.dataset.o,z=QZ[i],box=b.parentElement;if(box.dataset.done)return;box.dataset.done=1;dn++;
+  if(j===z.a){b.classList.add('right');sc++;streak++;$('fb'+i).innerHTML='✔ 正確！'+z.e;
+    AV2.mood('smile',streak>=3?`連對 ${streak} 題！你的「答對」神經元已經 wire together 了 🎉`:PRAISE[Math.floor(Math.random()*PRAISE.length)]);}
+  else{b.classList.add('wrong');streak=0;[...box.children].forEach(x=>{if(+x.dataset.o===z.a)x.classList.add('right');});$('fb'+i).innerHTML='✘ '+z.e;AV2.mood('frown',z.h);}
+  if(dn===QZ.length){$('scoreTxt').textContent=`得分：${sc} / ${QZ.length}`;$('score').style.display='flex';
+    setTimeout(()=>{if(sc===QZ.length)AV2.mood('smile','滿分！這些觀念已經牢牢連結在你的大腦裡了 🏆',true);
+      else if(sc>=QZ.length-2)AV2.mood('smile',`${sc} 分，很不錯！多複習幾次，連結就會更強。`,true);
+      else AV2.mood('frown','建議回到第 1、2 節多玩幾次——重複，正是讓突觸變強的方法！',true);},3300);}
+};
+$('retry').onclick=()=>{buildQuiz();AV2.mood('','新的一輪！選項順序都換過了喔。');};
+
+/* ---------- init ---------- */
+buildW();buildPats();fillSrc();makeCue();draw1();drawD();draw3();buildQuiz();
+function redraw(){draw1();drawD();draw3();buildPats();draw4();}
+let rz=null;window.addEventListener('resize',()=>{cancelAnimationFrame(rz);rz=requestAnimationFrame(()=>{draw1();drawD();draw3();});});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redraw);
+window.__HB={PV,W:()=>W,STORE:()=>STORE,ST:()=>ST,CUE:()=>CUE,ORD:()=>ORD,step4,DG};
+</script>
+</body>
+</html>

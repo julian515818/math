@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>梯度下降：互動下山動畫</title>
+  <style>
+    :root{
+      --bg:#eef4f8;
+      --panel:#ffffff;
+      --card:#f8fbfd;
+      --border:#d7e1e8;
+      --text:#183043;
+      --muted:#687b88;
+      --accent:#2d6cdf;
+      --accent-soft:#e8f0ff;
+      --red:#c7423c;
+      --blue:#315b9a;
+      --green:#187347;
+      --shadow:0 8px 26px rgba(0,0,0,.08);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft JhengHei",sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    .wrap{
+      width:min(1400px,96vw);
+      margin:20px auto;
+    }
+    .title{
+      background:linear-gradient(90deg,#163a72,#21578f);
+      color:#fff;
+      padding:18px 24px;
+      border-radius:18px;
+      font-size:clamp(24px,3vw,42px);
+      font-weight:800;
+      text-align:center;
+      box-shadow:var(--shadow);
+    }
+    .subtitle{
+      margin:10px 2px 18px;
+      color:var(--muted);
+      text-align:center;
+      font-size:16px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns:minmax(0,1.45fr) minmax(330px,.8fr);
+      gap:18px;
+      align-items:start;
+    }
+    .panel{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .panelHead{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+      padding:14px 18px;
+      border-bottom:1px solid var(--border);
+    }
+    .panelHead h2,.card h3{margin:0}
+    .status{
+      padding:6px 11px;
+      background:#edf2f5;
+      border-radius:999px;
+      font-size:14px;
+      font-weight:700;
+      white-space:nowrap;
+    }
+    .scene{display:block;width:100%;height:auto;background:#cce2ef}
+    .side{display:grid;gap:16px}
+    .card{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:16px;
+      box-shadow:var(--shadow);
+    }
+    .formula{
+      margin-top:12px;
+      background:#eef3f6;
+      border-radius:12px;
+      padding:12px;
+      text-align:center;
+      font-size:20px;
+      font-weight:800;
+    }
+    .stats{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-top:12px;
+    }
+    .stat{
+      background:#f1f5f7;
+      border-radius:12px;
+      padding:11px;
+      min-width:0;
+    }
+    .label{font-size:13px;color:var(--muted)}
+    .value{margin-top:4px;font-weight:800;overflow-wrap:anywhere}
+    .controls label{
+      display:flex;
+      justify-content:space-between;
+      font-weight:700;
+      gap:10px;
+    }
+    input[type=range]{width:100%;margin:14px 0 2px}
+    .rangeNotes{
+      display:flex;
+      justify-content:space-between;
+      font-size:12px;
+      color:var(--muted);
+      gap:10px;
+    }
+    .buttons{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:16px;
+    }
+    button{
+      min-height:44px;
+      border-radius:12px;
+      padding:9px 14px;
+      border:1px solid var(--border);
+      background:#f4f7f9;
+      color:var(--text);
+      font-weight:800;
+      cursor:pointer;
+      font-size:15px;
+    }
+    button.primary{
+      background:var(--accent-soft);
+      border-color:#bed0f5;
+    }
+    button:hover{filter:brightness(.98)}
+    button:focus{outline:3px solid rgba(45,108,223,.2)}
+    .hint{margin-top:12px;color:var(--muted);font-size:14px;line-height:1.55}
+    ol{padding-left:22px;margin-bottom:0}
+    li{margin:8px 0;line-height:1.45}
+    .bottom{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:18px;
+      margin-top:18px;
+    }
+    .math{
+      margin-top:12px;
+      background:#eef3f6;
+      border-radius:12px;
+      padding:12px;
+      font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+      line-height:1.8;
+    }
+    @media(max-width:980px){
+      .grid,.bottom{grid-template-columns:1fr}
+    }
+    @media(max-width:540px){
+      .wrap{width:98vw;margin:8px auto}
+      .title{border-radius:12px;padding:14px 12px}
+      .stats{grid-template-columns:1fr}
+      .panelHead{align-items:flex-start;flex-direction:column}
+    }
+  </style>
+<style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line,#e3e1da);border-radius:12px;background:var(--card,var(--surface,#fff));color:var(--ink,#1d2330);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+.pu-badge img{width:58px;height:58px;display:block}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute,var(--muted,#667085))}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+
+.pu-hd{margin-bottom:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="pu-hd"><div class="pu-hd-main"><div class="title">用下山景象理解梯度下降 Gradient Descent</div>
+  <div class="subtitle">人物每一步都依照目前位置的負梯度方向移動，直到抵達 Loss 最低點。</div></div>
+  <div class="pu-badge"><img alt="靜宜大學校徽" src="data:image/webp;base64,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"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</div>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="panelHead">
+        <div>
+          <h2>登山者依負梯度方向下山</h2>
+          <div class="label">紅色箭頭 = −∇L，下山最快方向；藍色箭頭 = ∇L，上升最快方向。</div>
+        </div>
+        <div id="gd-status" class="status" aria-live="polite">準備開始</div>
+      </div>
+
+      <svg id="gd-scene" viewBox="0 0 760 520" class="scene" role="img" aria-label="登山者沿著負梯度方向逐步走向山谷最低點的動畫">
+        <defs>
+          <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#b9daf1"/>
+            <stop offset="1" stop-color="#eef6f8"/>
+          </linearGradient>
+          <linearGradient id="farMountain" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#718b8a"/>
+            <stop offset="1" stop-color="#b4c3ac"/>
+          </linearGradient>
+          <linearGradient id="nearMountain" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#66765a"/>
+            <stop offset=".55" stop-color="#8c9567"/>
+            <stop offset="1" stop-color="#59654b"/>
+          </linearGradient>
+          <linearGradient id="trailGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#d9cfad"/>
+            <stop offset="1" stop-color="#9f916f"/>
+          </linearGradient>
+          <filter id="softShadow" x="-40%" y="-40%" width="180%" height="180%">
+            <feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity=".28"/>
+          </filter>
+          <marker id="arrowRed" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L9,3 z" fill="#c2413b"/>
+          </marker>
+          <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L9,3 z" fill="#315b9a"/>
+          </marker>
+        </defs>
+
+        <rect width="760" height="520" fill="url(#sky)"/>
+        <circle cx="635" cy="82" r="38" fill="#f5e6a7" opacity=".75"/>
+        <path d="M0 260 L95 160 L162 220 L248 126 L338 232 L430 145 L520 220 L610 118 L760 250 L760 520 L0 520 Z" fill="url(#farMountain)" opacity=".58"/>
+        <path d="M0 360 C90 280 148 205 222 176 C300 147 335 265 410 284 C488 304 514 215 575 196 C638 177 692 279 760 319 L760 520 L0 520 Z" fill="url(#nearMountain)"/>
+        <path d="M88 324 C160 270 210 240 274 264 C335 288 365 351 428 367 C493 383 553 333 630 344" fill="none" stroke="url(#trailGrad)" stroke-width="22" stroke-linecap="round" opacity=".9"/>
+        <path d="M88 324 C160 270 210 240 274 264 C335 288 365 351 428 367 C493 383 553 333 630 344" fill="none" stroke="#f0e4bf" stroke-width="5" stroke-dasharray="4 8" stroke-linecap="round" opacity=".9"/>
+
+        <g opacity=".38" fill="none" stroke="#f3f1d7" stroke-width="1.7">
+          <ellipse cx="435" cy="350" rx="236" ry="105"/>
+          <ellipse cx="435" cy="350" rx="188" ry="82"/>
+          <ellipse cx="435" cy="350" rx="142" ry="61"/>
+          <ellipse cx="435" cy="350" rx="92" ry="39"/>
+          <ellipse cx="435" cy="350" rx="43" ry="18"/>
+        </g>
+
+        <polyline id="gd-path" points="" fill="none" stroke="#d94b43" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity=".88"/>
+        <g id="gd-dots"></g>
+
+        <g id="grad-arrow" pointer-events="none">
+          <line id="grad-line" x1="0" y1="0" x2="0" y2="0" stroke="#315b9a" stroke-width="5" marker-end="url(#arrowBlue)"/>
+          <rect id="grad-label-bg" x="0" y="0" width="132" height="34" rx="10" fill="white" opacity=".91"/>
+          <text id="grad-label" x="0" y="0" font-size="16" font-weight="700" fill="#244d84">∇L：最陡上坡</text>
+        </g>
+        <g id="neg-grad-arrow" pointer-events="none">
+          <line id="neg-grad-line" x1="0" y1="0" x2="0" y2="0" stroke="#c2413b" stroke-width="6" marker-end="url(#arrowRed)"/>
+          <rect id="neg-label-bg" x="0" y="0" width="158" height="34" rx="10" fill="white" opacity=".93"/>
+          <text id="neg-label" x="0" y="0" font-size="16" font-weight="700" fill="#a4332e">−∇L：下山最快</text>
+        </g>
+
+        <g id="hiker" filter="url(#softShadow)" transform="translate(0 0)">
+          <ellipse cx="0" cy="23" rx="15" ry="5" fill="#263238" opacity=".25"/>
+          <circle cx="0" cy="-26" r="9" fill="#e1b58c"/>
+          <path d="M-7 -34 Q0 -42 8 -33 L7 -28 L-7 -28 Z" fill="#293845"/>
+          <path d="M-10 -16 Q0 -22 10 -16 L8 10 L-8 10 Z" fill="#2f628c"/>
+          <rect x="-18" y="-16" width="9" height="25" rx="4" fill="#a13f35" transform="rotate(8 -18 -16)"/>
+          <line x1="-6" y1="10" x2="-12" y2="29" stroke="#313b40" stroke-width="6" stroke-linecap="round"/>
+          <line x1="7" y1="10" x2="14" y2="28" stroke="#313b40" stroke-width="6" stroke-linecap="round"/>
+          <line x1="8" y1="-10" x2="21" y2="5" stroke="#d7a77f" stroke-width="5" stroke-linecap="round"/>
+          <line x1="21" y1="5" x2="27" y2="29" stroke="#584b3d" stroke-width="3" stroke-linecap="round"/>
+        </g>
+
+        <g>
+          <circle cx="435" cy="350" r="8" fill="#177245" stroke="white" stroke-width="3"/>
+          <line x1="435" y1="350" x2="435" y2="305" stroke="#554a3c" stroke-width="4"/>
+          <path d="M437 306 L478 317 L437 329 Z" fill="#c2413b"/>
+          <rect x="453" y="335" width="177" height="48" rx="12" fill="white" opacity=".9"/>
+          <text x="466" y="355" font-size="16" font-weight="700" fill="#173329">山谷最低點 θ*</text>
+          <text x="466" y="374" font-size="14" fill="#4e5b54">Loss 最小，梯度 ≈ 0</text>
+        </g>
+
+        <rect x="18" y="18" width="247" height="75" rx="14" fill="white" opacity=".9"/>
+        <text x="34" y="43" font-size="18" font-weight="700" fill="#213744">直覺：</text>
+        <text x="34" y="66" font-size="16" fill="#314956">梯度 ∇L 指向最陡上坡</text>
+        <text x="34" y="87" font-size="16" fill="#9b342f" font-weight="700">梯度下降走 −∇L，最快下山</text>
+      </svg>
+    </section>
+
+    <aside class="side">
+      <section class="card">
+        <h3>梯度下降更新式</h3>
+        <div class="formula">θ⁽ᵗ⁺¹⁾ = θ⁽ᵗ⁾ − η ∇L(θ⁽ᵗ⁾)</div>
+        <div class="stats">
+          <div class="stat"><div class="label">目前位置</div><div id="pos-value" class="value">θ = (−3.40, 2.50)</div></div>
+          <div class="stat"><div class="label">Loss</div><div id="loss-value" class="value">—</div></div>
+          <div class="stat"><div class="label">梯度 ∇L</div><div id="grad-value" class="value">—</div></div>
+          <div class="stat"><div class="label">迭代</div><div id="iter-value" class="value">0</div></div>
+        </div>
+      </section>
+
+      <section class="card controls">
+        <label for="lr"><span>學習率 η</span><output id="lr-output" for="lr">0.18</output></label>
+        <input id="lr" type="range" min="0.03" max="0.55" value="0.18" step="0.01" />
+        <div class="rangeNotes"><span>小：穩定但較慢</span><span>大：步伐較大</span></div>
+        <div class="buttons">
+          <button id="play-btn" class="primary" type="button">▶ 自動下山</button>
+          <button id="step-btn" type="button">單步</button>
+          <button id="reset-btn" type="button">重設</button>
+        </div>
+        <div id="validation" class="hint">觀察紅色箭頭：它永遠是目前梯度的反方向。</div>
+      </section>
+
+      <section class="card">
+        <h3>目前這一步發生什麼？</h3>
+        <ol>
+          <li><b>計算坡度：</b>求目前位置的 ∇L。</li>
+          <li><b>找下山方向：</b>取反方向 −∇L。</li>
+          <li><b>決定步長：</b>乘上學習率 η。</li>
+          <li><b>更新位置：</b>走到新的 θ，再重複一次。</li>
+        </ol>
+      </section>
+    </aside>
+  </div>
+
+  <div class="bottom">
+    <section class="card">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline">
+        <h3>Loss 隨迭代下降</h3><span class="label">越低越接近谷底</span>
+      </div>
+      <svg id="loss-chart" viewBox="0 0 520 180" style="display:block;width:100%;height:auto;margin-top:8px" aria-label="Loss 對迭代次數曲線">
+        <line x1="42" y1="15" x2="42" y2="150" stroke="#7a858b" stroke-width="1.5"/>
+        <line x1="42" y1="150" x2="505" y2="150" stroke="#7a858b" stroke-width="1.5"/>
+        <text x="8" y="23" font-size="13" fill="#657178">Loss</text>
+        <text x="450" y="171" font-size="13" fill="#657178">iteration</text>
+        <polyline id="loss-line" points="" fill="none" stroke="#315b9a" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+      </svg>
+    </section>
+
+    <section class="card">
+      <h3>數學模型</h3>
+      <p class="hint">動畫背後使用二維碗狀 Loss surface，因此每一步都有真正可計算的梯度。</p>
+      <div class="math">
+        L(θ₁,θ₂) = 0.55(θ₁−0.8)² + 0.25(θ₂+0.6)²<br>
+        ∇L = [1.10(θ₁−0.8), 0.50(θ₂+0.6)]ᵀ
+      </div>
+      <p class="hint"><b>關鍵：</b>∇L 是「上升最快」方向；真正的梯度下降沿 <b>−∇L</b> 前進，因此人物會朝 Loss 降低最快的方向走。</p>
+    </section>
+  </div>
+</div>
+
+<script>
+(() => {
+  const root = document;
+  const hiker = root.querySelector('#hiker');
+  const pathEl = root.querySelector('#gd-path');
+  const dotsEl = root.querySelector('#gd-dots');
+  const gradLine = root.querySelector('#grad-line');
+  const negLine = root.querySelector('#neg-grad-line');
+  const gradLabel = root.querySelector('#grad-label');
+  const gradBg = root.querySelector('#grad-label-bg');
+  const negLabel = root.querySelector('#neg-label');
+  const negBg = root.querySelector('#neg-label-bg');
+  const playBtn = root.querySelector('#play-btn');
+  const stepBtn = root.querySelector('#step-btn');
+  const resetBtn = root.querySelector('#reset-btn');
+  const lr = root.querySelector('#lr');
+  const lrOutput = root.querySelector('#lr-output');
+  const status = root.querySelector('#gd-status');
+  const posValue = root.querySelector('#pos-value');
+  const lossValue = root.querySelector('#loss-value');
+  const gradValue = root.querySelector('#grad-value');
+  const iterValue = root.querySelector('#iter-value');
+  const lossLine = root.querySelector('#loss-line');
+  const validation = root.querySelector('#validation');
+
+  const start = {x:-3.4, y:2.5};
+  const optimum = {x:0.8, y:-0.6};
+  let theta = {...start};
+  let iteration = 0;
+  let history = [];
+  let losses = [];
+  let timer = null;
+  let playing = false;
+
+  const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function loss(p){
+    return 0.55 * (p.x - 0.8) ** 2 + 0.25 * (p.y + 0.6) ** 2;
+  }
+
+  function gradient(p){
+    return {x:1.10 * (p.x - 0.8), y:0.50 * (p.y + 0.6)};
+  }
+
+  function project(p){
+    const dx = p.x - optimum.x;
+    const dy = p.y - optimum.y;
+    const l = loss(p);
+    const sx = 435 + 56 * dx - 24 * dy;
+    const sy = 350 - Math.min(205, l * 12.5) + 9 * dx + 5 * dy;
+    return {
+      x:Math.max(55, Math.min(700, sx)),
+      y:Math.max(115, Math.min(430, sy))
+    };
+  }
+
+  function fmt(v){
+    const z = Math.abs(v) < 0.0005 ? 0 : v;
+    return z.toFixed(3);
+  }
+
+  function renderHiker(p, animate=true){
+    const s = project(p);
+    hiker.style.transition = animate && !reducedMotion
+      ? 'transform 520ms cubic-bezier(.2,.75,.25,1)'
+      : 'none';
+    hiker.setAttribute('transform', `translate(${s.x} ${s.y - 18})`);
+    return s;
+  }
+
+  function setArrow(line, bg, text, from, vx, vy, scale, offsetY){
+    const mag = Math.hypot(vx, vy) || 1;
+    const ex = from.x + vx / mag * scale;
+    const ey = from.y + vy / mag * scale;
+    line.setAttribute('x1', from.x);
+    line.setAttribute('y1', from.y - 30);
+    line.setAttribute('x2', ex);
+    line.setAttribute('y2', ey - 30);
+
+    const lx = Math.max(12, Math.min(585, ex + 8));
+    const ly = Math.max(110, Math.min(470, ey + offsetY));
+    bg.setAttribute('x', lx);
+    bg.setAttribute('y', ly - 24);
+    text.setAttribute('x', lx + 9);
+    text.setAttribute('y', ly - 2);
+  }
+
+  function updateArrows(){
+    const g = gradient(theta);
+    const s = project(theta);
+    const gScreenX = 56*g.x - 24*g.y;
+    const gScreenY = 9*g.x + 5*g.y - 20;
+
+    setArrow(gradLine, gradBg, gradLabel, s, gScreenX, gScreenY, 72, -8);
+    setArrow(negLine, negBg, negLabel, s, -gScreenX, -gScreenY, 88, 42);
+  }
+
+  function updatePath(){
+    pathEl.setAttribute('points', history.map(p => {
+      const s = project(p);
+      return `${s.x},${s.y-18}`;
+    }).join(' '));
+
+    dotsEl.innerHTML = history.slice(0,-1).map((p,i) => {
+      const s = project(p);
+      return `<circle cx="${s.x}" cy="${s.y-18}" r="${i===0?7:4}" fill="#d94b43" stroke="white" stroke-width="2"/>`;
+    }).join('');
+  }
+
+  function updateChart(){
+    if (!losses.length) return;
+    const maxL = Math.max(...losses, 0.01);
+    const pts = losses.map((v,i) => {
+      const x = 48 + (457 * i / Math.max(1, losses.length-1));
+      const y = 145 - (124 * v / maxL);
+      return `${x},${y}`;
+    }).join(' ');
+    lossLine.setAttribute('points', pts);
+  }
+
+  function updateReadout(){
+    const g = gradient(theta);
+    const l = loss(theta);
+    posValue.textContent = `θ = (${fmt(theta.x)}, ${fmt(theta.y)})`;
+    lossValue.textContent = fmt(l);
+    gradValue.textContent = `[${fmt(g.x)}, ${fmt(g.y)}]`;
+    iterValue.textContent = String(iteration);
+    updateArrows();
+    updatePath();
+    updateChart();
+  }
+
+  function converged(){
+    const g = gradient(theta);
+    return Math.hypot(g.x,g.y) < 0.045 || iteration >= 80;
+  }
+
+  function stop(){
+    if (timer) clearInterval(timer);
+    timer = null;
+    playing = false;
+    playBtn.textContent = '▶ 自動下山';
+  }
+
+  function doStep(){
+    if (converged()){
+      stop();
+      status.textContent = '已到達谷底';
+      validation.textContent = '此時梯度已非常接近 0，參數幾乎不再移動。';
+      return;
+    }
+
+    const eta = Math.max(0.03, Math.min(0.55, Number(lr.value) || 0.18));
+    const g = gradient(theta);
+
+    theta = {
+      x: theta.x - eta*g.x,
+      y: theta.y - eta*g.y
+    };
+
+    iteration += 1;
+    history.push({...theta});
+    losses.push(loss(theta));
+
+    renderHiker(theta, true);
+    updateReadout();
+    status.textContent = `第 ${iteration} 步：沿 −∇L 下山`;
+
+    if (converged()){
+      stop();
+      status.textContent = '收斂：抵達山谷最低點';
+      validation.textContent = '完成：Loss 已接近最小值，∇L ≈ 0。';
+    }
+  }
+
+  function reset(){
+    stop();
+    theta = {...start};
+    iteration = 0;
+    history = [{...theta}];
+    losses = [loss(theta)];
+    renderHiker(theta, false);
+    updateReadout();
+    status.textContent = '準備開始';
+    validation.textContent = '觀察紅色箭頭：它永遠是目前梯度的反方向。';
+  }
+
+  lr.addEventListener('input', () => {
+    const v = Math.max(0.03, Math.min(0.55, Number(lr.value) || 0.18));
+    lr.value = v.toFixed(2);
+    lrOutput.textContent = v.toFixed(2);
+
+    if (v < 0.10){
+      validation.textContent = '學習率較小：每步較短，下降穩定但需要更多迭代。';
+    } else if (v > 0.38){
+      validation.textContent = '學習率較大：每步更遠；在更複雜的 Loss surface 上可能產生震盪。';
+    } else {
+      validation.textContent = '這個學習率兼顧步長與穩定性。';
+    }
+  });
+
+  stepBtn.addEventListener('click', () => {
+    stop();
+    doStep();
+  });
+
+  playBtn.addEventListener('click', () => {
+    if (playing){
+      stop();
+      status.textContent = '已暫停';
+      return;
+    }
+    playing = true;
+    playBtn.textContent = '⏸ 暫停';
+    status.textContent = '自動下山中';
+    doStep();
+    if (!converged()){
+      timer = setInterval(doStep, reducedMotion ? 900 : 650);
+    }
+  });
+
+  resetBtn.addEventListener('click', reset);
+
+  lrOutput.textContent = Number(lr.value).toFixed(2);
+  reset();
+})();
+</script>
+</body>
+</html>

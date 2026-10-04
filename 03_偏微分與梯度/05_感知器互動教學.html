@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>感知器互動教學</title>
+<style>
+:root{
+  --bg:#f7f6f2;--card:#fff;--ink:#1d2330;--mute:#667085;--line:#e3e1da;--ok:#1f9d6b;--bad:#d6334f;
+  --grid:#eceae4;--axis:#9aa0ab;--accent:#2f6fdb;--tint:#eaf1fc;
+  --pos:#2f6fdb;--neg:#d6334f;--c1:#2f6fdb;--c0:#e07a1f;--r1:rgba(47,111,219,.13);--r0:rgba(224,122,31,.13);--hl:#8b45d6;--fw:#2f6fdb;
+}
+media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+    --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+    --pos:#6c9dff;--neg:#ff6f86;--c1:#6c9dff;--c0:#ffa552;--r1:rgba(108,157,255,.16);--r0:rgba(255,165,82,.16);--hl:#b98bff;--fw:#6c9dff;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+  --pos:#6c9dff;--neg:#ff6f86;--c1:#6c9dff;--c0:#ffa552;--r1:rgba(108,157,255,.16);--r0:rgba(255,165,82,.16);--hl:#b98bff;--fw:#6c9dff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.9rem}
+header p{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:18px}
+.card h2{margin:0 0 12px;font-size:1.22rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:.9rem;flex:none}
+h3{margin:0 0 6px;font-size:1.05rem}
+.m{font-family:"Times New Roman","Cambria Math",serif;font-style:italic}
+.def{font-size:1.15rem;text-align:center;padding:14px;border-radius:10px;background:var(--tint);line-height:2.1}
+.note{color:var(--mute);font-size:.92rem}
+.ok{color:var(--ok)}.bad{color:var(--bad)}.c1{color:var(--c1)}.c0{color:var(--c0)}.hl{color:var(--hl)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start}
+.two>*{min-width:0}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.three>div{border:2px solid var(--line);border-radius:12px;padding:10px 14px}
+.three b.t{display:block;color:var(--accent)}
+media (max-width:860px){.two,.three{grid-template-columns:minmax(0,1fr)}}
+.cvbox{width:100%;min-width:0}.sq{max-width:440px;margin:0 auto}
+canvas{width:100%;display:block;border-radius:10px;background:var(--bg);touch-action:none}
+svg.net{width:100%;height:auto;display:block}
+.netbox{overflow-x:auto}.netbox svg{min-width:420px}
+label{font-size:.92rem;color:var(--mute);display:block}
+label b{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 12px}
+button{cursor:pointer}button:hover{border-color:var(--accent)}
+button.pri,button.on{background:var(--accent);color:#fff;border-color:transparent}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(170px,100%),1fr));gap:10px 18px;align-items:end}
+.say{margin-top:10px;padding:10px 14px;border-left:4px solid var(--ok);background:var(--bg);border-radius:8px}
+.formula{font-size:1.08rem;line-height:2.2;overflow-x:auto;padding:4px 2px}
+.tog{display:flex;gap:6px}.tog button{min-width:48px}
+.tblwrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.95rem;font-variant-numeric:tabular-nums}
+th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:center}
+th{color:var(--mute);font-weight:600}
+tr.cur td{background:var(--tint);font-weight:700}
+.btab td{vertical-align:top}
+.chip{display:inline-block;min-width:26px;padding:0 8px;border-radius:999px;color:#fff;font-weight:700}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.85rem;color:var(--mute);margin-top:6px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;margin-right:5px}
+/* quiz */
+.quiz .q{padding:12px 0;border-bottom:1px solid var(--line)}
+.quiz .q:last-child{border:none}
+.opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.opts button.right{background:var(--ok);color:#fff;border-color:transparent}
+.opts button.wrong{background:var(--bad);color:#fff;border-color:transparent}
+.fb{font-size:.92rem;margin-top:6px;min-height:1.2em}
+.score{margin-top:12px;font-size:1.15rem;font-weight:700;display:none;align-items:center;gap:12px;flex-wrap:wrap}
+footer{color:var(--mute);font-size:.85rem;text-align:center;margin-top:30px}
+/* ---------- avatar ---------- */
+.avwrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.av{width:100%;max-width:220px;cursor:pointer;user-select:none}
+.av svg{width:100%;display:block;overflow:visible;background:none}
+.av .bodyg{animation:bob 3.2s ease-in-out infinite;transform-origin:100px 200px}
+.av .eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+.av .hairL{animation:sway 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:top center}
+.av .hairR{animation:sway 3.2s ease-in-out infinite reverse;transform-box:fill-box;transform-origin:top center}
+.av .brow{transition:transform .3s;transform-box:fill-box}
+.av .browL{transform-origin:right center}.av .browR{transform-origin:left center}
+.av .mo{opacity:0;transition:opacity .25s}.av .mo.n{opacity:1}
+.av .blush,.av .sweat,.av .spark{opacity:0;transition:opacity .3s}
+.av.smile .mo.n,.av.frown .mo.n{opacity:0}
+.av.smile .mo.s{opacity:1}.av.frown .mo.f{opacity:1}
+.av.smile .blush{opacity:.55}.av.smile .spark{opacity:1}.av.frown .sweat{opacity:.9}
+.av.smile .brow{transform:translateY(-3px)}
+.av.frown .browL{transform:rotate(14deg) translateY(2px)}.av.frown .browR{transform:rotate(-14deg) translateY(2px)}
+.av.hop svg{animation:hop .7s ease}
+.av.shake svg{animation:shake .55s ease}
+.av .spark{animation:twinkle 1s ease-in-out infinite}
+keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+keyframes blink{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}
+keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.bubble{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.95rem;margin-bottom:10px;min-height:2.6em;max-width:260px;text-align:center;transition:border-color .3s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--line);border-bottom:0}
+.bubble.good{border-color:var(--ok)}.bubble.good::after{border-top-color:var(--ok)}
+.bubble.bad{border-color:var(--bad)}.bubble.bad::after{border-top-color:var(--bad)}
+.intro{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:center}
+.intro>*,.qgrid>*{min-width:0}
+.intro .avwrap{flex-direction:row;gap:10px}.intro .bubble{flex:1;margin:0}.intro .bubble::after{display:none}.intro .av{width:125px;flex:none}
+.qgrid{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:18px;align-items:start}
+.qgrid .avwrap{position:sticky;top:12px}
+media (max-width:860px){.intro,.qgrid{grid-template-columns:minmax(0,1fr)}.intro .avwrap{flex-direction:column}.intro .bubble{margin-bottom:10px}.intro .bubble::after{display:block}.intro .av,.qgrid .av{width:auto;max-width:140px}.qgrid .avwrap{position:static;order:-1}}
+</style>
+<style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line,#e3e1da);border-radius:12px;background:var(--card,var(--surface,#fff));color:var(--ink,#1d2330);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+.pu-badge img{width:58px;height:58px;display:block}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute,var(--muted,#667085))}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="pu-hd">
+  <div class="pu-hd-main">
+  <h1>感知器（Perceptron）互動教學</h1>
+  <p>工程數學 ・ 互動教學：一個模仿大腦神經元、會「加權投票」的人工神經元</p>
+</div>
+  <div class="pu-badge"><img alt="靜宜大學校徽" src="data:image/webp;base64,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"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</header>
+
+<!-- 0 -->
+<section class="card">
+  <h2><span class="num">0</span>一句話直覺：加權投票，過門檻就說「是」</h2>
+  <div class="intro">
+    <div>
+      <div class="def">
+        <i class="m">z</i> = <i class="m">w</i>₁<i class="m">x</i>₁ + <i class="m">w</i>₂<i class="m">x</i>₂ + <i class="m">b</i>
+        <i class="m">ŷ</i> = { 1　若 <i class="m">z</i> ≥ 0；　0　若 <i class="m">z</i> &lt; 0 }
+      </div>
+      <div class="three">
+        <div><b class="t">① 輸入 × 權重</b>每個輸入 <i class="m">x</i> 都有一個權重 <i class="m">w</i>，代表「這個理由有多重要」，可正可負。</div>
+        <div><b class="t">② 加總 + 偏差</b>全部加起來再加上偏差 <i class="m">b</i>（門檻的高低），得到總分 <i class="m">z</i>。</div>
+        <div><b class="t">③ 階梯函數</b>總分 ≥ 0 就輸出 1（是），否則輸出 0（否）。</div>
+      </div>
+      <p class="note">感知器模仿大腦的神經元：樹突收集訊號（輸入），細胞體加總（Σ），超過門檻就發出脈衝（輸出 1）。第 1 節會把兩者並排對照。</p>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub1">Hi！我是羅森布拉特（Frank Rosenblatt）。點我聽故事！</div><div class="av" id="av1"></div></div>
+  </div>
+</section>
+
+<!-- 1 -->
+<section class="card">
+  <h2><span class="num">1</span>感知器 vs. 生物神經元：一一對照</h2>
+  <p style="margin-top:0">感知器的靈感來自大腦的<b>神經元</b>（Neuron）。點下方的輸入開關，再按「▶ 送出訊號」，看訊號怎麼在<b>兩邊同時流動</b>；滑過或點選表格的任一列，兩張圖對應的部位會一起亮起來。</p>
+  <div class="row" style="margin-bottom:8px">
+    <span class="note">輸入訊號：</span>
+    <b>x₁</b><div class="tog" id="bx1"><button data-v="0">0</button><button data-v="1">1</button></div>
+    <b>x₂</b><div class="tog" id="bx2"><button data-v="0">0</button><button data-v="1">1</button></div>
+    <b>x₃</b><div class="tog" id="bx3"><button data-v="0">0</button><button data-v="1">1</button></div>
+    <button id="fire" class="pri">▶ 送出訊號</button>
+  </div>
+  <div class="two">
+    <div>
+      <h3>🧠 生物神經元</h3>
+      <div class="netbox"><svg class="net" id="bio" viewBox="0 0 520 280"></svg></div>
+    </div>
+    <div>
+      <h3>🤖 感知器</h3>
+      <div class="netbox"><svg class="net" id="per" viewBox="0 0 520 260"></svg></div>
+    </div>
+  </div>
+  <div class="say" id="bsay"></div>
+  <h3 style="margin-top:14px">對照表</h3>
+  <div class="tblwrap"><table id="btab" class="btab"></table></div>
+  <h3 style="margin-top:14px">但是，感知器是「非常簡化」的神經元</h3>
+  <div class="three" style="grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr))">
+    <div><b class="t">訊號形式</b>真正的神經元發出一連串電脈衝，資訊藏在<b>放電頻率與時間</b>裡；感知器只輸出一個 0 或 1。</div>
+    <div><b class="t">規模</b>人腦約有 <b>860 億</b>個神經元，每個神經元可有上千到上萬個突觸；一個感知器只有幾個輸入。</div>
+    <div><b class="t">學習方式</b>大腦靠<b>突觸可塑性</b>改變連結強度（赫布：一起放電的神經元，連結會變強）；感知器用數學規則調整權重。</div>
+    <div><b class="t">化學與時間</b>真神經元有神經傳導物質、不反應期、訊號會隨時間衰減；感知器每次計算都是瞬間、獨立的。</div>
+    <div><b class="t">能量</b>人腦整體只用約 <b>20 瓦</b>的功率，比一顆電燈泡還省；訓練大型人工網路卻要耗費大量電力。</div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="card">
+  <h2><span class="num">2</span>一個感知器怎麼算？——要不要出門慢跑</h2>
+  <p style="margin-top:0">輸入 <i class="m">x</i>₁ = 天氣晴朗嗎、<i class="m">x</i>₂ = 有朋友一起嗎（1 = 是、0 = 否）。調整權重和偏差，看感知器怎麼做決定：</p>
+  <div class="two">
+    <div>
+      <div class="netbox"><svg class="net" id="net1" viewBox="0 0 520 260"></svg></div>
+      <p class="note" style="margin:2px 0 0">線的顏色：<b style="color:var(--pos)">藍 = 正權重</b>、<b style="color:var(--neg)">紅 = 負權重</b>；線越粗代表權重絕對值越大。</p>
+    </div>
+    <div>
+      <div class="ctl">
+        <div><label>x₁ 天氣晴朗</label><div class="tog" id="tx1"><button data-v="0">0</button><button data-v="1">1</button></div></div>
+        <div><label>x₂ 朋友一起</label><div class="tog" id="tx2"><button data-v="0">0</button><button data-v="1">1</button></div></div>
+        <label>權重 w₁ = <b id="w1v"></b><input id="w1" type="range" min="-3" max="3" step="0.5"></label>
+        <label>權重 w₂ = <b id="w2v"></b><input id="w2" type="range" min="-3" max="3" step="0.5"></label>
+        <label>偏差 b = <b id="bv"></b><input id="b" type="range" min="-4" max="4" step="0.5"></label>
+      </div>
+      <div class="row" style="margin-top:8px"><span class="note">一鍵套用：</span><button data-g="AND">兩個都要（AND）</button><button data-g="OR">有一個就好（OR）</button><button data-g="NAND">NAND</button></div>
+      <div class="formula" id="f1"></div>
+      <h3>四種情況一次看（真值表）</h3>
+      <div class="tblwrap"><table id="tt1"></table></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="card">
+  <h2><span class="num">3</span>幾何意義：感知器就是在平面上畫一條直線</h2>
+  <p style="margin-top:0">把 (<i class="m">x</i>₁, <i class="m">x</i>₂) 畫在平面上。<i class="m">z</i> = 0 的地方是一條直線（<b>決策邊界</b>）：直線一邊輸出 1、另一邊輸出 0。權重和偏差跟著第 2 節。</p>
+  <div class="two">
+    <div>
+      <div class="cvbox sq"><canvas id="c2"></canvas></div>
+      <div class="legend"><span><i style="background:var(--c1)"></i>輸出 1 的區域</span><span><i style="background:var(--c0)"></i>輸出 0 的區域</span><span><i style="background:var(--hl);border-radius:2px"></i>權重向量 w</span></div>
+    </div>
+    <div>
+      <div class="formula" id="f2"></div>
+      <div class="say" id="s2"></div>
+      <ul class="note">
+        <li><b>權重 (w₁, w₂)</b> 決定直線的<b>方向</b>：紫色箭頭 w 永遠和直線垂直，指向「輸出 1」的那一側。</li>
+        <li><b>偏差 b</b> 決定直線的<b>位置</b>：改變 b，直線會平行移動。</li>
+        <li>所以單一感知器能做的事，就是「用一條直線把兩類分開」。</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="card">
+  <h2><span class="num">4</span>觀念小測驗</h2>
+  <div class="qgrid">
+    <div>
+      <div class="quiz" id="quiz"></div>
+      <div class="score" id="score"><span id="scoreTxt"></span><button id="retry" class="pri">再做一次</button></div>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub2">來考考你！答對我會笑，答錯我會皺眉喔。</div><div class="av" id="av2"></div></div>
+  </div>
+</section>
+
+<footer>感知器互動教學 ・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmt=(v,d=2)=>{if(Math.abs(v)<5e-10)v=0;return (+v.toFixed(d)).toString().replace('-','−');};
+const step=z=>z>=0?1:0;
+function sizeCanvas(cv,ratio,maxH){cv.style.width='0px';const w=cv.parentElement.clientWidth;cv.style.width='100%';let h=Math.round(w*ratio);if(maxH)h=Math.min(h,maxH);
+  const dpr=window.devicePixelRatio||1;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+'px';const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);return {c,w,h};}
+function arrow(c,x1,y1,x2,y2,col,lw){const a=Math.atan2(y2-y1,x2-x1),L=Math.hypot(x2-x1,y2-y1);if(L<3)return;const hd=Math.min(12,L*.5);
+  c.strokeStyle=col;c.fillStyle=col;c.lineWidth=lw||3;c.lineCap='round';c.beginPath();c.moveTo(x1,y1);c.lineTo(x2-hd*.7*Math.cos(a),y2-hd*.7*Math.sin(a));c.stroke();
+  c.beginPath();c.moveTo(x2,y2);c.lineTo(x2-hd*Math.cos(a-.42),y2-hd*Math.sin(a-.42));c.lineTo(x2-hd*Math.cos(a+.42),y2-hd*Math.sin(a+.42));c.closePath();c.fill();}
+/* 平面畫布：畫區域、決策邊界、權重向量 */
+function plane(cv,xr,yr,w1,w2,b,opt){
+  opt=opt||{};const {c,w,h}=sizeCanvas(cv,1);const X=x=>(x-xr[0])/(xr[1]-xr[0])*w,Y=y=>h-(y-yr[0])/(yr[1]-yr[0])*h;
+  const inv=(px,py)=>[xr[0]+px/w*(xr[1]-xr[0]),yr[0]+(h-py)/h*(yr[1]-yr[0])];
+  const hasLine=Math.abs(w1)+Math.abs(w2)>1e-9;
+  // regions
+  if(hasLine||b!==undefined){const cell=4;for(let py=0;py<h;py+=cell)for(let px=0;px<w;px+=cell){const [x,y]=inv(px+cell/2,py+cell/2);c.fillStyle=step(w1*x+w2*y+b)?css('--r1'):css('--r0');c.fillRect(px,py,cell,cell);}}
+  // grid & axes
+  c.strokeStyle=css('--grid');c.lineWidth=1;c.font='11px sans-serif';c.fillStyle=css('--mute');
+  const st=opt.st||1;
+  for(let x=Math.ceil(xr[0]/st)*st;x<=xr[1];x+=st){c.beginPath();c.moveTo(X(x),0);c.lineTo(X(x),h);c.stroke();}
+  for(let y=Math.ceil(yr[0]/st)*st;y<=yr[1];y+=st){c.beginPath();c.moveTo(0,Y(y));c.lineTo(w,Y(y));c.stroke();}
+  c.strokeStyle=css('--axis');c.beginPath();c.moveTo(X(0),0);c.lineTo(X(0),h);c.moveTo(0,Y(0));c.lineTo(w,Y(0));c.stroke();
+  c.textAlign='right';c.textBaseline='bottom';c.fillText('x₁ →',w-6,Y(0)-3);c.textAlign='left';c.textBaseline='top';c.fillText('↑ x₂',X(0)+5,4);
+  if(opt.ticks)opt.ticks.forEach(t=>{c.textAlign='center';c.textBaseline='top';c.fillText(t,X(t),Y(0)+3);c.textAlign='right';c.textBaseline='middle';if(t)c.fillText(t,X(0)-4,Y(t));});
+  // boundary
+  if(hasLine){c.strokeStyle=css('--ink');c.lineWidth=2.5;c.beginPath();
+    if(Math.abs(w2)>Math.abs(w1)){const y0=-(w1*xr[0]+b)/w2,y1=-(w1*xr[1]+b)/w2;c.moveTo(X(xr[0]),Y(y0));c.lineTo(X(xr[1]),Y(y1));}
+    else{const x0=-(w2*yr[0]+b)/w1,x1=-(w2*yr[1]+b)/w1;c.moveTo(X(x0),Y(yr[0]));c.lineTo(X(x1),Y(yr[1]));}c.stroke();
+    if(opt.wvec){ // foot of perpendicular from center of view
+      const cx=(xr[0]+xr[1])/2,cy=(yr[0]+yr[1])/2,n2=w1*w1+w2*w2,t=-(w1*cx+w2*cy+b)/n2,fx=cx+t*w1,fy=cy+t*w2,nl=Math.sqrt(n2),L=(xr[1]-xr[0])*0.18;
+      arrow(c,X(fx),Y(fy),X(fx+w1/nl*L),Y(fy+w2/nl*L),css('--hl'),3.5);c.fillStyle=css('--hl');c.font='bold 13px sans-serif';c.textAlign='left';c.textBaseline='bottom';c.fillText('w',X(fx+w1/nl*L)+5,Y(fy+w2/nl*L)-2);}
+  }
+  return {c,w,h,X,Y,inv};
+}
+function dotPt(c,x,y,cls,r,ring){c.fillStyle=cls?css('--c1'):css('--c0');c.strokeStyle=css('--card');c.lineWidth=2;
+  c.beginPath();if(cls){c.arc(x,y,r,0,7);}else{c.rect(x-r*.9,y-r*.9,r*1.8,r*1.8);}c.fill();c.stroke();
+  if(ring){c.strokeStyle=css('--hl');c.lineWidth=3;c.beginPath();c.arc(x,y,r+6,0,7);c.stroke();}}
+const IN4=[[0,0],[0,1],[1,0],[1,1]];
+
+/* ---------- 網路圖（SVG） ---------- */
+function netSVG(svg,inputs,ws,b,z,y,opt){
+  opt=opt||{};const pos=css('--pos'),neg=css('--neg'),ink=css('--ink'),mute=css('--mute'),card=css('--card'),line=css('--line'),fw=css('--fw');
+  const N=inputs.length,yy=i=>40+i*(180/(N)),sx=300,sy=130;let s='';
+  const all=[...inputs.map((v,i)=>({lab:v.lab,val:v.val,w:ws[i],y:yy(i)})),{lab:'1',val:1,w:b,y:yy(N),bias:true}];
+  all.forEach(n=>{const col=n.w>=0?pos:neg,wd=1+Math.min(3,Math.abs(n.w))*2.2;
+    s+=`<line x1="70" y1="${n.y}" x2="${sx-34}" y2="${sy}" stroke="${col}" stroke-width="${wd}" stroke-linecap="round" opacity="${Math.abs(n.w)<1e-9?.25:.9}"/>`;
+    const mx=70+(sx-34-70)*0.45,my=n.y+(sy-n.y)*0.45;
+    s+=`<rect x="${mx-26}" y="${my-12}" width="52" height="22" rx="6" fill="${card}" stroke="${line}"/><text x="${mx}" y="${my+4}" text-anchor="middle" font-size="13" fill="${col}" font-weight="700">${n.bias?'b':'w'}=${fmt(n.w)}</text>`;});
+  all.forEach(n=>{s+=`<circle cx="46" cy="${n.y}" r="22" fill="${n.bias?card:(n.val?fw:card)}" stroke="${n.bias?mute:fw}" stroke-width="2" ${n.bias?'stroke-dasharray="4 3"':''}/>`+
+    `<text x="46" y="${n.y+5}" text-anchor="middle" font-size="15" font-weight="700" fill="${!n.bias&&n.val?'#fff':ink}">${n.bias?'1':n.val}</text><text x="12" y="${n.y-26}" font-size="12" fill="${mute}">${n.lab}</text>`;});
+  s+=`<circle cx="${sx}" cy="${sy}" r="34" fill="${card}" stroke="${ink}" stroke-width="2.5"/><text x="${sx}" y="${sy-4}" text-anchor="middle" font-size="22" fill="${ink}">Σ</text><text x="${sx}" y="${sy+18}" text-anchor="middle" font-size="12" fill="${mute}">z=${fmt(z)}</text>`;
+  s+=`<line x1="${sx+34}" y1="${sy}" x2="${sx+70}" y2="${sy}" stroke="${ink}" stroke-width="2"/>`;
+  s+=`<rect x="${sx+70}" y="${sy-24}" width="56" height="48" rx="8" fill="${card}" stroke="${ink}" stroke-width="2"/><path d="M${sx+78} ${sy+12} L${sx+98} ${sy+12} L${sx+98} ${sy-12} L${sx+118} ${sy-12}" stroke="${ink}" stroke-width="2.2" fill="none"/>`;
+  s+=`<text x="${sx+98}" y="${sy+42}" text-anchor="middle" font-size="11" fill="${mute}">階梯函數</text>`;
+  s+=`<line x1="${sx+126}" y1="${sy}" x2="${sx+156}" y2="${sy}" stroke="${ink}" stroke-width="2"/>`;
+  s+=`<circle cx="${sx+182}" cy="${sy}" r="24" fill="${y?css('--ok'):card}" stroke="${y?css('--ok'):mute}" stroke-width="2.5"/><text x="${sx+182}" y="${sy+6}" text-anchor="middle" font-size="18" font-weight="800" fill="${y?'#fff':ink}">${y}</text>`;
+  s+=`<text x="${sx+182}" y="${sy-32}" text-anchor="middle" font-size="12" fill="${mute}">${opt.outLab||'輸出 ŷ'}</text>`;
+  svg.innerHTML=s;
+}
+
+/* ---------- 2. 單一感知器 ---------- */
+const S={x1:1,x2:0,w1:1,w2:1,b:-1.5};
+function tog(id,key){$(id).onclick=e=>{const b=e.target.closest('button');if(!b)return;S[key]=+b.dataset.v;upd1();};}
+tog('tx1','x1');tog('tx2','x2');
+['w1','w2','b'].forEach(k=>$(k).addEventListener('input',e=>{S[k]=+e.target.value;upd1();}));
+document.querySelectorAll('[data-g]').forEach(bt=>{bt.onclick=()=>{const P={AND:[1,1,-1.5],OR:[1,1,-0.5],NAND:[-1,-1,1.5]}[bt.dataset.g];S.w1=P[0];S.w2=P[1];S.b=P[2];upd1();};});
+function upd1(){
+  ['w1','w2','b'].forEach(k=>{$(k).value=S[k];$(k+'v').textContent=fmt(S[k]);});
+  [['tx1','x1'],['tx2','x2']].forEach(([id,k])=>[...$(id).children].forEach(b=>b.classList.toggle('on',+b.dataset.v===S[k])));
+  const z=S.w1*S.x1+S.w2*S.x2+S.b,y=step(z);
+  netSVG($('net1'),[{lab:'x₁ 天氣晴朗',val:S.x1},{lab:'x₂ 朋友一起',val:S.x2}],[S.w1,S.w2],S.b,z,y,{outLab:y?'去慢跑！':'不去'});
+  $('f1').innerHTML=`<i class="m">z</i> = <i class="m">w</i>₁<i class="m">x</i>₁ + <i class="m">w</i>₂<i class="m">x</i>₂ + <i class="m">b</i> = (${fmt(S.w1)})(${S.x1}) + (${fmt(S.w2)})(${S.x2}) + (${fmt(S.b)}) = <b>${fmt(z)}</b>　⇒　<i class="m">ŷ</i> = <b class="${y?'ok':'bad'}">${y}</b>（${y?'z ≥ 0，去慢跑':'z &lt; 0，不去'}）`;
+  let t='<tr><th>x₁</th><th>x₂</th><th>z = w₁x₁ + w₂x₂ + b</th><th>ŷ</th></tr>';
+  IN4.forEach(([a,c])=>{const zz=S.w1*a+S.w2*c+S.b,yy=step(zz);t+=`<tr class="${a===S.x1&&c===S.x2?'cur':''}"><td>${a}</td><td>${c}</td><td>${fmt(zz)}</td><td><span class="chip" style="background:${yy?'var(--ok)':'var(--mute)'}">${yy}</span></td></tr>`;});
+  $('tt1').innerHTML=t;
+  draw2();
+}
+/* ---------- 3. 幾何 ---------- */
+function draw2(){
+  const P=plane($('c2'),[-0.6,1.6],[-0.6,1.6],S.w1,S.w2,S.b,{st:0.5,wvec:true,ticks:[0,1]});
+  IN4.forEach(([a,c])=>dotPt(P.c,P.X(a),P.Y(c),step(S.w1*a+S.w2*c+S.b),9,a===S.x1&&c===S.x2));
+  const has=Math.abs(S.w1)+Math.abs(S.w2)>1e-9;
+  $('f2').innerHTML=has?`決策邊界：${fmt(S.w1)}·<i class="m">x</i>₁ + ${fmt(S.w2)}·<i class="m">x</i>₂ + (${fmt(S.b)}) = 0`+(Math.abs(S.w2)>1e-9?`<br>⇔　<i class="m">x</i>₂ = ${fmt(-S.w1/S.w2)}·<i class="m">x</i>₁ + ${fmt(-S.b/S.w2)}`:''):'w₁ = w₂ = 0：沒有直線，整個平面輸出都一樣。';
+  const ones=IN4.filter(([a,c])=>step(S.w1*a+S.w2*c+S.b)).map(p=>`(${p})`);
+  $('s2').innerHTML=`📌 現在落在<b class="c1">藍色（輸出 1）</b>那一側的點：${ones.length?ones.join('、'):'沒有'}。拖拉第 2 節的滑桿，看直線怎麼轉動和平移！`;
+}
+
+/* ---------- 1. 生物神經元對照 ---------- */
+const BW=[1,1,-2],BB=-1.5;let BX=[1,1,0],HL=null,ANIM=null,TT=-1;
+const PARTS=[
+ {p:'in',bio:'樹突（Dendrite）',per:'輸入 x',d:'接收其他神經元傳來的訊號，像天線一樣。'},
+ {p:'syn',bio:'突觸強度（Synapse）',per:'權重 w',d:'連結越強，訊號影響越大。<b style="color:var(--pos)">興奮性突觸 ↔ 正權重</b>；<b style="color:var(--neg)">抑制性突觸 ↔ 負權重</b>。'},
+ {p:'soma',bio:'細胞體（Soma）',per:'加總 Σ',d:'把所有輸入造成的膜電位變化累加起來。'},
+ {p:'th',bio:'軸丘的閾值（Threshold）',per:'偏差 b（門檻）',d:'膜電位要超過閾值（約 −55 mV）才會觸發；b 決定門檻的高低。'},
+ {p:'ap',bio:'動作電位：全有或全無',per:'階梯函數 → 0 或 1',d:'要嘛完整放電，要嘛完全不放電，沒有「放一半」。'},
+ {p:'out',bio:'軸突與軸突末梢（Axon）',per:'輸出 ŷ',d:'把結果傳給下一個神經元——就像多層網路把輸出接到下一層。'}];
+const BIO_IN=[ // 每條輸入路徑：從突觸到細胞體
+ [[22,52],[60,58],[110,90],[160,118],[196,132]],
+ [[22,140],[70,142],[120,142],[190,142]],
+ [[22,228],[60,222],[110,196],[160,166],[196,152]]];
+const AXON=[[262,142],[300,142],[460,142],[478,142]];
+const AXT=[[[478,142],[500,112]],[[478,142],[506,142]],[[478,142],[500,172]]];
+function along(pts,t){let L=0;const seg=[];for(let i=1;i<pts.length;i++){const d=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);seg.push(d);L+=d;}
+  let r=Math.max(0,Math.min(1,t))*L;for(let i=0;i<seg.length;i++){if(r<=seg[i]){const u=seg[i]?r/seg[i]:0;return [pts[i][0]+(pts[i+1][0]-pts[i][0])*u,pts[i][1]+(pts[i+1][1]-pts[i][1])*u];}r-=seg[i];}return pts[pts.length-1];}
+const pathD=pts=>'M'+pts.map(p=>p.join(' ')).join(' L');
+function glow(p){return HL===p?' filter="url(#gl)"':'';}
+function drawBio(){
+  const t=TT,z=BW.reduce((s,w,i)=>s+w*BX[i],0)+BB,fire=z>=0;
+  const ink=css('--ink'),mute=css('--mute'),card=css('--card'),pos=css('--pos'),neg=css('--neg'),hl=css('--hl'),ok=css('--ok');
+  const mem=t<1?0:Math.min(1,(t-1)/0.4),pot=-70+(z-BB)*mem*10; // 膜電位示意：每單位 10 mV
+  let s=`<defs><filter id="gl" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="0" stdDeviation="5" flood-color="${hl}" flood-opacity=".95"/></filter></defs>`;
+  // 輸入軸突（來自其他神經元）+ 樹突
+  BIO_IN.forEach((pts,i)=>{const col=BW[i]>0?pos:neg;
+    s+=`<g${glow('in')}><path d="${pathD(pts.slice(1))}" stroke="#d9a07a" stroke-width="7" fill="none" stroke-linecap="round"/>`+
+      `<path d="M${pts[1][0]+10} ${pts[1][1]} l18 -14 M${pts[2][0]} ${pts[2][1]} l10 ${i===2?16:-16}" stroke="#d9a07a" stroke-width="4" fill="none" stroke-linecap="round"/></g>`;
+    s+=`<line x1="0" y1="${pts[0][1]}" x2="${pts[0][0]}" y2="${pts[0][1]}" stroke="${mute}" stroke-width="3" stroke-dasharray="4 3"/>`;
+    s+=`<g${glow('syn')}><circle cx="${pts[0][0]+8}" cy="${pts[0][1]}" r="${7+Math.abs(BW[i])*3}" fill="${col}" opacity=".9"/><text x="${pts[0][0]+8}" y="${pts[0][1]+5}" text-anchor="middle" font-size="13" font-weight="800" fill="#fff">${BW[i]>0?'+':'−'}</text></g>`;
+    s+=`<text x="4" y="${pts[0][1]-12}" font-size="12" fill="${BX[i]?ink:mute}">x${'₁₂₃'[i]} ${BX[i]?'開':'關'}</text>`;});
+  // 細胞體 + 軸丘
+  const somaFill=fire&&t>=1.35?'#f6c28b':'#f3d2b4';
+  s+=`<g${glow('soma')}><ellipse cx="226" cy="142" rx="44" ry="40" fill="${somaFill}" stroke="#c98d68" stroke-width="3"/><circle cx="220" cy="140" r="14" fill="#b07a9a" opacity=".75"/><circle cx="216" cy="136" r="4" fill="#7d4f6a"/></g>`;
+  s+=`<g${glow('th')}><path d="M262 124 L292 136 L292 148 L262 160 Z" fill="#e8b48f" stroke="#c98d68" stroke-width="2"/></g>`;
+  // 軸突（髓鞘）+ 末梢
+  s+=`<g${glow('out')}><line x1="292" y1="142" x2="478" y2="142" stroke="#d9a07a" stroke-width="6"/>`;
+  for(let k=0;k<4;k++)s+=`<rect x="${304+k*42}" y="132" width="34" height="20" rx="10" fill="#fff6e8" stroke="#d9a07a" stroke-width="2"/>`;
+  AXT.forEach(seg=>{s+=`<line x1="${seg[0][0]}" y1="${seg[0][1]}" x2="${seg[1][0]}" y2="${seg[1][1]}" stroke="#d9a07a" stroke-width="4" stroke-linecap="round"/><circle cx="${seg[1][0]}" cy="${seg[1][1]}" r="6" fill="#e8b48f" stroke="#c98d68"/>`;});s+='</g>';
+  // 標籤
+  const lab=(x,y,txt,p,anchor)=>`<text x="${x}" y="${y}" font-size="12.5" font-weight="${HL===p?800:500}" fill="${HL===p?hl:mute}" text-anchor="${anchor||'middle'}">${txt}</text>`;
+  s+=lab(118,22,'① 樹突','in')+lab(58,270,'② 突觸','syn')+lab(226,206,'③ 細胞體','soma')+lab(282,108,'④ 軸丘','th')+lab(380,122,'⑥ 軸突（髓鞘）','out')+lab(470,214,'⑥ 軸突末梢','out');
+  // 膜電位計
+  const gx=160,gy=236,gw=150;s+=`<g${glow('ap')}><rect x="${gx}" y="${gy}" width="${gw}" height="14" rx="7" fill="${card}" stroke="${mute}"/>`;
+  const vx=v=>gx+(v+80)/(80+40)*gw,spike=fire&&t>=1.4,cur=spike?30:Math.max(-80,Math.min(40,pot));
+  s+=`<rect x="${gx}" y="${gy}" width="${Math.max(0,vx(cur)-gx)}" height="14" rx="7" fill="${cur>=-55?ok:'#c98d68'}" opacity=".8"/>`;
+  s+=`<line x1="${vx(-55)}" y1="${gy-4}" x2="${vx(-55)}" y2="${gy+18}" stroke="${neg}" stroke-width="2" stroke-dasharray="3 2"/><text x="${vx(-55)}" y="${gy+30}" font-size="10.5" fill="${neg}" text-anchor="middle">閾值 −55 mV</text>`;
+  s+=`<text x="${gx+gw+8}" y="${gy+12}" font-size="11" fill="${mute}">⑤ 膜電位 ${t<1?'−70':(Math.round(cur)+'').replace('-','−')} mV${spike?' 放電！':''}</text></g>`;
+  // 動畫脈衝
+  if(t>=0&&t<1)BIO_IN.forEach((pts,i)=>{if(!BX[i])return;const q=along(pts,t);s+=`<circle cx="${q[0]}" cy="${q[1]}" r="7" fill="${BW[i]>0?pos:neg}" stroke="#fff" stroke-width="2"/>`;});
+  if(fire&&t>=1.4&&t<2.4){const u=t-1.4,q=along(AXON,u);s+=`<circle cx="${q[0]}" cy="${q[1]}" r="9" fill="#ffd166" stroke="#e07a1f" stroke-width="3"/>`;}
+  if(fire&&t>=2.3){AXT.forEach(seg=>{s+=`<circle cx="${seg[1][0]}" cy="${seg[1][1]}" r="9" fill="#ffd166" opacity=".9"/>`;});}
+  $('bio').innerHTML=s;
+  // 感知器
+  netSVG($('per'),[{lab:'x₁',val:BX[0]},{lab:'x₂',val:BX[1]},{lab:'x₃',val:BX[2]}],BW,BB,t>=1?z:0,(fire&&t>=2.3)?1:0,{outLab:'輸出 ŷ'});
+  const svg=$('per');let extra=`<defs><filter id="gl2" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="0" stdDeviation="5" flood-color="${hl}" flood-opacity=".95"/></filter></defs>`;
+  const ys=[40,100,160,220];
+  const ring=(cx,cy,r)=>`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${hl}" stroke-width="4" filter="url(#gl2)"/>`;
+  if(HL==='in')[0,1,2].forEach(i=>extra+=ring(46,ys[i],26));
+  if(HL==='syn')[0,1,2].forEach(i=>{const mx=70+(266-70)*0.45,my=ys[i]+(130-ys[i])*0.45;extra+=`<rect x="${mx-29}" y="${my-15}" width="58" height="28" rx="8" fill="none" stroke="${hl}" stroke-width="3.5" filter="url(#gl2)"/>`;});
+  if(HL==='soma')extra+=ring(300,130,38);
+  if(HL==='th'){extra+=ring(46,220,26);const mx=70+(266-70)*0.45,my=220+(130-220)*0.45;extra+=`<rect x="${mx-29}" y="${my-15}" width="58" height="28" rx="8" fill="none" stroke="${hl}" stroke-width="3.5" filter="url(#gl2)"/>`;}
+  if(HL==='ap')extra+=`<rect x="366" y="102" width="64" height="56" rx="10" fill="none" stroke="${hl}" stroke-width="4" filter="url(#gl2)"/>`;
+  if(HL==='out')extra+=ring(482,130,28);
+  if(t>=0&&t<1)[0,1,2].forEach(i=>{if(!BX[i])return;const q=along([[46,ys[i]],[266,130]],t);extra+=`<circle cx="${q[0]}" cy="${q[1]}" r="7" fill="${BW[i]>0?pos:neg}" stroke="#fff" stroke-width="2"/>`;});
+  if(t>=0&&t<1){const q=along([[46,220],[266,130]],t);extra+=`<circle cx="${q[0]}" cy="${q[1]}" r="6" fill="${neg}" stroke="#fff" stroke-width="2" opacity=".8"/>`;}
+  if(fire&&t>=1.4&&t<2.3){const q=along([[334,130],[458,130]],(t-1.4)/0.9);extra+=`<circle cx="${q[0]}" cy="${q[1]}" r="8" fill="#ffd166" stroke="#e07a1f" stroke-width="3"/>`;}
+  svg.insertAdjacentHTML('beforeend',extra);
+  // 說明
+  const terms=BW.map((w,i)=>`(${fmt(w)})(${BX[i]})`).join(' + ');
+  $('bsay').innerHTML=t<0?`📌 目前輸入 x = (${BX.join(', ')})。x₁、x₂ 接在<b style="color:var(--pos)">興奮性突觸</b>（w = +1），x₃ 接在<b style="color:var(--neg)">抑制性突觸</b>（w = −2），門檻 b = −1.5。按「▶ 送出訊號」看看會不會放電！`
+    :`📌 z = ${terms} + (${fmt(BB)}) = <b>${fmt(z)}</b>　→　${fire?'<b class="ok">z ≥ 0：超過門檻，神經元放電！動作電位沿著軸突傳出去，感知器輸出 1。</b>':'<b class="bad">z &lt; 0：沒超過門檻，神經元保持安靜，感知器輸出 0。</b>'}${BX[2]&&!fire&&(BX[0]||BX[1])?' 注意：x₃ 的抑制性訊號把總分拉下來了！':''}`;
+}
+function buildBTab(){
+  $('btab').innerHTML='<tr><th>#</th><th>🧠 生物神經元</th><th>🤖 感知器</th><th style="text-align:left">說明</th></tr>'+
+    PARTS.map((r,i)=>`<tr data-p="${r.p}" style="cursor:pointer"><td>${'①②③④⑤⑥'[i]}</td><td><b>${r.bio}</b></td><td><b>${r.per}</b></td><td style="text-align:left">${r.d}</td></tr>`).join('');
+  [...$('btab').querySelectorAll('tr[data-p]')].forEach(tr=>{
+    tr.onmouseenter=()=>{HL=tr.dataset.p;markRows();drawBio();};
+    tr.onclick=()=>{HL=tr.dataset.p;markRows();drawBio();};});
+  $('btab').onmouseleave=()=>{HL=null;markRows();drawBio();};
+}
+function markRows(){[...$('btab').querySelectorAll('tr[data-p]')].forEach(tr=>tr.classList.toggle('cur',tr.dataset.p===HL));}
+function syncBX(){[0,1,2].forEach(i=>[...$('bx'+(i+1)).children].forEach(b=>b.classList.toggle('on',+b.dataset.v===BX[i])));}
+[0,1,2].forEach(i=>$('bx'+(i+1)).onclick=e=>{const b=e.target.closest('button');if(!b)return;BX[i]=+b.dataset.v;syncBX();cancelAnimationFrame(ANIM);TT=-1;drawBio();});
+$('fire').onclick=()=>{cancelAnimationFrame(ANIM);const t0=performance.now();const tick=now=>{TT=(now-t0)/1000*0.9;if(TT>=2.6){TT=2.6;drawBio();return;}drawBio();ANIM=requestAnimationFrame(tick);};ANIM=requestAnimationFrame(tick);};
+
+/* ---------- 羅森布拉特老師 ---------- */
+const FR_SVG=`<svg viewBox="0 0 200 230" aria-label="羅森布拉特老師動畫">
+ <defs><pattern id="tweed" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="#8d8478"/><path d="M0 6 L3 0 M3 6 L6 0" stroke="#7a7266" stroke-width="1"/><circle cx="4.5" cy="4.5" r=".7" fill="#a59c90"/></pattern></defs>
+ <g class="bodyg">
+  <path d="M10 232 Q16 176 100 164 Q184 176 190 232 Z" fill="url(#tweed)"/>
+  <path d="M84 160 L100 232 L116 160 Z" fill="#f6f4ee"/>
+  <path d="M72 168 L100 214 L90 232 L54 232 Q58 196 72 168 Z M128 168 L100 214 L110 232 L146 232 Q142 196 128 168 Z" fill="#7d7468" stroke="#5f584e" stroke-width="1.2"/>
+  <path d="M95 168 L105 168 L108 178 L104 232 L96 232 L92 178 Z" fill="#26283a"/>
+  <circle cx="99" cy="186" r="1.6" fill="#e9e3d2"/><circle cx="102" cy="196" r="1.6" fill="#e9e3d2"/><circle cx="98" cy="206" r="1.6" fill="#e9e3d2"/><circle cx="101" cy="218" r="1.6" fill="#e9e3d2"/>
+  <rect x="88" y="132" width="24" height="32" rx="8" fill="#ecc9ad"/>
+  <path d="M84 158 L95 168 L90 176 Z M116 158 L105 168 L110 176 Z" fill="#fbfaf6" stroke="#d7d2c6" stroke-width="1"/>
+  <ellipse cx="68" cy="104" rx="6.5" ry="11" fill="#ecc9ad"/><ellipse cx="132" cy="104" rx="6.5" ry="11" fill="#ecc9ad"/>
+  <ellipse cx="100" cy="102" rx="30" ry="41" fill="#f4d3b8"/>
+  <ellipse class="blush" cx="81" cy="118" rx="6.5" ry="4.2" fill="#f08080"/>
+  <ellipse class="blush" cx="119" cy="118" rx="6.5" ry="4.2" fill="#f08080"/>
+  <g class="hairL"><path d="M70 92 Q66 80 70 70 Q74 66 76 74 Q73 82 74 92 Z" fill="#6e5038"/></g>
+  <g class="hairR"><path d="M130 92 Q134 80 130 70 Q126 66 124 74 Q127 82 126 92 Z" fill="#6e5038"/></g>
+  <path d="M67 94 Q58 62 72 46 Q86 30 110 31 Q134 33 139 54 Q142 72 133 92 Q131 78 124 71 Q116 65 107 67 Q97 61 86 67 Q74 74 67 94 Z" fill="#6f5039"/>
+  <path d="M72 56 Q80 34 104 30 Q126 28 136 44 Q124 37 110 40 Q96 40 86 48 Q78 54 72 56 Z" fill="#87664b"/>
+  <path d="M78 62 Q86 46 102 44 M90 58 Q102 46 120 48 M106 40 Q122 40 132 52 M76 50 Q86 38 100 36" stroke="#55402e" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <path class="brow browL" d="M76 86 Q85 82 94 85" stroke="#4e3a2a" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+  <path class="brow browR" d="M106 85 Q115 82 124 86" stroke="#4e3a2a" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+  <g class="eyes"><ellipse cx="85" cy="96" rx="5" ry="3.4" fill="#fff"/><ellipse cx="115" cy="96" rx="5" ry="3.4" fill="#fff"/>
+   <circle cx="85.4" cy="96.3" r="2.7" fill="#5b7088"/><circle cx="115.4" cy="96.3" r="2.7" fill="#5b7088"/>
+   <circle cx="85.4" cy="96.3" r="1.2" fill="#1d1d1d"/><circle cx="115.4" cy="96.3" r="1.2" fill="#1d1d1d"/>
+   <circle cx="86.4" cy="95.2" r=".9" fill="#fff"/><circle cx="116.4" cy="95.2" r=".9" fill="#fff"/></g>
+  <path d="M101 97 Q100 110 97 117 Q100 122 105 120 Q108 119 106 116" stroke="#c9987c" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path class="mo n" d="M90 130 Q100 133 110 129" stroke="#9a5446" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path class="mo s" d="M88 127 Q100 140 112 127 Q100 132 88 127 Z" fill="#9b3a2c" stroke="#8a4a3a" stroke-width="1.5" stroke-linejoin="round"/>
+  <path class="mo f" d="M90 134 Q100 126 110 134" stroke="#9a5446" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path class="sweat" d="M134 72 Q139 82 134 86 Q129 82 134 72 Z" fill="#7cc3f0"/>
+  <text class="spark" x="30" y="44" font-size="18" fill="#f0b400">✦</text>
+  <text class="spark" x="160" y="40" font-size="14" fill="#f0b400">✦</text>
+  <text class="spark" x="170" y="96" font-size="11" fill="#f0b400">✦</text>
+ </g></svg>`;
+function makeAvatar(el,bubble){
+  el.innerHTML=FR_SVG;let tm=null;
+  function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
+  return {mood(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
+    if(m==='smile'){el.classList.add('smile');restart('hop');}
+    if(m==='frown'){el.classList.add('frown');restart('shake');}
+    if(text!==undefined){bubble.innerHTML=text;bubble.className='bubble'+(m==='smile'?' good':m==='frown'?' bad':'');}
+    if(!hold)tm=setTimeout(()=>{el.classList.remove('smile','frown');bubble.className='bubble';},3200);}};
+}
+var AV1=makeAvatar($('av1'),$('bub1')),AV2=makeAvatar($('av2'),$('bub2'));
+const QUOTES=[
+ '1957 年，我在康乃爾航空實驗室提出了「感知器」——一台能從例子中自己學習的機器。',
+ '我其實是心理學家！我在康乃爾大學拿的是心理學博士，一直想弄懂大腦是怎麼運作的。',
+ '我的感知器建立在 1943 年麥卡洛克（McCulloch）與皮茨（Pitts）提出的「人工神經元」數學模型上。',
+ '1949 年，心理學家赫布（Hebb）提出：一起放電的神經元，連結會變強。這啟發了「調整權重」的想法。',
+ '我們造了一台硬體「Mark I 感知器」：用 20×20 = 400 個光電感測器當眼睛，權重用馬達轉動的可變電阻來調整。',
+ '1958 年《紐約時報》報導了我的研究，說海軍期待這種機器將來能走路、說話、看見、寫字。期待真的太高了！'];
+let qi=0;$('av1').onclick=()=>AV1.mood('smile',QUOTES[qi++%QUOTES.length]);
+
+/* ---------- 4. 小測驗 ---------- */
+const QZ=[
+ {q:'感知器的輸出 ŷ 是怎麼決定的？',o:['加權總和 z = w·x + b ≥ 0 就輸出 1，否則輸出 0','把所有輸入相乘','輸入的平均值','隨機決定'],a:0,
+  e:'感知器先算加權總和，再用階梯函數決定輸出。',h:'回第 0 節看那個公式：先加總，再看有沒有過門檻。'},
+ {q:'生物神經元的「突觸強度」對應到感知器的哪個部分？',o:['權重 w','輸入 x','輸出 ŷ','階梯函數'],a:0,
+  e:'突觸越強，訊號影響越大，就像權重越大。',h:'看第 1 節對照表的第 ② 列。'},
+ {q:'「抑制性突觸」在感知器中對應什麼？',o:['負的權重','正的權重','偏差等於 0','輸入等於 1'],a:0,
+  e:'抑制性訊號會把總分往下拉，就像負權重；第 1 節的 x₃ 就是例子。',h:'在第 1 節打開 x₃，看看總分怎麼變。'},
+ {q:'動作電位「全有或全無」的特性，對應到感知器的什麼？',o:['階梯函數只輸出 0 或 1','權重可正可負','加總 Σ','輸入可以有很多個'],a:0,
+  e:'超過門檻就完整放電（1），沒超過就完全不放（0）。',h:'神經元會不會「放一半」的電？'},
+ {q:'下列哪一項是感知器「沒有」模擬到的生物特性？',o:['資訊藏在脈衝的頻率與時間裡','把輸入加總','超過門檻才輸出','連結有強有弱'],a:0,
+  e:'感知器每次只輸出一個 0 或 1，沒有時間與頻率的概念。',h:'看第 1 節最下面「非常簡化」的那幾張卡片。'},
+ {q:'在 (x₁, x₂) 平面上，單一感知器的決策邊界是什麼形狀？',o:['一條直線','一個圓','一條拋物線','任意曲線'],a:0,
+  e:'w₁x₁ + w₂x₂ + b = 0 是一次方程式，所以是直線。',h:'第 3 節那條黑線，有彎過嗎？'},
+ {q:'偏差 b 改變時，決策邊界會？',o:['平行移動','旋轉','變成曲線','消失'],a:0,
+  e:'w 決定方向，b 只改變位置，所以直線平行移動。',h:'在第 2 節只拉 b 的滑桿，看第 3 節的直線。'}
+];
+const PRAISE=['Great！答對了 😄','Excellent！你的權重調得剛剛好！','Perfect！z ≥ 0，輸出 1！','Bravo！神經元放電成功！'];
+let sc=0,dn=0,streak=0;
+function shuffle(a){return a.map(v=>[Math.random(),v]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);}
+function buildQuiz(){sc=0;dn=0;streak=0;$('score').style.display='none';
+  $('quiz').innerHTML=QZ.map((z,i)=>{const ord=shuffle(z.o.map((t,j)=>j));
+    return `<div class="q"><div><b>Q${i+1}.</b> ${z.q}</div><div class="opts">${ord.map(j=>`<button data-q="${i}" data-o="${j}">${z.o[j]}</button>`).join('')}</div><div class="fb" id="fb${i}"></div></div>`;}).join('');}
+$('quiz').onclick=e=>{const b=e.target.closest('button');if(!b)return;const i=+b.dataset.q,j=+b.dataset.o,z=QZ[i],box=b.parentElement;if(box.dataset.done)return;box.dataset.done=1;dn++;
+  if(j===z.a){b.classList.add('right');sc++;streak++;$('fb'+i).innerHTML='✔ 正確！'+z.e;
+    AV2.mood('smile',streak>=3?`連對 ${streak} 題！Amazing！你的神經元一路放電 ⚡`:PRAISE[Math.floor(Math.random()*PRAISE.length)]);}
+  else{b.classList.add('wrong');streak=0;[...box.children].forEach(x=>{if(+x.dataset.o===z.a)x.classList.add('right');});$('fb'+i).innerHTML='✘ '+z.e;AV2.mood('frown',z.h);}
+  if(dn===QZ.length){$('scoreTxt').textContent=`得分：${sc} / ${QZ.length}`;$('score').style.display='flex';
+    setTimeout(()=>{if(sc===QZ.length)AV2.mood('smile','滿分！你已經是一個完美的感知器了 🏆',true);
+      else if(sc>=QZ.length-2)AV2.mood('smile',`${sc} 分，很不錯！錯的題目回到對應小節再看一下。`,true);
+      else AV2.mood('frown','建議回到第 1、2 節，對照神經元和感知器、動手調調權重，再來挑戰！',true);},3300);}
+};
+$('retry').onclick=()=>{buildQuiz();AV2.mood('','新的一輪！選項順序都換過了喔。');};
+
+/* ---------- init ---------- */
+buildBTab();syncBX();buildQuiz();upd1();drawBio();
+function redraw(){upd1();drawBio();}
+let rz=null;window.addEventListener('resize',()=>{cancelAnimationFrame(rz);rz=requestAnimationFrame(redraw);});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redraw);
+</script>
+</body>
+</html>

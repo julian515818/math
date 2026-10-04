@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>梯度下降:登山者下山示意</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    background: #1c1c1a;
+    color: #1a1a18;
+    margin: 0;
+    padding: 20px 14px 50px;
+    display: flex;
+    justify-content: center;
+  }
+  .wrap { width: 100%; max-width: 620px; }
+  .card { background: #101010; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.4); }
+
+  .titlebar {
+    background: #0b0b0b; color: #fff; padding: 12px 16px;
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
+  }
+  .titlebar .t1 { font-size: 15px; font-weight: 500; }
+  .titlebar .t2 { font-size: 11px; color: #b8b6ac; margin-top: 3px; }
+  .titlebar .step { font-size: 12px; color: #f5d76e; white-space: nowrap; margin-top: 2px; }
+
+  .scene { position: relative; width: 100%; background: #cfe8f5; }
+  .scene svg { display: block; width: 100%; height: auto; }
+
+  .intuition {
+    position: absolute; left: 14px; top: 14px; width: 190px;
+    background: #fbfbf8; border-radius: 10px; padding: 10px 12px;
+    font-size: 11.5px; line-height: 1.6; color: #2c2c2a;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .intuition b { display: block; margin-bottom: 2px; }
+  .intuition .red { color: #c0392b; font-weight: 500; }
+
+  .stats-panel { background: #0b0b0b; color: #e8e7e0; padding: 16px 18px 12px; }
+  .stats-panel h3 { font-size: 13px; font-weight: 500; color: #cfcec5; margin: 0 0 10px; }
+  .formula { text-align: center; font-size: 17px; color: #f5f4ef; padding: 4px 0 16px; }
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; row-gap: 14px; column-gap: 10px; }
+  .stat-label { font-size: 11.5px; color: #8f8d84; margin-bottom: 3px; }
+  .stat-value { font-size: 15px; font-family: "SF Mono", Consolas, monospace; color: #fff; }
+  .stat-value.loss { color: #ff8a65; }
+
+  .controls { background: #16150f; padding: 14px 18px 18px; }
+  .lr-row { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
+  .lr-row label { font-size: 12.5px; color: #b8b6ac; min-width: 56px; }
+  .lr-row input[type=range] { flex: 1; }
+  .lr-row span { font-size: 12.5px; font-weight: 500; min-width: 42px; text-align: right; color: #fff; }
+  .ticks { display: flex; justify-content: space-between; font-size: 10.5px; color: #77756c; padding: 0 2px 10px; }
+  #gd-hint { font-size: 11.5px; margin: -4px 0 10px; display: none; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  button {
+    padding: 8px 14px; font-size: 12.5px; border-radius: 8px;
+    border: 1px solid #3a3934; background: #201f1a; color: #e8e7e0; cursor: pointer;
+  }
+  button:disabled { opacity: 0.4; cursor: default; }
+  button:hover:not(:disabled) { background: #2b2a24; }
+  #gd-converged { font-size: 12.5px; margin-top: 10px; display: none; }
+</style>
+<style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line,#e3e1da);border-radius:12px;background:var(--card,var(--surface,#fff));color:var(--ink,#1d2330);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+.pu-badge img{width:58px;height:58px;display:block}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute,var(--muted,#667085))}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+
+.pu-row{justify-content:flex-end}
+@media (max-width:700px){.pu-row{flex-direction:row}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="pu-hd pu-row" style="margin-bottom:12px"><div class="pu-badge"><img alt="靜宜大學校徽" src="data:image/webp;base64,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"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div></div>
+  <div class="card">
+    <div class="titlebar">
+      <div>
+        <div class="t1">登山者依負梯度方向下山</div>
+        <div class="t2">每一步都重新計算目前位置的梯度,而不是預先指定固定路線。</div>
+      </div>
+      <div class="step">第 <span id="gd-step-no">0</span> 步:沿 −∇L 下山</div>
+    </div>
+
+    <div class="scene">
+      <div class="intuition">
+        <b>直覺:</b>
+        梯度 ∇L 指向最陡上坡<br>
+        <span class="red">梯度下降走 −∇L,最快下山</span>
+      </div>
+
+      <svg viewBox="0 0 760 380" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <marker id="arrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M1,1 L9,5 L1,9 Z" fill="#e24b4a"/>
+          </marker>
+          <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#bfe2f5"/>
+            <stop offset="100%" stop-color="#e3f2f9"/>
+          </linearGradient>
+        </defs>
+
+        <rect x="0" y="0" width="760" height="380" fill="url(#sky)"/>
+        <circle cx="650" cy="70" r="34" fill="#f4e6a8"/>
+
+        <polygon points="0,220 120,90 260,220" fill="#8fa88f"/>
+        <polygon points="180,230 340,80 500,230" fill="#7c9a7c"/>
+        <polygon points="420,225 590,95 760,230" fill="#8fa88f"/>
+
+        <polygon points="0,260 130,150 300,190 480,140 650,185 760,160 760,380 0,380" fill="#5f8f5a"/>
+        <polygon points="0,300 200,220 420,255 620,215 760,240 760,380 0,380" fill="#4d7a49"/>
+
+        <g opacity="0.45">
+          <ellipse cx="560" cy="300" rx="150" ry="58" fill="none" stroke="#ffffff" stroke-width="1.5"/>
+          <ellipse cx="560" cy="300" rx="98" ry="38" fill="none" stroke="#ffffff" stroke-width="1.5"/>
+          <ellipse cx="560" cy="300" rx="48" ry="18" fill="none" stroke="#ffffff" stroke-width="1.5"/>
+        </g>
+
+        <path id="descent-path" d="" fill="none" stroke="#e24b4a" stroke-width="3" stroke-dasharray="7,6" stroke-linecap="round"/>
+        <circle id="start-dot" r="6.5" fill="#e24b4a" stroke="#fff" stroke-width="1.5" style="display:none"/>
+
+        <g id="grad-arrow">
+          <line id="arrow-line" x1="0" y1="0" x2="0" y2="0" stroke="#e24b4a" stroke-width="4" stroke-linecap="round" marker-end="url(#arrowhead)"/>
+        </g>
+
+        <g id="flag" transform="translate(560,300)">
+          <rect x="-1.5" y="-34" width="3" height="34" fill="#5f5e5a"/>
+          <path d="M1.5,-34 L21,-27 L1.5,-21 Z" fill="#e24b4a"/>
+          <ellipse cx="0" cy="1" rx="9" ry="3.5" fill="#2c2c2a" opacity="0.35"/>
+        </g>
+
+        <g id="tag-valley">
+          <rect x="0" y="0" width="150" height="34" rx="7" fill="#fbfbf8" opacity="0.95"/>
+          <text x="10" y="15" font-size="11" font-weight="600" fill="#1a1a18">山谷最低點 θ*</text>
+          <text x="10" y="28" font-size="10" fill="#5f5e5a">Loss 最小,梯度≈0</text>
+        </g>
+
+        <g id="hiker">
+          <ellipse cx="0" cy="2" rx="8" ry="3" fill="#000" opacity="0.18"/>
+          <rect x="-4" y="-16" width="3.5" height="16" fill="#2c2c2a"/>
+          <rect x="0.5" y="-16" width="3.5" height="16" fill="#3a3a37"/>
+          <rect x="-7" y="-33" width="14" height="19" rx="4" fill="#378add"/>
+          <rect x="-10.5" y="-30" width="7" height="12" rx="2" fill="#d85a30"/>
+          <circle cx="0" cy="-38" r="6.5" fill="#e0ab7a"/>
+          <path d="M-6.5,-41 a6.5,4.5 0 0,1 13,0 z" fill="#2c2c2a"/>
+          <line x1="8" y1="-22" x2="16" y2="2" stroke="#8a8880" stroke-width="2" stroke-linecap="round"/>
+        </g>
+
+        <g id="tag-gradup">
+          <rect x="0" y="0" width="118" height="24" rx="6" fill="#0c447c" opacity="0.92"/>
+          <text x="9" y="16" font-size="11" fill="#fff">∇L:最陡上坡</text>
+        </g>
+        <g id="tag-graddown">
+          <rect x="0" y="0" width="112" height="24" rx="6" fill="#e24b4a" opacity="0.92"/>
+          <text x="9" y="16" font-size="11" fill="#fff">−∇L:下山最快</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="stats-panel">
+      <h3>梯度下降更新式</h3>
+      <div class="formula">θ<tspan style="font-size:11px;vertical-align:super;">(t+1)</tspan> = θ<tspan style="font-size:11px;vertical-align:super;">(t)</tspan> − η ∇L(θ<tspan style="font-size:11px;vertical-align:super;">(t)</tspan>)</div>
+      <div class="stat-grid">
+        <div>
+          <div class="stat-label">目前位置</div>
+          <div class="stat-value" id="stat-pos">θ = (0.00, 0.00)</div>
+        </div>
+        <div>
+          <div class="stat-label">Loss</div>
+          <div class="stat-value loss" id="stat-loss">0.000</div>
+        </div>
+        <div>
+          <div class="stat-label">梯度 ∇L</div>
+          <div class="stat-value" id="stat-grad">[0.00, 0.00]</div>
+        </div>
+        <div>
+          <div class="stat-label">迭代</div>
+          <div class="stat-value" id="stat-iter">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="lr-row">
+        <label>學習率 η</label>
+        <input type="range" id="gd-lr" min="0" max="1" step="0.001">
+        <span id="gd-lr-val">0.30</span>
+      </div>
+      <div class="ticks" id="gd-ticks"></div>
+      <p id="gd-hint"></p>
+      <div class="btn-row">
+        <button id="gd-step-btn">往下走一步 ↗</button>
+        <button id="gd-play-btn">自動下山</button>
+        <button id="gd-reset-btn">重新開始</button>
+      </div>
+      <p id="gd-converged"></p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+const HEIGHT_SCALE=0.28;
+function lossOf(x,z){ return (x*x+z*z)*HEIGHT_SCALE; }
+const EPS=0.01;
+function gradOf(x,z){
+  return [(lossOf(x+EPS,z)-lossOf(x-EPS,z))/(2*EPS),(lossOf(x,z+EPS)-lossOf(x,z-EPS))/(2*EPS)];
+}
+function randomStart(){
+  return { x: -2.6 + Math.random()*1.4, z: 1.0 + Math.random()*1.2 };
+}
+const LR_MIN=0.02, LR_MAX=4.0;
+const OSC_LR=1/(2*HEIGHT_SCALE);
+const DIVERGE_LR=2/(2*HEIGHT_SCALE);
+const sliderToLr=t=>LR_MIN*Math.pow(LR_MAX/LR_MIN,t);
+const lrToSlider=lr=>Math.log(lr/LR_MIN)/Math.log(LR_MAX/LR_MIN);
+
+const FLAG_X=560, FLAG_Y=300;
+function project(x,z){
+  const sx = FLAG_X + (x - z) * 50;
+  const sy = FLAG_Y + (x + z) * 24 - lossOf(x,z) * 55;
+  return [sx,sy];
+}
+
+const svgNS="http://www.w3.org/2000/svg";
+const pathEl=document.getElementById("descent-path");
+const startDot=document.getElementById("start-dot");
+const hikerEl=document.getElementById("hiker");
+const arrowLine=document.getElementById("arrow-line");
+const tagUp=document.getElementById("tag-gradup");
+const tagDown=document.getElementById("tag-graddown");
+const tagValley=document.getElementById("tag-valley");
+tagValley.setAttribute("transform","translate("+(FLAG_X+16)+","+(FLAG_Y-14)+")");
+
+let pathPoints=[];
+let visualPos=randomStart();
+let queue=[];
+let walking=false, walkFrom=null, walkTo=null, walkStartTime=0, walkDuration=520;
+let walkPhase=0, lastScreenX=null;
+let steps=0, lr=0.3, playing=false, converged=false, playTimer=null;
+
+function updatePathString(){
+  if(pathPoints.length===0){ pathEl.setAttribute("d",""); return; }
+  let d="M"+pathPoints[0][0].toFixed(1)+","+pathPoints[0][1].toFixed(1);
+  for(let i=1;i<pathPoints.length;i++) d+=" L"+pathPoints[i][0].toFixed(1)+","+pathPoints[i][1].toFixed(1);
+  pathEl.setAttribute("d",d);
+}
+
+function placeTag(g,x,y){ g.setAttribute("transform","translate("+x.toFixed(1)+","+y.toFixed(1)+")"); }
+
+function updateOverlay(x,z, forceFacing){
+  const [sx,sy]=project(x,z);
+  const bounce = walking ? Math.abs(Math.sin(walkPhase))*3 : 0;
+  let facing = lastScreenX===null ? 1 : (sx>=lastScreenX ? 1 : -1);
+  if(forceFacing!==undefined) facing=forceFacing;
+  hikerEl.setAttribute("transform","translate("+sx.toFixed(1)+","+(sy-bounce).toFixed(1)+") scale("+facing+",1)");
+
+  const [gx,gz]=gradOf(x,z);
+  let dx=-gx, dz=-gz;
+  const dlen=Math.hypot(dx,dz)||1;
+  dx/=dlen; dz/=dlen;
+  const [sx2,sy2]=project(x+dx*0.4, z+dz*0.4);
+  let avx=sx2-sx, avy=sy2-sy;
+  const avlen=Math.hypot(avx,avy)||1;
+  avx=avx/avlen*58; avy=avy/avlen*58;
+  arrowLine.setAttribute("x1",sx.toFixed(1)); arrowLine.setAttribute("y1",(sy-14).toFixed(1));
+  arrowLine.setAttribute("x2",(sx+avx).toFixed(1)); arrowLine.setAttribute("y2",(sy-14+avy).toFixed(1));
+
+  placeTag(tagUp, sx-24, sy-64);
+  placeTag(tagDown, sx+avx-30, sy-14+avy+8);
+
+  return [sx,sy];
+}
+
+function formatPos(x,z){ return "θ = ("+x.toFixed(3)+", "+z.toFixed(3)+")"; }
+function formatGrad(gx,gz){ return "["+gx.toFixed(3)+", "+gz.toFixed(3)+"]"; }
+
+const stepsEl=document.getElementById("gd-step-no");
+const posEl=document.getElementById("stat-pos"), lossElS=document.getElementById("stat-loss");
+const gradEl=document.getElementById("stat-grad"), iterEl=document.getElementById("stat-iter");
+const lrInput=document.getElementById("gd-lr"), lrVal=document.getElementById("gd-lr-val"), ticksEl=document.getElementById("gd-ticks");
+const hintEl=document.getElementById("gd-hint"), convEl=document.getElementById("gd-converged");
+const stepBtn=document.getElementById("gd-step-btn"), playBtn=document.getElementById("gd-play-btn"), resetBtn=document.getElementById("gd-reset-btn");
+
+[0,0.25,0.5,0.75,1].forEach(t=>{
+  const v=sliderToLr(t);
+  const s=document.createElement("span");
+  s.textContent=v.toFixed(2);
+  ticksEl.appendChild(s);
+});
+
+function refreshUI(){
+  stepsEl.textContent=steps;
+  const [gx,gz]=gradOf(visualPos.x,visualPos.z);
+  posEl.textContent=formatPos(visualPos.x,visualPos.z);
+  lossElS.textContent=lossOf(visualPos.x,visualPos.z).toFixed(3);
+  gradEl.textContent=formatGrad(gx,gz);
+  iterEl.textContent=steps;
+  lrInput.value=lrToSlider(lr);
+  lrVal.textContent=lr.toFixed(2);
+  if(lr>=OSC_LR){
+    hintEl.style.display="block";
+    if(lr>=DIVERGE_LR){hintEl.style.color="#ff8a80";hintEl.textContent="學習率過大:每一步都往反方向跨得更遠,呈現發散";}
+    else{hintEl.style.color="#ffcc80";hintEl.textContent="學習率偏大:每一步跨過最小值到另一側,呈現收斂中的震盪";}
+  } else { hintEl.style.display="none"; }
+  playBtn.textContent=playing?"暫停":"自動下山";
+  stepBtn.disabled=converged;
+  playBtn.disabled=converged;
+  if(converged){
+    convEl.style.display="block";
+    convEl.style.color="#8fe3c0";
+    convEl.textContent="已抵達山谷最低點 θ*,按「重新開始」換一個起始點。";
+  } else { convEl.style.display="none"; }
+}
+
+function enqueueStep(){
+  const base = queue.length>0 ? queue[queue.length-1] : visualPos;
+  const [gx,gz]=gradOf(base.x,base.z);
+  const nx=base.x-lr*gx, nz=base.z-lr*gz;
+  queue.push({x:nx,z:nz});
+}
+function stopPlaying(){playing=false;if(playTimer){clearInterval(playTimer);playTimer=null;}}
+function togglePlay(){
+  if(playing){stopPlaying();}
+  else{playing=true;playTimer=setInterval(function(){ if(!converged) enqueueStep(); },520);}
+  refreshUI();
+}
+function reset(){
+  stopPlaying();
+  queue=[]; walking=false; pathPoints=[];
+  visualPos=randomStart(); steps=0; converged=false;
+  const [sx,sy]=project(visualPos.x,visualPos.z);
+  pathPoints.push([sx,sy]);
+  updatePathString();
+  startDot.style.display="block";
+  startDot.setAttribute("cx",sx.toFixed(1)); startDot.setAttribute("cy",sy.toFixed(1));
+  lastScreenX=null;
+  updateOverlay(visualPos.x,visualPos.z);
+  refreshUI();
+}
+
+lrInput.addEventListener("input",function(e){lr=sliderToLr(parseFloat(e.target.value));refreshUI();});
+stepBtn.addEventListener("click",function(){ if(!converged) enqueueStep(); });
+playBtn.addEventListener("click",togglePlay);
+resetBtn.addEventListener("click",reset);
+
+let lastTime=performance.now();
+function animate(now){
+  requestAnimationFrame(animate);
+  const dt=Math.min(50, now-lastTime); lastTime=now;
+
+  if(!walking && queue.length>0){
+    walkFrom={x:visualPos.x,z:visualPos.z};
+    walkTo=queue.shift();
+    walkStartTime=now;
+    walkDuration=460;
+    walking=true;
+  }
+
+  if(walking){
+    let t=(now-walkStartTime)/walkDuration;
+    if(t>=1){
+      t=1;
+      visualPos={x:walkTo.x,z:walkTo.z};
+      steps++;
+      const [sx,sy]=project(visualPos.x,visualPos.z);
+      pathPoints.push([sx,sy]);
+      updatePathString();
+      walking=false;
+      const [ngx,ngz]=gradOf(visualPos.x,visualPos.z);
+      if(Math.hypot(ngx,ngz)<0.05){converged=true;stopPlaying();queue=[];}
+      const before=lastScreenX;
+      lastScreenX=sx;
+      updateOverlay(visualPos.x,visualPos.z, before===null?1:(sx>=before?1:-1));
+      refreshUI();
+    } else {
+      const ease=t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+      const cx=walkFrom.x+(walkTo.x-walkFrom.x)*ease;
+      const cz=walkFrom.z+(walkTo.z-walkFrom.z)*ease;
+      walkPhase+=dt*0.02;
+      const [sx]=project(cx,cz);
+      const facing = lastScreenX===null ? 1 : (sx>=lastScreenX?1:-1);
+      updateOverlay(cx,cz,facing);
+    }
+  }
+
+  requestAnimationFrame;
+}
+requestAnimationFrame(animate);
+
+reset();
+})();
+</script>
+</body>
+</html>

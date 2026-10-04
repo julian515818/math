@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D 梯度下降互動示範(單一最小值)</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    background: #f5f4ef;
+    color: #1a1a18;
+    margin: 0;
+    padding: 24px 16px 60px;
+    display: flex;
+    justify-content: center;
+  }
+  .wrap { width: 100%; max-width: 520px; }
+  h1 { font-size: 18px; font-weight: 500; margin: 0 0 4px; }
+  p.sub { font-size: 13px; color: #6b6a64; margin: 0 0 16px; }
+  #gd3d-mount {
+    width: 100%; height: 360px; border-radius: 12px; overflow: hidden;
+    background: #ffffff; border: 1px solid #e1e0d9;
+  }
+  .stats { display: flex; gap: 16px; margin: 14px 0 10px; font-size: 13px; color: #6b6a64; flex-wrap: wrap; }
+  .stats strong { color: #1a1a18; }
+  .lr-row { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
+  .lr-row label { font-size: 13px; color: #6b6a64; min-width: 56px; }
+  .lr-row input[type=range] { flex: 1; }
+  .lr-row span { font-size: 13px; font-weight: 500; min-width: 44px; text-align: right; }
+  .ticks { display: flex; justify-content: space-between; font-size: 11px; color: #9a988f; padding: 0 2px 10px; }
+  #gd-hint { font-size: 12px; margin: -6px 0 12px; display: none; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  button {
+    padding: 8px 14px; font-size: 13px; border-radius: 8px;
+    border: 1px solid #c3c2b7; background: #fff; cursor: pointer;
+  }
+  button:disabled { opacity: 0.5; cursor: default; }
+  button:hover:not(:disabled) { background: #f0efe8; }
+  #gd-converged { font-size: 13px; margin-top: 10px; display: none; }
+  .legend { font-size: 12px; color: #6b6a64; margin-top: 20px; line-height: 1.6; }
+  .legend span.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+</style>
+<style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line,#e3e1da);border-radius:12px;background:var(--card,var(--surface,#fff));color:var(--ink,#1d2330);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+.pu-badge img{width:58px;height:58px;display:block}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute,var(--muted,#667085))}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="pu-hd"><div class="pu-hd-main"><h1>3D 梯度下降互動示範(簡化版:只有一個最小值)</h1>
+  <p class="sub">單一凸碗狀損失曲面,沒有區域最小值——每次都會穩定收斂到中心的最小值,適合觀察學習率大小如何影響下降路徑與震盪。</p></div>
+  <div class="pu-badge"><img alt="靜宜大學校徽" src="data:image/webp;base64,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"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</div>
+
+  <div id="gd3d-mount"></div>
+
+  <div class="stats">
+    <span>步數:<strong id="gd-steps">0</strong></span>
+    <span>x:<strong id="gd-x">0</strong></span>
+    <span>z:<strong id="gd-z">0</strong></span>
+    <span>loss:<strong id="gd-loss" style="color:#d85a30;">0</strong></span>
+  </div>
+
+  <div class="lr-row">
+    <label>學習率</label>
+    <input type="range" id="gd-lr" min="0" max="1" step="0.001">
+    <span id="gd-lr-val">0.30</span>
+  </div>
+  <div class="ticks" id="gd-ticks"></div>
+
+  <p id="gd-hint"></p>
+
+  <div class="btn-row">
+    <button id="gd-step-btn">單步 ↗</button>
+    <button id="gd-play-btn">自動播放</button>
+    <button id="gd-reset-btn">重新開始</button>
+  </div>
+
+  <p id="gd-converged"></p>
+
+  <div class="legend">
+    <div><span class="dot" style="background:#042c53;"></span>最小值</div>
+    <div><span class="dot" style="background:#d85a30;"></span>目前位置與每一步的移動向量</div>
+  </div>
+</div>
+
+<script>
+(function(){
+const DOMAIN=3, HEIGHT_SCALE=0.28;
+function lossOf(x,z){ return (x*x+z*z)*HEIGHT_SCALE; }
+function surfaceY(x,z){ return lossOf(x,z); }
+const EPS=0.01;
+function gradOf(x,z){
+  return [(lossOf(x+EPS,z)-lossOf(x-EPS,z))/(2*EPS),(lossOf(x,z+EPS)-lossOf(x,z-EPS))/(2*EPS)];
+}
+function randomStart(){
+  const a=Math.random()*Math.PI*2, r=1.8+Math.random()*1.1;
+  return {x:Math.cos(a)*r, z:Math.sin(a)*r};
+}
+// Update rule collapses to v_new = v * (1 - 2*HEIGHT_SCALE*lr).
+const LR_MIN=0.02, LR_MAX=4.0;
+const OSC_LR=1/(2*HEIGHT_SCALE);     // ~1.79 — starts overshooting to the other side
+const DIVERGE_LR=2/(2*HEIGHT_SCALE); // ~3.57 — overshoot magnitude grows each step
+const sliderToLr=t=>LR_MIN*Math.pow(LR_MAX/LR_MIN,t);
+const lrToSlider=lr=>Math.log(lr/LR_MIN)/Math.log(LR_MAX/LR_MIN);
+
+const mount=document.getElementById("gd3d-mount");
+const width=mount.clientWidth, height=360;
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(42,width/height,0.1,100);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setSize(width,height);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+mount.appendChild(renderer.domElement);
+scene.add(new THREE.AmbientLight(0xffffff,0.65));
+const dirLight=new THREE.DirectionalLight(0xffffff,0.7);
+dirLight.position.set(4,6,3);
+scene.add(dirLight);
+
+const N=40;
+const geo=new THREE.PlaneGeometry(DOMAIN*2,DOMAIN*2,N,N);
+geo.rotateX(-Math.PI/2);
+const posAttr=geo.attributes.position;
+for(let i=0;i<posAttr.count;i++){
+  const x=posAttr.getX(i), z=posAttr.getZ(i);
+  posAttr.setY(i,surfaceY(x,z));
+}
+geo.computeVertexNormals();
+const surfMat=new THREE.MeshStandardMaterial({color:0xb5d4f4,metalness:0.05,roughness:0.85,side:THREE.DoubleSide});
+const surface=new THREE.Mesh(geo,surfMat);
+scene.add(surface);
+const wireMat=new THREE.MeshBasicMaterial({color:0x185fa5,wireframe:true,transparent:true,opacity:0.18,polygonOffset:true,polygonOffsetFactor:1,polygonOffsetUnits:1});
+surface.add(new THREE.Mesh(geo,wireMat));
+
+const minMarker=new THREE.Mesh(new THREE.SphereGeometry(0.07,16,16),new THREE.MeshBasicMaterial({color:0x042c53}));
+minMarker.position.set(0,0.012,0);
+scene.add(minMarker);
+
+const ball=new THREE.Mesh(new THREE.SphereGeometry(0.11,20,20),new THREE.MeshStandardMaterial({color:0xd85a30,roughness:0.4}));
+scene.add(ball);
+const arrowsGroup=new THREE.Group();
+scene.add(arrowsGroup);
+const UP=new THREE.Vector3(0,1,0);
+function createArrow(from,to){
+  const dir=new THREE.Vector3().subVectors(to,from);
+  const length=dir.length();
+  if(length<1e-4) return null;
+  const headLength=Math.min(0.16,length*0.45), headRadius=0.055, shaftRadius=0.028;
+  const shaftLength=Math.max(length-headLength,0.001);
+  const group=new THREE.Group();
+  const mat=new THREE.MeshStandardMaterial({color:0xd85a30,roughness:0.35,metalness:0.05});
+  const shaft=new THREE.Mesh(new THREE.CylinderGeometry(shaftRadius,shaftRadius,shaftLength,10),mat);
+  shaft.position.y=shaftLength/2;
+  group.add(shaft);
+  const head=new THREE.Mesh(new THREE.ConeGeometry(headRadius,headLength,12),mat);
+  head.position.y=shaftLength+headLength/2;
+  group.add(head);
+  group.quaternion.copy(new THREE.Quaternion().setFromUnitVectors(UP,dir.clone().normalize()));
+  group.position.copy(from);
+  return group;
+}
+function disposeArrow(g){g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose();});}
+
+const orbit={azimuth:0.7,polar:0.95,radius:8.2};
+function updateCamera(){
+  const {azimuth,polar,radius}=orbit;
+  camera.position.set(radius*Math.sin(polar)*Math.sin(azimuth),radius*Math.cos(polar),radius*Math.sin(polar)*Math.cos(azimuth));
+  camera.lookAt(0,0.4,0);
+}
+updateCamera();
+let dragging=false,lastX=0,lastY=0,idleSpin=true;
+function onDown(e){dragging=true;idleSpin=false;const p=e.touches?e.touches[0]:e;lastX=p.clientX;lastY=p.clientY;}
+function onMove(e){if(!dragging)return;const p=e.touches?e.touches[0]:e;const dx=p.clientX-lastX,dy=p.clientY-lastY;lastX=p.clientX;lastY=p.clientY;orbit.azimuth+=dx*0.006;orbit.polar=Math.min(1.45,Math.max(0.25,orbit.polar-dy*0.006));updateCamera();}
+function onUp(){dragging=false;}
+const dom=renderer.domElement;
+dom.style.touchAction="none";
+dom.style.cursor="grab";
+dom.addEventListener("pointerdown",onDown);
+window.addEventListener("pointermove",onMove);
+window.addEventListener("pointerup",onUp);
+function animate(){
+  requestAnimationFrame(animate);
+  if(idleSpin&&!dragging){orbit.azimuth+=0.0018;updateCamera();}
+  renderer.render(scene,camera);
+}
+animate();
+
+window.addEventListener("resize",function(){
+  const w=mount.clientWidth;
+  camera.aspect=w/height;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w,height);
+});
+
+let lr=0.3, pos=randomStart(), steps=0, playing=false, converged=false, playTimer=null;
+let prevVec=null, arrowList=[], maxTrail=40;
+
+function syncBall(){
+  const y=surfaceY(pos.x,pos.z);
+  const newVec=new THREE.Vector3(pos.x,y,pos.z);
+  ball.position.copy(newVec);
+  if(prevVec){
+    const fromVec=prevVec.clone(); fromVec.y+=0.015;
+    const toVec=newVec.clone(); toVec.y+=0.015;
+    const arrow=createArrow(fromVec,toVec);
+    if(arrow){
+      arrowsGroup.add(arrow);
+      arrowList.push(arrow);
+      if(arrowList.length>maxTrail){const old=arrowList.shift();arrowsGroup.remove(old);disposeArrow(old);}
+    }
+  }
+  prevVec=newVec.clone();
+}
+
+const stepsEl=document.getElementById("gd-steps"), xEl=document.getElementById("gd-x"), zEl=document.getElementById("gd-z"), lossEl=document.getElementById("gd-loss");
+const lrInput=document.getElementById("gd-lr"), lrVal=document.getElementById("gd-lr-val"), ticksEl=document.getElementById("gd-ticks");
+const hintEl=document.getElementById("gd-hint"), convEl=document.getElementById("gd-converged");
+const stepBtn=document.getElementById("gd-step-btn"), playBtn=document.getElementById("gd-play-btn"), resetBtn=document.getElementById("gd-reset-btn");
+
+[0,0.25,0.5,0.75,1].forEach(t=>{
+  const v=sliderToLr(t);
+  const s=document.createElement("span");
+  s.textContent=v.toFixed(2);
+  ticksEl.appendChild(s);
+});
+
+function refreshUI(){
+  stepsEl.textContent=steps;
+  xEl.textContent=pos.x.toFixed(2);
+  zEl.textContent=pos.z.toFixed(2);
+  lossEl.textContent=lossOf(pos.x,pos.z).toFixed(3);
+  lrInput.value=lrToSlider(lr);
+  lrVal.textContent=lr.toFixed(2);
+  if(lr>=OSC_LR){
+    hintEl.style.display="block";
+    if(lr>=DIVERGE_LR){hintEl.style.color="#a32d2d";hintEl.textContent="學習率過大:每一步都往反方向跨得更遠,在邊界間來回發散";}
+    else{hintEl.style.color="#854f0b";hintEl.textContent="學習率偏大:每一步跨過最小值到另一側,呈現收斂中的震盪";}
+  } else { hintEl.style.display="none"; }
+  playBtn.textContent=playing?"暫停":"自動播放";
+  playBtn.style.borderColor=playing?"#d85a30":"#c3c2b7";
+  stepBtn.disabled=converged;
+  playBtn.disabled=converged;
+  if(converged){
+    convEl.style.display="block";
+    convEl.style.color="#0f6e56";
+    convEl.textContent="已收斂到最小值,拖曳畫面換角度觀察,或按「重新開始」換一個起始點。";
+  } else { convEl.style.display="none"; }
+}
+
+function doStep(){
+  const [gx,gz]=gradOf(pos.x,pos.z);
+  const nx=Math.max(-DOMAIN,Math.min(DOMAIN,pos.x-lr*gx));
+  const nz=Math.max(-DOMAIN,Math.min(DOMAIN,pos.z-lr*gz));
+  pos={x:nx,z:nz};
+  steps++;
+  syncBall();
+  const [ngx,ngz]=gradOf(pos.x,pos.z);
+  if(Math.hypot(ngx,ngz)<0.04){converged=true;stopPlaying();}
+  refreshUI();
+}
+function stopPlaying(){playing=false;if(playTimer){clearInterval(playTimer);playTimer=null;}}
+function togglePlay(){
+  if(playing){stopPlaying();}
+  else{playing=true;playTimer=setInterval(doStep,380);}
+  refreshUI();
+}
+function reset(){
+  stopPlaying();
+  arrowList.forEach(a=>{arrowsGroup.remove(a);disposeArrow(a);});
+  arrowList=[]; prevVec=null;
+  pos=randomStart(); steps=0; converged=false;
+  syncBall();
+  refreshUI();
+}
+
+lrInput.addEventListener("input",function(e){lr=sliderToLr(parseFloat(e.target.value));refreshUI();});
+stepBtn.addEventListener("click",doStep);
+playBtn.addEventListener("click",togglePlay);
+resetBtn.addEventListener("click",reset);
+
+syncBall();
+refreshUI();
+})();
+</script>
+</body>
+</html>

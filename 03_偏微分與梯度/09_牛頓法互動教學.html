@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>牛頓法互動教學</title>
+<style>
+:root{
+  --bg:#f7f6f2;--card:#fff;--ink:#1d2330;--mute:#667085;--line:#e3e1da;--ok:#1f9d6b;--bad:#d6334f;
+  --grid:#eceae4;--axis:#9aa0ab;--accent:#2f6fdb;--tint:#eaf1fc;
+  --cv:#2f6fdb;--tan:#8b45d6;--gd:#1f9d6b;--path:#e07a1f;--pt:#1d2330;--warn:#c98a00;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+    --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+    --cv:#6c9dff;--tan:#b98bff;--gd:#4fd19d;--path:#ffa552;--pt:#f4f5f8;--warn:#ffd166;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+  --cv:#6c9dff;--tan:#b98bff;--gd:#4fd19d;--path:#ffa552;--pt:#f4f5f8;--warn:#ffd166;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.9rem}
+header p{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:18px}
+.card h2{margin:0 0 12px;font-size:1.22rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:.9rem;flex:none}
+h3{margin:0 0 6px;font-size:1.05rem}
+.m{font-family:"Times New Roman","Cambria Math",serif;font-style:italic}
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 2px;line-height:1.15}
+.frac>span:first-child{padding:0 3px 1px;border-bottom:1.3px solid currentColor}
+.frac>span:last-child{padding:1px 3px 0}
+.def{font-size:1.2rem;text-align:center;padding:14px;border-radius:10px;background:var(--tint);line-height:2.1}
+.note{color:var(--mute);font-size:.92rem}
+.gd{color:var(--gd)}.path{color:var(--path)}.tan{color:var(--tan)}.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start}
+.two>*{min-width:0}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.three>div{border:2px solid var(--line);border-radius:12px;padding:10px 14px}
+.three b.t{display:block;color:var(--accent)}
+@media (max-width:860px){.two,.three{grid-template-columns:minmax(0,1fr)}}
+.cvbox{width:100%;min-width:0}
+.sq{max-width:460px;margin:0 auto}
+canvas{width:100%;display:block;border-radius:10px;background:var(--bg);touch-action:none}
+label{font-size:.92rem;color:var(--mute);display:block}
+label b{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 12px}
+select{width:100%}
+button{cursor:pointer}button:hover{border-color:var(--accent)}
+button.pri,button.on{background:var(--accent);color:#fff;border-color:transparent}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:12px 18px;align-items:end}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(120px,100%),1fr));gap:10px;margin-top:10px}
+.stats>div{padding:8px 12px;border-radius:10px;background:var(--bg)}
+.stats small{display:block;color:var(--mute);font-size:.82rem}
+.stats b{font-size:1.2rem;font-variant-numeric:tabular-nums}
+.say{margin-top:10px;padding:10px 14px;border-left:4px solid var(--ok);background:var(--bg);border-radius:8px}
+.formula{font-size:1.08rem;line-height:2.3;overflow-x:auto;padding:4px 2px}
+.stepbar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:10px 0 8px}
+.stepbar div{height:100%;background:var(--accent);transition:width .3s}
+.explain{padding:10px 14px;border-radius:10px;background:var(--tint);min-height:3.4em}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.85rem;color:var(--mute);margin-top:6px}
+.legend i{display:inline-block;width:18px;height:4px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.zone{display:inline-block;padding:2px 10px;border-radius:999px;font-weight:700;color:#fff}
+/* quiz */
+.quiz .q{padding:12px 0;border-bottom:1px solid var(--line)}
+.quiz .q:last-child{border:none}
+.opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.opts button.right{background:var(--ok);color:#fff;border-color:transparent}
+.opts button.wrong{background:var(--bad);color:#fff;border-color:transparent}
+.fb{font-size:.92rem;margin-top:6px;min-height:1.2em}
+.score{margin-top:12px;font-size:1.15rem;font-weight:700;display:none;align-items:center;gap:12px;flex-wrap:wrap}
+footer{color:var(--mute);font-size:.85rem;text-align:center;margin-top:30px}
+/* ---------- avatar ---------- */
+.avwrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.av{width:100%;max-width:220px;cursor:pointer;user-select:none}
+.av svg{width:100%;display:block;overflow:visible;background:none}
+.av .bodyg{animation:bob 3.2s ease-in-out infinite;transform-origin:100px 200px}
+.av .eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+.av .hairL{animation:sway 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:top center}
+.av .hairR{animation:sway 3.2s ease-in-out infinite reverse;transform-box:fill-box;transform-origin:top center}
+.av .brow{transition:transform .3s;transform-box:fill-box}
+.av .browL{transform-origin:right center}.av .browR{transform-origin:left center}
+.av .mo{opacity:0;transition:opacity .25s}.av .mo.n{opacity:1}
+.av .blush,.av .sweat,.av .spark{opacity:0;transition:opacity .3s}
+.av.smile .mo.n,.av.frown .mo.n{opacity:0}
+.av.smile .mo.s{opacity:1}.av.frown .mo.f{opacity:1}
+.av.smile .blush{opacity:.55}.av.smile .spark{opacity:1}.av.frown .sweat{opacity:.9}
+.av.smile .brow{transform:translateY(-3px)}
+.av.frown .browL{transform:rotate(14deg) translateY(2px)}.av.frown .browR{transform:rotate(-14deg) translateY(2px)}
+.av.hop svg{animation:hop .7s ease}
+.av.shake svg{animation:shake .55s ease}
+.av .spark{animation:twinkle 1s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}
+@keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+@keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.bubble{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.95rem;margin-bottom:10px;min-height:2.6em;max-width:260px;text-align:center;transition:border-color .3s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--line);border-bottom:0}
+.bubble.good{border-color:var(--ok)}.bubble.good::after{border-top-color:var(--ok)}
+.bubble.bad{border-color:var(--bad)}.bubble.bad::after{border-top-color:var(--bad)}
+.intro{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:center}
+.intro>*,.qgrid>*{min-width:0}
+.intro .avwrap{flex-direction:row;gap:10px}.intro .bubble{flex:1;margin:0}.intro .bubble::after{display:none}.intro .av{width:125px;flex:none}
+.qgrid{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:18px;align-items:start}
+.qgrid .avwrap{position:sticky;top:12px}
+@media (max-width:860px){.intro,.qgrid{grid-template-columns:minmax(0,1fr)}.intro .avwrap{flex-direction:column}.intro .bubble{margin-bottom:10px}.intro .bubble::after{display:block}.intro .av,.qgrid .av{width:auto;max-width:140px}.qgrid .avwrap{position:static;order:-1}}
+.nt{color:var(--path)}
+.tblwrap{overflow-x:auto;margin-top:10px}
+table.tb{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:.88rem}
+table.tb th,table.tb td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+table.tb th{color:var(--mute);font-weight:600}
+table.tb tr.cur td{background:var(--tint)}
+table.tb tr.stop td{background:var(--tint)}
+table.tb tr.ans td{background:var(--tint);font-weight:700}
+table.tb tr.dim td{opacity:.38}
+.row button.on{background:var(--accent);color:#fff;border-color:transparent}
+input[type=checkbox]{accent-color:var(--accent);width:18px;height:18px}
+</style>
+<style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line,#e3e1da);border-radius:12px;background:var(--card,var(--surface,#fff));color:var(--ink,#1d2330);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+.pu-badge img{width:58px;height:58px;display:block}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute,var(--muted,#667085))}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="pu-hd">
+  <div class="pu-hd-main">
+  <h1>牛頓法（Newton's Method）互動教學</h1>
+  <p>工程數學 ・ 互動教學：沿著切線滑到 x 軸，一步步逼近方程式的根</p>
+</div>
+  <div class="pu-badge"><img alt="靜宜大學校徽" src="data:image/webp;base64,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"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</header>
+
+<!-- 0 -->
+<section class="card">
+  <h2><span class="num">0</span>一句話直覺：沿著切線滑到 x 軸</h2>
+  <div class="intro">
+    <div>
+      <div class="def">
+        新的猜測 ＝ 舊的猜測 − <b class="bad">函數值</b> ÷ <b class="tan">斜率</b><br>
+        <i class="m">x</i><sub>n+1</sub> = <i class="m">x</i><sub>n</sub> − <span class="frac"><span><i class="m">f</i>(<i class="m">x</i><sub>n</sub>)</span><span><i class="m">f</i>′(<i class="m">x</i><sub>n</sub>)</span></span>
+      </div>
+      <div class="three">
+        <div><b class="t">① 先猜一個 x₁</b>目標是找 <i class="m">c</i> 使 <i class="m">f</i>(<i class="m">c</i>) = 0（方程式的<b>根</b>，也就是零點）。先畫圖，猜一個靠近根的 <i class="m">x</i>₁。</div>
+        <div><b class="t">② 畫切線、找交點</b>在曲線上的點 (<i class="m">x</i><sub>n</sub>, <i class="m">f</i>(<i class="m">x</i><sub>n</sub>)) 畫<b class="tan">切線</b>，切線和 x 軸的交點就是新的猜測 <i class="m">x</i><sub>n+1</sub>。</div>
+        <div><b class="t">③ 夠準就停</b>當 |<i class="m">x</i><sub>n</sub> − <i class="m">x</i><sub>n+1</sub>| 小於要求的精度，就用 <i class="m">x</i><sub>n+1</sub> 當答案；否則回到 ②。每做一次叫一次<b>迭代（iteration）</b>。</div>
+      </div>
+      <p class="note">為什麼要學？很多方程式沒有公式解，例如 cos <i class="m">x</i> = <i class="m">x</i>；計算機算 √2 也是用類似方法。AI 裡的「二階最佳化」方法，也是從牛頓法發展出來的（第 4 節）。</p>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub1">Good day！我是牛頓（Isaac Newton）。點我聽故事！</div><div class="av" id="av1"></div></div>
+  </div>
+</section>
+
+<!-- 1 -->
+<section class="card">
+  <h2><span class="num">1</span>公式從哪來：切線和 x 軸的交點</h2>
+  <div class="formula" id="o1gen"></div>
+  <div class="ctl">
+    <label>函數<select id="f1"></select></label>
+    <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="z1"> 🔍 跟著放大（看清楚越來越小的步伐）</label>
+  </div>
+  <div class="two" style="margin-top:12px">
+    <div>
+      <div class="cvbox"><canvas id="c1"></canvas></div>
+      <div class="legend"><span><i style="background:var(--cv)"></i>f(x)</span><span><i style="background:var(--tan)"></i>切線</span><span><i style="background:var(--path)"></i>滑到 x 軸 → 新的猜測</span><span>★ 真正的根</span></div>
+      <p class="note" style="margin:4px 0 0">👆 點圖可以換起點 <i class="m">x</i>₁（目前 <b id="x1v"></b>）</p>
+    </div>
+    <div>
+      <div class="row"><button id="r1">⟲ 重來</button><button id="p1">◀ 上一步</button><button id="n1" class="pri">下一步 ▶</button><button id="a1">▶ 自動播放</button></div>
+      <div class="stepbar"><div id="b1"></div></div>
+      <div class="explain" id="t1"></div>
+      <div class="formula" id="o1num"></div>
+      <div class="tblwrap"><table class="tb" id="tb1"></table></div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="card">
+  <h2><span class="num">2</span>什麼時候停？牛頓法有多快？</h2>
+  <p style="margin-top:0">課本步驟 3：當 |<i class="m">x</i><sub>n</sub> − <i class="m">x</i><sub>n+1</sub>| 小於要求的精度，就停下來用 <i class="m">x</i><sub>n+1</sub> 當答案。選一個精度，看看要迭代幾次：</p>
+  <div class="ctl">
+    <label>函數<select id="f2"></select></label>
+    <label>要求的精度<select id="tol2"><option value="1e-2">0.01（小數 2 位）</option><option value="1e-4">0.0001（小數 4 位）</option><option value="1e-6" selected>10⁻⁶（小數 6 位）</option><option value="1e-10">10⁻¹⁰（小數 10 位）</option></select></label>
+  </div>
+  <div class="two" style="margin-top:12px">
+    <div>
+      <div class="tblwrap"><table class="tb" id="tb2"></table></div>
+      <div class="say" id="t2"></div>
+    </div>
+    <div>
+      <h3>正確的小數位數：牛頓法 vs 二分法</h3>
+      <div class="cvbox"><canvas id="c2"></canvas></div>
+      <div class="legend"><span><i style="background:var(--path)"></i>牛頓法</span><span><i style="background:var(--cv)"></i>二分法（每次把區間切一半）</span></div>
+      <p class="note">靠近根之後，牛頓法的正確位數<b>大約每次翻倍</b>（例如 1 → 3 → 7 → 14），這叫<b>二次收斂（quadratic convergence）</b>；二分法每次只多大約 0.3 位。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="card">
+  <h2><span class="num">3</span>小心！牛頓法也會失敗</h2>
+  <p style="margin-top:0">課本說 <i class="m">x</i>₁ 要「靠近」根，而且 <i class="m">f</i> 要可微分，是有原因的。點選三種失敗情況，按「下一步」看看：</p>
+  <div class="row" id="bad3"></div>
+  <div class="two" style="margin-top:12px">
+    <div>
+      <div class="cvbox"><canvas id="c3"></canvas></div>
+      <div class="formula" id="o3gen" style="font-size:1rem"></div>
+    </div>
+    <div>
+      <div class="row"><button id="r3">⟲ 重來</button><button id="p3">◀ 上一步</button><button id="n3" class="pri">下一步 ▶</button><button id="a3">▶ 自動播放</button></div>
+      <div class="stepbar"><div id="b3"></div></div>
+      <div class="explain" id="t3"></div>
+      <div class="say" id="s3"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="card">
+  <h2><span class="num">4</span>牛頓法和梯度下降是親戚</h2>
+  <div class="two">
+    <div>
+      <p style="margin-top:0">把「找根」改寫成「找最小值」：<i class="m">f</i>(<i class="m">x</i>) = 0 的根，就是 <i class="m">g</i>(<i class="m">x</i>) = ½<i class="m">f</i>(<i class="m">x</i>)² 的最小值（<i class="m">g</i> ≥ 0，只有在根的地方等於 0）。</p>
+      <div class="formula" id="o4gen"></div>
+      <div class="say">📌 <b>牛頓法 ＝ 自動選步長的梯度下降。</b>梯度下降的 η 要人工去調；牛頓法每一步用 η = 1/<i class="m">f</i>′(<i class="m">x</i><sub>n</sub>)² 自動決定該走多遠，所以快很多。代價是要能算出 <i class="m">f</i>′(<i class="m">x</i>)，而且它不能是 0。</div>
+      <p class="note">延伸：如果要找 <i class="m">g</i>(<i class="m">x</i>) 的最小值，就用牛頓法解 <i class="m">g</i>′(<i class="m">x</i>) = 0，得到 <i class="m">x</i><sub>n+1</sub> = <i class="m">x</i><sub>n</sub> − <i class="m">g</i>′(<i class="m">x</i><sub>n</sub>) / <i class="m">g</i>″(<i class="m">x</i><sub>n</sub>)，也就是步長 η = 1/<i class="m">g</i>″ 的梯度下降。這是 AI 裡「二階最佳化」（如 L-BFGS）的出發點。</p>
+    </div>
+    <div>
+      <p style="margin-top:0">實際比一比：解 <i class="m">x</i>² − 2 = 0（求 √2），兩種方法從同一個起點出發：</p>
+      <div class="ctl">
+        <label>起點 <i class="m">x</i>₁ = <b id="x4v"></b><input id="x4" type="range" min="0.5" max="2" step="0.1" value="1"></label>
+        <label>梯度下降的學習率 η = <b id="e4v"></b><input id="e4" type="range" min="0.02" max="0.2" step="0.01" value="0.1"></label>
+      </div>
+      <div class="cvbox" style="margin-top:8px"><canvas id="c4"></canvas></div>
+      <div class="legend"><span><i style="background:var(--path)"></i>牛頓法</span><span><i style="background:var(--gd)"></i>梯度下降（固定 η）</span><span><i style="background:var(--mute)"></i>√2 = 1.414214</span></div>
+      <div class="tblwrap" style="margin-top:8px"><table class="tb" id="tb4"></table></div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="card">
+  <h2><span class="num">5</span>觀念小測驗</h2>
+  <div class="qgrid">
+    <div>
+      <div class="quiz" id="quiz"></div>
+      <div class="score" id="score"><span id="scoreTxt"></span><button id="retry" class="pri">再做一次</button></div>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub2">來考考你！答對我會笑，答錯我會皺眉喔。</div><div class="av" id="av2"></div></div>
+  </div>
+</section>
+
+<footer>牛頓法互動教學 ・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fr=(a,b)=>`<span class="frac"><span>${a}</span><span>${b}</span></span>`;
+const M=s=>`<i class="m">${s}</i>`;
+const fmt=(v,d=3)=>{if(!isFinite(v))return v>0?'∞':'−∞';if(Math.abs(v)<5e-10)v=0;if(Math.abs(v)>=1e5)return v.toExponential(2).replace('-','−');return v.toFixed(d).replace('-','−');};
+function sizeCanvas(cv,ratio,maxH){
+  cv.style.width='0px';const w=cv.parentElement.clientWidth;cv.style.width='100%';
+  let h=Math.round(w*ratio);if(maxH)h=Math.min(h,maxH);
+  const dpr=window.devicePixelRatio||1;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+'px';
+  const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);return {c,w,h};
+}
+function niceStep(span){const raw=span/6,p=Math.pow(10,Math.floor(Math.log10(raw))),n=raw/p;return (n<1.5?1:n<3.5?2:n<7.5?5:10)*p;}
+function arrow(c,x1,y1,x2,y2,col,lw){const a=Math.atan2(y2-y1,x2-x1),L=Math.hypot(x2-x1,y2-y1);if(L<2)return;lw=lw||3.5;const hd=Math.min(12,L*0.6);
+  c.strokeStyle=col;c.fillStyle=col;c.lineWidth=lw;c.lineCap='round';c.beginPath();c.moveTo(x1,y1);c.lineTo(x2-hd*0.7*Math.cos(a),y2-hd*0.7*Math.sin(a));c.stroke();
+  c.beginPath();c.moveTo(x2,y2);c.lineTo(x2-hd*Math.cos(a-0.42),y2-hd*Math.sin(a-0.42));c.lineTo(x2-hd*Math.cos(a+0.42),y2-hd*Math.sin(a+0.42));c.closePath();c.fill();}
+function dot(c,x,y,col,r){c.fillStyle=col||'#111';c.strokeStyle=css('--card');c.lineWidth=2;c.beginPath();c.arc(x,y,r||6,0,7);c.fill();c.stroke();}
+/* 一般座標圖 */
+function plot(cv,ratio,xr,yr,opt){
+  opt=opt||{};const {c,w,h}=sizeCanvas(cv,ratio,opt.maxH||420),L=opt.L||40,R=12,T=10,B=opt.B||28;
+  const X=x=>L+(x-xr[0])/(xr[1]-xr[0])*(w-L-R),Y=y=>T+(yr[1]-y)/(yr[1]-yr[0])*(h-T-B);
+  const sx=opt.sx||niceStep(xr[1]-xr[0]),sy=opt.sy||niceStep(yr[1]-yr[0]);
+  c.font='11px sans-serif';c.strokeStyle=css('--grid');c.fillStyle=css('--mute');c.lineWidth=1;c.textAlign='center';c.textBaseline='top';
+  for(let x=Math.ceil(xr[0]/sx)*sx;x<=xr[1]+1e-9;x+=sx){c.beginPath();c.moveTo(X(x),T);c.lineTo(X(x),h-B);c.stroke();c.fillText(+x.toFixed(4)+'',X(x),h-B+4);}
+  c.textAlign='right';c.textBaseline='middle';
+  for(let y=Math.ceil(yr[0]/sy)*sy;y<=yr[1]+1e-9;y+=sy){c.beginPath();c.moveTo(L,Y(y));c.lineTo(w-R,Y(y));c.stroke();c.fillText(+y.toFixed(4)+'',L-4,Y(y));}
+  c.strokeStyle=css('--axis');c.strokeRect(L,T,w-L-R,h-T-B);
+  if(opt.xl){c.textAlign='right';c.textBaseline='bottom';c.fillText(opt.xl,w-R-4,h-B-3);}
+  return {c,w,h,X,Y,L,R,T,B,inv:(px,py)=>[xr[0]+(px-L)/(w-L-R)*(xr[1]-xr[0]),yr[1]-(py-T)/(h-T-B)*(yr[1]-yr[0])],
+    clip(){c.save();c.beginPath();c.rect(L,T,w-L-R,h-T-B);c.clip();}};
+}
+function curve(P,f,x0,x1,col,lw){const c=P.c;c.strokeStyle=col;c.lineWidth=lw||3;c.beginPath();for(let i=0;i<=300;i++){const x=x0+(x1-x0)*i/300;i?c.lineTo(P.X(x),P.Y(f(x))):c.moveTo(P.X(x),P.Y(f(x)));}c.stroke();}
+function onClick(cv,cb){cv.addEventListener('pointerdown',e=>{const b=cv.getBoundingClientRect();cb(e.clientX-b.left,e.clientY-b.top);});}
+function lossChart(cv,series,N,opt){ // series:[{vals,col}]
+  opt=opt||{};let top=0;series.forEach(s=>s.vals.forEach(v=>{if(isFinite(v))top=Math.max(top,Math.min(v,opt.cap||1e9));}));top=(top||1)*1.08;
+  const P=plot(cv,0.42,[0,N],[0,top],{maxH:200,xl:'步數',sx:N>=40?10:5});P.clip();
+  series.forEach(s=>{P.c.strokeStyle=s.col;P.c.lineWidth=2.5;P.c.beginPath();s.vals.forEach((v,i)=>{const y=P.Y(Math.min(v,top*1.2));i?P.c.lineTo(P.X(i),y):P.c.moveTo(P.X(i),y);});P.c.stroke();
+    if(s.vals.length<=41){P.c.fillStyle=s.col;s.vals.forEach((v,i)=>{P.c.beginPath();P.c.arc(P.X(i),P.Y(Math.min(v,top*1.2)),2.8,0,7);P.c.fill();});}});
+  P.c.restore();
+}
+function stepper(ids,getN,setK,getK,ms){ // ids:[reset,prev,next,auto]
+  let T=null;const stop=()=>{clearInterval(T);T=null;$(ids[3]).textContent='▶ 自動播放';};
+  $(ids[0]).onclick=()=>{stop();setK(0);};
+  if(ids[1])$(ids[1]).onclick=()=>{stop();setK(getK()-1);};
+  $(ids[2]).onclick=()=>{stop();setK(getK()+1);};
+  $(ids[3]).onclick=()=>{if(T){stop();return;}if(getK()>=getN())setK(0);$(ids[3]).textContent='⏸ 暫停';
+    T=setInterval(()=>{if(getK()>=getN()){stop();return;}setK(getK()+1);},ms||1100);};
+  return stop;
+}
+
+
+
+/* ---------- 共用：牛頓法 ---------- */
+const SUBD='₀₁₂₃₄₅₆₇₈₉',sub=n=>String(n).split('').map(d=>SUBD[+d]).join('');
+const XN=n=>`${M('x')}<sub>${n}</sub>`;
+const SUPC={'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+function fe(v){if(!isFinite(v))return '∞';if(v===0)return '0';const a=Math.abs(v),e=Math.floor(Math.log10(a));
+  if(e>=-3&&e<4)return fmt(v,6);let m=v/10**e;if(Math.abs(+m.toFixed(2))>=10){m/=10;}
+  return `${m.toFixed(2).replace('-','−')}×10${String(Math.abs(+m.toFixed(2))>=10?e+1:e).split('').map(c=>SUPC[c]).join('')}`;}
+function solveRoot(f,d,x){for(let i=0;i<100;i++){const s=f(x)/d(x);x-=s;if(Math.abs(s)<1e-16)break;}return x;}
+function nrPath(F,x1,N){const p=[x1];let x=x1;for(let i=0;i<N;i++){const d=F.d(x),y=F.f(x);if(!isFinite(d)||Math.abs(d)<1e-14)break;
+  const nx=x-y/d;if(!isFinite(nx)||Math.abs(nx)>1e7)break;p.push(nx);x=nx;}return p;}
+const digits=(err)=>err===0?16:Math.max(0,Math.min(16,Math.floor(-Math.log10(err))));
+
+const FN={
+ sqrt2:{lab:'f(x) = x² − 2　（求 √2）',tex:`${M('x')}² − 2`,dtex:`2${M('x')}`,f:x=>x*x-2,d:x=>2*x,xr:[-0.5,3.2],yr:[-3,8.5],x1:2.8,bis:[1,2]},
+ nw:{lab:'f(x) = x³ − 2x − 5　（牛頓本人的例題）',tex:`${M('x')}³ − 2${M('x')} − 5`,dtex:`3${M('x')}² − 2`,f:x=>x**3-2*x-5,d:x=>3*x*x-2,xr:[0.5,3.6],yr:[-8,30],x1:3.3,bis:[2,3]},
+ cs:{lab:'f(x) = cos x − x　（解 cos x = x）',tex:`cos ${M('x')} − ${M('x')}`,dtex:`−sin ${M('x')} − 1`,f:x=>Math.cos(x)-x,d:x=>-Math.sin(x)-1,xr:[-1,2.6],yr:[-3.5,1.8],x1:2.2,bis:[0,1]}
+};
+Object.values(FN).forEach(F=>F.r=solveRoot(F.f,F.d,(F.bis[0]+F.bis[1])/2));
+function fillSel(sel){Object.entries(FN).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=v.lab;sel.appendChild(o);});}
+
+/* 畫：曲線、切線、滑到 x 軸 */
+function drawNR(cv,F,path,k,xr,yr){
+  const P=plot(cv,0.72,xr,yr,{xl:'x'}),c=P.c;P.clip();
+  const y0=P.Y(0);
+  if(yr[0]<0&&yr[1]>0){c.strokeStyle=css('--axis');c.lineWidth=2;c.beginPath();c.moveTo(P.X(xr[0]),y0);c.lineTo(P.X(xr[1]),y0);c.stroke();}
+  curve(P,F.f,xr[0],xr[1],css('--cv'));
+  for(let i=0;i<k;i++){const a=path[i],b=path[i+1];
+    c.globalAlpha=.5;c.lineWidth=1.5;c.setLineDash([5,4]);
+    c.strokeStyle=css('--tan');c.beginPath();c.moveTo(P.X(a),P.Y(F.f(a)));c.lineTo(P.X(b),y0);c.stroke();
+    c.strokeStyle=css('--mute');c.beginPath();c.moveTo(P.X(b),y0);c.lineTo(P.X(b),P.Y(F.f(b)));c.stroke();
+    c.setLineDash([]);c.globalAlpha=1;
+    c.fillStyle=css('--path');c.beginPath();c.arc(P.X(a),y0,3.5,0,7);c.fill();}
+  if(F.r!==undefined){c.fillStyle=css('--warn');c.font='bold 18px sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('★',P.X(F.r),y0);}
+  const x=path[k],y=F.f(x),s=F.d(x);
+  if(isFinite(s)){const ya=y+s*(xr[0]-x),yb=y+s*(xr[1]-x),cl=v=>Math.max(-1e5,Math.min(1e5,v));
+    c.strokeStyle=css('--tan');c.lineWidth=2.2;c.beginPath();c.moveTo(P.X(xr[0]),cl(P.Y(ya)));c.lineTo(P.X(xr[1]),cl(P.Y(yb)));c.stroke();}
+  c.strokeStyle=css('--mute');c.lineWidth=1.2;c.setLineDash([3,3]);c.beginPath();c.moveTo(P.X(x),y0);c.lineTo(P.X(x),P.Y(y));c.stroke();c.setLineDash([]);
+  c.font='bold 13px sans-serif';c.textAlign='center';c.textBaseline='top';
+  if(k<path.length-1){const nx=path[k+1];
+    arrow(c,P.X(x),P.Y(y),P.X(nx),y0,css('--path'),3.5);
+    c.strokeStyle=css('--path');c.fillStyle=css('--card');c.lineWidth=3;c.beginPath();c.arc(P.X(nx),y0,6.5,0,7);c.fill();c.stroke();
+    c.fillStyle=css('--path');c.fillText('x'+sub(k+2),P.X(nx),y0+(y>0?10:-26));}
+  c.fillStyle=css('--ink');if(k<path.length-1&&Math.abs(P.X(path[k+1])-P.X(x))<26){c.textBaseline='bottom';c.fillText('x'+sub(k+1),P.X(x)-14,P.Y(y)-8);}else c.fillText('x'+sub(k+1),P.X(x),y0+(y>0?10:-26));
+  dot(c,P.X(x),P.Y(y),css('--pt'),7);
+  c.restore();return P;
+}
+function zoomView(F,a,b){let lo=Math.min(a,b),hi=Math.max(a,b);const base=F.xr[1]-F.xr[0];const pad=Math.max((hi-lo)*0.5,base*0.004);lo-=pad;hi+=pad;
+  let ylo=0,yhi=0;for(let i=0;i<=80;i++){const v=F.f(lo+(hi-lo)*i/80);ylo=Math.min(ylo,v);yhi=Math.max(yhi,v);}const yp=(yhi-ylo)*0.15||1e-3;return [[lo,hi],[ylo-yp,yhi+yp]];}
+
+/* ---------- 1. 幾何 ---------- */
+const S1={fn:'sqrt2',x1:FN.sqrt2.x1,k:0,path:[],zoom:false,P:null},N1=5;
+function run1(){S1.path=nrPath(FN[S1.fn],S1.x1,N1);}
+function draw1(){
+  const F=FN[S1.fn],p=S1.path,N=p.length-1,k=Math.min(S1.k,N),n=k+1;
+  const [xr,yr]=S1.zoom?zoomView(F,p[k],p[Math.min(k+1,N)]):[F.xr,F.yr];
+  S1.P=drawNR($('c1'),F,p,k,xr,yr);
+  $('x1v').textContent=fmt(S1.x1,2);$('b1').style.width=(N?k/N*100:100)+'%';
+  $('o1gen').innerHTML=`切線方程式：${M('y')} = ${M('f')}(${XN('n')}) + ${M('f')}′(${XN('n')})(${M('x')} − ${XN('n')})　→　令 ${M('y')} = 0　→　${XN('n+1')} = ${XN('n')} − ${fr(M('f')+'('+XN('n')+')',M('f')+'′('+XN('n')+')')}<br><span class="note">本例：${M('f')}(${M('x')}) = ${F.tex}，${M('f')}′(${M('x')}) = ${F.dtex}</span>`;
+  const x=p[k],y=F.f(x),s=F.d(x);
+  if(k<N){const nx=p[k+1];
+    $('t1').innerHTML=`<b>第 ${n} 次迭代</b>：目前 ${XN(n)} = ${fmt(x,9)}，函數值 ${M('f')}(${XN(n)}) = ${fe(y)}，切線斜率 ${M('f')}′(${XN(n)}) = <b class="tan">${fmt(s,6)}</b>。沿著<b class="tan">切線</b>滑到 x 軸，交點就是新的猜測 <b class="nt">${XN(n+1)}</b>。`;
+    $('o1num').innerHTML=`代入：${XN(n+1)} = ${fmt(x,9)} − ${fr(fe(y),fmt(s,6))} = <b class="nt">${fmt(nx,9)}</b><br><span class="note">|${XN(n)} − ${XN(n+1)}| = ${fe(Math.abs(x-nx))}</span>`;
+  }else{
+    $('t1').innerHTML=`<b>做完 ${N} 次迭代</b>：${XN(n)} = ${fmt(x,10)}，真正的根是 ${fmt(F.r,10)}，誤差只剩 ${fe(Math.abs(x-F.r))}。`;
+    $('o1num').innerHTML='<span class="note">勾選「🔍 跟著放大」再播一次，可以看清楚後面幾步。</span>';}
+  let h=`<tr><th>n</th><th>x<sub>n</sub></th><th>f(x<sub>n</sub>)</th><th>f′(x<sub>n</sub>)</th><th>x<sub>n+1</sub></th></tr>`;
+  for(let i=0;i<=Math.min(k,N-1);i++){const a=p[i];h+=`<tr class="${i===k?'cur':''}"><td>${i+1}</td><td>${fmt(a,9)}</td><td>${fe(F.f(a))}</td><td>${fmt(F.d(a),4)}</td><td class="nt">${fmt(p[i+1],9)}</td></tr>`;}
+  $('tb1').innerHTML=h;
+}
+const set1=k=>{S1.k=Math.max(0,Math.min(S1.path.length-1,k));draw1();};
+const stop1=stepper(['r1','p1','n1','a1'],()=>S1.path.length-1,set1,()=>S1.k,1300);
+fillSel($('f1'));
+$('f1').onchange=()=>{stop1();S1.fn=$('f1').value;S1.x1=FN[S1.fn].x1;run1();set1(0);};
+$('z1').onchange=()=>{S1.zoom=$('z1').checked;draw1();};
+onClick($('c1'),(px,py)=>{if(!S1.P)return;const F=FN[S1.fn];let [x]=S1.P.inv(px,py);x=Math.max(F.xr[0]+0.05,Math.min(F.xr[1]-0.05,x));x=Math.round(x*100)/100;
+  if(Math.abs(F.d(x))<0.05)x+=0.1;stop1();S1.x1=x;run1();set1(0);});
+
+/* ---------- 2. 停止條件與收斂速度 ---------- */
+const S2={fn:'sqrt2',tol:1e-6},N2=8;
+function draw2(){
+  const F=FN[S2.fn],p=nrPath(F,F.x1,N2),r=F.r;
+  let stop=-1;for(let i=0;i<p.length-1;i++){if(Math.abs(p[i]-p[i+1])<S2.tol){stop=i;break;}}
+  let h=`<tr><th>n</th><th>x<sub>n</sub></th><th>|x<sub>n</sub> − x<sub>n+1</sub>|</th><th>和真正根的誤差</th><th>正確位數</th></tr>`;
+  const nd=[];
+  p.forEach((x,i)=>{const e=Math.abs(x-r),dg=digits(e);nd.push(dg);
+    const df=i<p.length-1?Math.abs(x-p[i+1]):NaN;
+    const cls=stop>=0&&i===stop?'stop':stop>=0&&i===stop+1?'ans':stop>=0&&i>stop+1?'dim':'';
+    h+=`<tr class="${cls}"><td>${i+1}</td><td>${x.toFixed(12)}</td><td>${isNaN(df)?'–':fe(df)}${cls==='stop'?' <b class="ok">&lt; 精度 → 停！</b>':''}</td><td>${fe(e)}</td><td>${dg>=16?'≥ 15':dg}${cls==='ans'?' <b class="ok">← 答案</b>':''}</td></tr>`;});
+  $('tb2').innerHTML=h;
+  $('t2').innerHTML=stop>=0?`📌 第 ${stop+1} 次迭代時 |${XN(stop+1)} − ${XN(stop+2)}| = ${fe(Math.abs(p[stop]-p[stop+1]))}，已經小於精度 ${fe(S2.tol)}，所以停下來，用 ${XN(stop+2)} = <b>${p[stop+1].toFixed(12)}</b> 當答案。只要做 <b>${stop+1} 次</b>迭代！`
+    :'📌 在 8 次迭代內還沒達到要求的精度。';
+  // 二分法
+  let [a,b]=F.bis;const bd=[];
+  for(let i=0;i<N2;i++){const m=(a+b)/2;bd.push(digits(Math.abs(m-r)));if(F.f(a)*F.f(m)<=0)b=m;else a=m;}
+  const P=plot($('c2'),0.55,[0.4,N2+0.6],[0,16],{sx:1,sy:4,xl:'n',maxH:280}),c=P.c,w=(P.X(1)-P.X(0))*0.32;
+  for(let i=0;i<N2;i++){const n=i+1;[[nd[i],css('--path'),-1],[bd[i],css('--cv'),0]].forEach(([v,col,o])=>{if(v===undefined)return;
+    c.fillStyle=col;const x=P.X(n)+o*w;c.fillRect(x,P.Y(v),w,P.Y(0)-P.Y(v));
+    c.fillStyle=css('--ink');c.font='10px sans-serif';c.textAlign='center';c.textBaseline='bottom';c.fillText(v>=16?'15+':v,x+w/2,P.Y(v)-1);});}
+}
+fillSel($('f2'));
+$('f2').onchange=()=>{S2.fn=$('f2').value;draw2();};
+$('tol2').onchange=()=>{S2.tol=+$('tol2').value;draw2();};
+
+/* ---------- 3. 失敗 ---------- */
+const BAD={
+ flat:{lab:'① 切線太平',F:{f:x=>x*x-2,d:x=>2*x},tex:`${M('f')}(${M('x')}) = ${M('x')}² − 2，${M('x')}₁ = 0.1`,x1:0.1,xr:[-1,11],yr:[-12,105],N:6,
+   say:'🚨 <b>切線幾乎水平</b>：在 x₁ = 0.1，斜率 f′(x₁) = 0.2 很小。公式要「除以斜率」，除以很小的數 → 一步飛到 x₂ ≈ 10！雖然最後還是會走回來，但浪費了好幾步。如果 f′(xₙ) = 0，公式就根本無法計算。<br>✅ 解法：起點選在離根近、斜率不為 0 的地方（例如 x₁ = 1）。'},
+ cyc:{lab:'② 無限循環',F:{f:x=>x**3-2*x+2,d:x=>3*x*x-2},tex:`${M('f')}(${M('x')}) = ${M('x')}³ − 2${M('x')} + 2，${M('x')}₁ = 0`,x1:0,xr:[-2.5,2],yr:[-6,6],N:6,
+   say:'🚨 <b>無限循環</b>：x₁ = 0 → x₂ = 1 → x₃ = 0 → x₄ = 1 → … 永遠在 0 和 1 之間跳，找不到真正的根（在 x ≈ −1.769 ★）。<br>✅ 解法：先畫圖，換一個靠近根的起點（例如 x₁ = −2）。'},
+ div:{lab:'③ 越跳越遠',F:{f:Math.cbrt,d:x=>1/(3*Math.cbrt(x)**2)},tex:`${M('f')}(${M('x')}) = ∛${M('x')}，${M('x')}₁ = 0.5`,x1:0.5,xr:[-17,17],yr:[-3,3],N:5,
+   say:'🚨 <b>發散</b>：f(x) = ∛x 的根是 0，但它在 0 的切線是垂直的（不可微分）。代入公式會化簡成 x<sub>n+1</sub> = −2x<sub>n</sub>，每一步離根的距離都加倍，越跳越遠！<br>✅ 這說明了課本的條件：f 在根附近要<b>可微分</b>。'}
+};
+BAD.flat.F.r=Math.SQRT2;BAD.cyc.F.r=solveRoot(BAD.cyc.F.f,BAD.cyc.F.d,-1.8);BAD.div.F.r=0;
+const S3={b:'flat',k:0,path:[]};
+function run3(){const B=BAD[S3.b];S3.path=nrPath(B.F,B.x1,B.N);}
+function draw3(){
+  const B=BAD[S3.b],p=S3.path,N=p.length-1,k=Math.min(S3.k,N),n=k+1;
+  drawNR($('c3'),B.F,p,k,B.xr,B.yr);
+  $('b3').style.width=(N?k/N*100:100)+'%';
+  $('o3gen').innerHTML=B.tex;
+  const x=p[k],y=B.F.f(x),s=B.F.d(x);
+  $('t3').innerHTML=k<N?`<b>第 ${n} 次迭代</b>：${XN(n)} = ${fmt(x,4)}，${M('f')}(${XN(n)}) = ${fmt(y,4)}，${M('f')}′(${XN(n)}) = <b class="tan">${fmt(s,4)}</b><br>→ ${XN(n+1)} = ${fmt(x,4)} − ${fr(fmt(y,4),fmt(s,4))} = <b class="nt">${fmt(p[k+1],4)}</b>`
+    :`<b>${N} 次迭代後</b>：${XN(n)} = ${fmt(x,4)}，真正的根是 ${fmt(B.F.r,4)} ★。`;
+  $('s3').innerHTML=B.say;
+  document.querySelectorAll('#bad3 button').forEach(b=>b.classList.toggle('on',b.dataset.b===S3.b));
+}
+const set3=k=>{S3.k=Math.max(0,Math.min(S3.path.length-1,k));draw3();};
+const stop3=stepper(['r3','p3','n3','a3'],()=>S3.path.length-1,set3,()=>S3.k,1300);
+Object.entries(BAD).forEach(([k,v])=>{const b=document.createElement('button');b.textContent=v.lab;b.dataset.b=k;b.onclick=()=>{stop3();S3.b=k;run3();set3(0);};$('bad3').appendChild(b);});
+
+/* ---------- 4. 牛頓法 vs 梯度下降 ---------- */
+const S4={x1:1,eta:0.1},N4=8;
+$('o4gen').innerHTML=`梯度下降：${XN('n+1')} = ${XN('n')} − η · ${M('g')}′(${XN('n')}) = ${XN('n')} − η · ${M('f')}(${XN('n')}) ${M('f')}′(${XN('n')})<br>
+若取 η = ${fr('1','['+M('f')+'′('+XN('n')+')]²')}：${XN('n+1')} = ${XN('n')} − ${fr(M('f')+'('+XN('n')+') '+M('f')+'′('+XN('n')+')','['+M('f')+'′('+XN('n')+')]²')} = ${XN('n')} − ${fr(M('f')+'('+XN('n')+')',M('f')+'′('+XN('n')+')')}<br><b class="nt">→ 這就是牛頓法！</b>`;
+function draw4(){
+  const F=FN.sqrt2,nt=nrPath(F,S4.x1,N4),gd=[S4.x1];
+  for(let i=0;i<N4;i++){const x=gd[i];gd.push(x-S4.eta*F.f(x)*F.d(x));}
+  $('x4v').textContent=S4.x1.toFixed(1);$('e4v').textContent=S4.eta.toFixed(2);
+  let lo=Math.SQRT2,hi=Math.SQRT2;[...nt,...gd].forEach(v=>{if(isFinite(v)){lo=Math.min(lo,v);hi=Math.max(hi,v);}});
+  lo=Math.max(lo,-3);hi=Math.min(hi,5);const pd=(hi-lo)*0.12||0.1;
+  const P=plot($('c4'),0.55,[1,N4+1],[lo-pd,hi+pd],{sx:1,xl:'n',maxH:300}),c=P.c;P.clip();
+  c.strokeStyle=css('--mute');c.lineWidth=1.3;c.setLineDash([6,4]);c.beginPath();c.moveTo(P.X(1),P.Y(Math.SQRT2));c.lineTo(P.X(N4+1),P.Y(Math.SQRT2));c.stroke();c.setLineDash([]);
+  [[gd,css('--gd')],[nt,css('--path')]].forEach(([s,col])=>{c.strokeStyle=col;c.lineWidth=2.5;c.beginPath();s.forEach((v,i)=>i?c.lineTo(P.X(i+1),P.Y(v)):c.moveTo(P.X(i+1),P.Y(v)));c.stroke();
+    c.fillStyle=col;s.forEach((v,i)=>{c.beginPath();c.arc(P.X(i+1),P.Y(v),3.8,0,7);c.fill();});});
+  c.restore();
+  let h=`<tr><th>n</th><th class="nt">牛頓法 x<sub>n</sub></th><th class="nt">自動步長 1/f′(x<sub>n</sub>)²</th><th class="gd">梯度下降 x<sub>n</sub></th></tr>`;
+  for(let i=0;i<=N4;i++){const a=nt[i];h+=`<tr><td>${i+1}</td><td>${a===undefined?'–':a.toFixed(6)}</td><td>${a===undefined?'–':fmt(1/F.d(a)**2,4)}</td><td>${fmt(gd[i],6)}</td></tr>`;}
+  $('tb4').innerHTML=h;
+}
+$('x4').addEventListener('input',e=>{S4.x1=+e.target.value;draw4();});
+$('e4').addEventListener('input',e=>{S4.eta=+e.target.value;draw4();});
+
+
+/* ---------- 牛頓老師 ---------- */
+const NT_SVG=`<svg viewBox="0 0 200 230" aria-label="牛頓老師動畫">
+ <g class="bodyg">
+  <path d="M10 232 Q16 170 100 160 Q184 170 190 232 Z" fill="#3b2b24"/>
+  <path d="M70 178 Q76 205 72 232 M130 178 Q124 205 128 232" stroke="#2a1e19" stroke-width="2" fill="none"/>
+  <path d="M63 66 Q46 104 50 146 Q46 176 60 188 L140 188 Q154 176 150 146 Q154 104 137 66 Z" fill="#a39d95"/>
+  <rect x="87" y="128" width="26" height="34" rx="9" fill="#e3b69a"/>
+  <path d="M82 154 Q100 166 118 154 L114 190 Q100 196 86 190 Z" fill="#f7f5ef" stroke="#d2ccc0" stroke-width="1.3" stroke-linejoin="round"/>
+  <path d="M100 163 L100 192 M92 172 Q96 180 94 188 M108 172 Q104 180 106 188" stroke="#d2ccc0" stroke-width="1.2" fill="none"/>
+  <ellipse cx="100" cy="100" rx="30" ry="41" fill="#f0c6aa"/>
+  <ellipse class="blush" cx="82" cy="118" rx="6.5" ry="4.2" fill="#f08080"/>
+  <ellipse class="blush" cx="118" cy="118" rx="6.5" ry="4.2" fill="#f08080"/>
+  <path d="M68 100 Q60 58 100 52 Q140 58 132 100 Q129 80 118 71 Q108 64 100 67 Q92 64 82 71 Q71 80 68 100 Z" fill="#c9c4bc"/>
+  <path d="M100 54 Q99 60 100 67 M86 60 Q78 66 74 78 M114 60 Q122 66 126 78" stroke="#9a948c" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <g class="hairL"><path d="M71 70 Q56 78 58 98 Q51 111 57 124 Q49 138 57 151 Q50 165 60 180 Q70 186 77 175 Q70 162 76 150 Q69 137 75 124 Q69 111 74 99 Q69 86 75 77 Z" fill="#c9c4bc"/>
+   <path d="M64 92 Q60 104 65 114 M62 130 Q58 142 64 152 M63 166 Q62 174 68 178" stroke="#9a948c" stroke-width="1.5" fill="none" stroke-linecap="round"/></g>
+  <g class="hairR"><path d="M129 70 Q144 78 142 98 Q149 111 143 124 Q151 138 143 151 Q150 165 140 180 Q130 186 123 175 Q130 162 124 150 Q131 137 125 124 Q131 111 126 99 Q131 86 125 77 Z" fill="#c9c4bc"/>
+   <path d="M136 92 Q140 104 135 114 M138 130 Q142 142 136 152 M137 166 Q138 174 132 178" stroke="#9a948c" stroke-width="1.5" fill="none" stroke-linecap="round"/></g>
+  <path class="brow browL" d="M76 85 Q84 80 93 84" stroke="#6b5d52" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path class="brow browR" d="M107 84 Q116 80 124 85" stroke="#6b5d52" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <g class="eyes"><ellipse cx="85" cy="97" rx="5.4" ry="4" fill="#fff"/><ellipse cx="115" cy="97" rx="5.4" ry="4" fill="#fff"/>
+   <circle cx="85.5" cy="97.4" r="3" fill="#4a3a2e"/><circle cx="115.5" cy="97.4" r="3" fill="#4a3a2e"/>
+   <circle cx="86.5" cy="96.2" r="1" fill="#fff"/><circle cx="116.5" cy="96.2" r="1" fill="#fff"/></g>
+  <path d="M79.5 92.5 Q85 90 90.5 92.5 M109.5 92.5 Q115 90 120.5 92.5" stroke="#c99a80" stroke-width="1.2" fill="none"/>
+  <path d="M101 96 Q100 110 95 119 Q100 124 107 121" stroke="#c9967a" stroke-width="2.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path class="mo n" d="M90 131 Q100 134 110 130" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path class="mo s" d="M88 128 Q100 142 112 128 Q100 133 88 128 Z" fill="#9b3a2c" stroke="#8a4a3a" stroke-width="1.5" stroke-linejoin="round"/>
+  <path class="mo f" d="M90 135 Q100 127 110 135" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path d="M95 139 Q100 141 105 139" stroke="#d9a88e" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+  <ellipse cx="156" cy="216" rx="15" ry="9" fill="#e3b69a"/>
+  <circle cx="150" cy="203" r="11" fill="#d63a3a"/><circle cx="160" cy="203" r="11" fill="#d63a3a"/>
+  <ellipse cx="149" cy="199" rx="3" ry="4.5" fill="#f08a8a" opacity=".7"/>
+  <path d="M155 193 Q156 186 158 182" stroke="#6b4a2a" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <path d="M157 186 Q166 178 172 184 Q164 191 157 186 Z" fill="#4caf50"/>
+  <path class="sweat" d="M138 72 Q143 82 138 86 Q133 82 138 72 Z" fill="#7cc3f0"/>
+  <text class="spark" x="30" y="44" font-size="18" fill="#f0b400">✦</text>
+  <text class="spark" x="160" y="40" font-size="14" fill="#f0b400">✦</text>
+  <text class="spark" x="170" y="96" font-size="11" fill="#f0b400">✦</text>
+ </g></svg>`;
+function makeAvatar(el,bubble){
+  el.innerHTML=NT_SVG;let tm=null;
+  function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
+  return {mood(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
+    if(m==='smile'){el.classList.add('smile');restart('hop');}
+    if(m==='frown'){el.classList.add('frown');restart('shake');}
+    if(text!==undefined){bubble.innerHTML=text;bubble.className='bubble'+(m==='smile'?' good':m==='frown'?' bad':'');}
+    if(!hold)tm=setTimeout(()=>{el.classList.remove('smile','frown');bubble.className='bubble';},3200);}};
+}
+var AV1=makeAvatar($('av1'),$('bub1')),AV2=makeAvatar($('av2'),$('bub2'));
+const QUOTES=[
+ '1669 年左右，我在手稿《De analysi》裡用這個方法解 y³ − 2y − 5 = 0——就是第 1 節的第二個函數！',
+ '我原本的寫法是一次修正整個多項式，不是用導數寫的。1690 年拉弗森（Raphson）發表了更簡潔的迭代版本，所以它也叫「牛頓–拉弗森法」。',
+ '1665–1666 年倫敦大瘟疫，劍橋大學停課，我回到家鄉伍爾索普，想出了微積分（我叫它「流數法」）、光學和重力的點子。',
+ '蘋果的故事？我晚年確實跟朋友斯圖克利說過，看到蘋果落地讓我想到重力。不過，它可沒有打到我的頭 🍎',
+ '1687 年我出版了《自然哲學的數學原理》，提出三大運動定律和萬有引力定律。',
+ '我和萊布尼茲為了誰先發明微積分吵了很多年。你們現在寫的 dy/dx 是他的記號，我習慣在字母上加一點，寫成 ẋ。'];
+let qi=0;$('av1').onclick=()=>AV1.mood('smile',QUOTES[qi++%QUOTES.length]);
+
+/* ---------- 5. 小測驗 ---------- */
+const QZ=[
+ {q:'牛頓法每一次迭代，在幾何上做了什麼？',o:['在 (xₙ, f(xₙ)) 畫切線，取切線和 x 軸的交點','取區間的中點','沿著曲線往下坡走一小步','畫水平線找交點'],a:0,
+  e:'切線方程式令 y = 0，解出來就是 xₙ₊₁ = xₙ − f(xₙ)/f′(xₙ)。',h:'回到第 1 節看看橘色箭頭滑到哪裡。'},
+ {q:'牛頓法要找的是什麼？',o:['使 f(c) = 0 的 c（方程式的根）','f(x) 的最大值','f′(x) 的值','曲線下的面積'],a:0,
+  e:'課本標題：Approximating the Zeros of a Function，找函數的零點。',h:'看看課本的標題：Zeros of a Function。'},
+ {q:'什麼情況下公式 xₙ − f(xₙ)/f′(xₙ) 會出大問題？',o:['f′(xₙ) 等於或非常接近 0','f(xₙ) 是負數','xₙ 是負數','xₙ 是整數'],a:0,
+  e:'除以接近 0 的斜率，切線幾乎水平，會一步飛得很遠；等於 0 則根本無法計算。',h:'公式裡哪個數放在分母？'},
+ {q:'課本步驟 3，什麼時候停止迭代？',o:['|xₙ − xₙ₊₁| 小於要求的精度','f(xₙ) 變成負數','剛好做完 3 次','xₙ 變成整數'],a:0,
+  e:'前後兩次的猜測幾乎一樣，表示已經收斂，取 xₙ₊₁ 當答案。',h:'第 2 節的表格中，綠色的「停！」出現在哪一欄？'},
+ {q:'為什麼起點 x₁ 最好「靠近」根？',o:['離太遠可能震盪、循環或發散','因為離太遠就不能畫切線','因為起點一定要是整數','其實起點選哪裡都一樣'],a:0,
+  e:'第 3 節：x₁ = 0 會在 0 和 1 之間無限循環，起點太平會一步飛走。',h:'回到第 3 節試試「② 無限循環」。'},
+ {q:'靠近根之後，牛頓法的正確小數位數大約怎麼變化？',o:['每次迭代大約翻倍','每次迭代多 1 位','每次迭代減半','永遠不變'],a:0,
+  e:'這叫二次收斂，例如 1 → 3 → 7 → 14 位，比二分法快很多。',h:'看第 2 節的長條圖，橘色長條怎麼長高？'},
+ {q:'牛頓法和梯度下降有什麼關係？',o:['等於對 ½f(x)² 做梯度下降，步長自動取 1/f′(xₙ)²','兩者完全無關','牛頓法就是學習率固定 0.1 的梯度下降','梯度下降是牛頓法的特例，步長取 f′(x)'],a:0,
+  e:'把找根改成找 ½f² 的最小值，牛頓法自動選了「剛好」的步長。',h:'第 4 節把 η 換成 1/f′(xₙ)² 會變成什麼？'}
+];
+const PRAISE=['Splendid！答對了 😄','Excellent！你的切線畫得真準！','Well done！正確位數又翻倍了！','正確！就像蘋果一定會落地一樣確定 🍎'];
+let sc=0,dn=0,streak=0;
+function shuffle(a){return a.map(v=>[Math.random(),v]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);}
+function buildQuiz(){sc=0;dn=0;streak=0;$('score').style.display='none';
+  $('quiz').innerHTML=QZ.map((z,i)=>{const ord=shuffle(z.o.map((t,j)=>j));
+    return `<div class="q"><div><b>Q${i+1}.</b> ${z.q}</div><div class="opts">${ord.map(j=>`<button data-q="${i}" data-o="${j}">${z.o[j]}</button>`).join('')}</div><div class="fb" id="fb${i}"></div></div>`;}).join('');}
+$('quiz').onclick=e=>{const b=e.target.closest('button');if(!b)return;const i=+b.dataset.q,j=+b.dataset.o,z=QZ[i],box=b.parentElement;if(box.dataset.done)return;box.dataset.done=1;dn++;
+  if(j===z.a){b.classList.add('right');sc++;streak++;$('fb'+i).innerHTML='✔ 正確！'+z.e;
+    AV2.mood('smile',streak>=3?`連對 ${streak} 題！Marvellous！這就是二次收斂的速度 🎉`:PRAISE[Math.floor(Math.random()*PRAISE.length)]);}
+  else{b.classList.add('wrong');streak=0;[...box.children].forEach(x=>{if(+x.dataset.o===z.a)x.classList.add('right');});$('fb'+i).innerHTML='✘ '+z.e;AV2.mood('frown',z.h);}
+  if(dn===QZ.length){$('scoreTxt').textContent=`得分：${sc} / ${QZ.length}`;$('score').style.display='flex';
+    setTimeout(()=>{if(sc===QZ.length)AV2.mood('smile','滿分！你已經精確收斂到根了 🏆',true);
+      else if(sc>=QZ.length-2)AV2.mood('smile',`${sc} 分，很不錯！錯的題目回到對應小節再玩一下。`,true);
+      else AV2.mood('frown','建議回到第 1、3 節，多按幾次「下一步」，再來挑戰！',true);},3300);}
+};
+$('retry').onclick=()=>{buildQuiz();AV2.mood('','新的一輪！選項順序都換過了喔。');};
+
+/* ---------- init ---------- */
+run1();draw1();draw2();run3();draw3();draw4();buildQuiz();
+function redrawAll(){draw1();draw2();draw3();draw4();}
+let rz=null;window.addEventListener('resize',()=>{cancelAnimationFrame(rz);rz=requestAnimationFrame(redrawAll);});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redrawAll);
+
+</script>
+</body>
+</html>

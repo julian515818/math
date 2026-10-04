@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>偏微分互動教學</title>
+<style>
+:root{
+  --bg:#f7f6f2;--card:#fff;--ink:#1d2330;--mute:#667085;--line:#e3e1da;--ok:#1f9d6b;--bad:#d6334f;
+  --grid:#eceae4;--axis:#9aa0ab;--accent:#2f6fdb;--tint:#eaf1fc;
+  --cx:#d6334f;--cy:#2f6fdb;--tg:#1f9d6b;--sc:#e07a1f;--pl:#ff8a3d;--pt:#1d2330;--floor:#efede7;--cst:#9aa0ab;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+    --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+    --cx:#ff6f86;--cy:#6c9dff;--tg:#4fd19d;--sc:#ffa552;--pl:#ff9a55;--pt:#f4f5f8;--floor:#222733;--cst:#6f7789;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+  --cx:#ff6f86;--cy:#6c9dff;--tg:#4fd19d;--sc:#ffa552;--pl:#ff9a55;--pt:#f4f5f8;--floor:#222733;--cst:#6f7789;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.9rem}
+header p{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:18px}
+.card h2{margin:0 0 12px;font-size:1.22rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:.9rem;flex:none}
+h3{margin:0 0 6px;font-size:1.05rem}
+.m{font-family:"Times New Roman","Cambria Math",serif;font-style:italic}
+.mono{font-family:ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums}
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 2px;line-height:1.15}
+.frac>span:first-child{padding:0 3px 1px;border-bottom:1.3px solid currentColor}
+.frac>span:last-child{padding:1px 3px 0}
+.lim{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1.05;margin:0 3px}
+.lim small{font-size:.68em}
+.def{font-size:1.18rem;text-align:center;padding:14px;border-radius:10px;background:var(--tint);line-height:2}
+.note{color:var(--mute);font-size:.92rem}
+.cx{color:var(--cx)}.cy{color:var(--cy)}.tg{color:var(--tg)}.sc{color:var(--sc)}.ok{color:var(--ok)}.bad{color:var(--bad)}.mute{color:var(--mute)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start}
+.two>*{min-width:0}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.three>div{border:2px solid var(--line);border-radius:12px;padding:10px 14px}
+.three b.t{display:block;color:var(--accent)}
+@media (max-width:860px){.two,.three{grid-template-columns:minmax(0,1fr)}}
+.cvbox{width:100%;min-width:0}
+canvas{width:100%;display:block;border-radius:10px;background:var(--bg);touch-action:none}
+label{font-size:.92rem;color:var(--mute);display:block}
+label b{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 12px}
+select{width:100%}
+button{cursor:pointer}button:hover{border-color:var(--accent)}
+button.pri,button.on{background:var(--accent);color:#fff;border-color:transparent}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:12px 18px;align-items:end}
+.seg{display:flex;gap:0}.seg button{flex:1;border-radius:0}.seg button:first-child{border-radius:8px 0 0 8px}.seg button:last-child{border-radius:0 8px 8px 0}
+.freeze{margin-top:12px;padding:10px 14px;border-radius:10px;border:2px dashed var(--pl);background:var(--bg)}
+.box{padding:10px 14px;border-radius:10px;background:var(--bg)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(140px,100%),1fr));gap:10px;margin-top:10px}
+.stats>div{padding:8px 12px;border-radius:10px;background:var(--bg)}
+.stats small{display:block;color:var(--mute);font-size:.82rem}
+.stats b{font-size:1.25rem;font-variant-numeric:tabular-nums}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.85rem;color:var(--mute);margin-top:6px}
+.legend i{display:inline-block;width:18px;height:4px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.say{margin-top:10px;padding:10px 14px;border-left:4px solid var(--ok);background:var(--bg);border-radius:8px}
+.stepbar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:10px 0 8px}
+.stepbar div{height:100%;background:var(--accent);transition:width .3s}
+.explain{padding:10px 14px;border-radius:10px;background:var(--tint);min-height:3.4em}
+.formula{font-size:1.08rem;line-height:2.3;overflow-x:auto;padding:4px 2px}
+#fGen{white-space:nowrap}
+.tblwrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.93rem;font-variant-numeric:tabular-nums}
+th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:center}
+th{color:var(--mute);font-weight:600}
+tr.cur td{background:var(--tint);font-weight:700}
+/* 手算 */
+.terms{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;margin-top:10px}
+.term{border:2px solid var(--line);border-radius:12px;padding:8px 12px;min-width:120px;text-align:center}
+.term .top{font-size:1.25rem}
+.term .bot{margin-top:6px;font-size:1.1rem;min-height:1.6em}
+.term .tip{font-size:.8rem;color:var(--mute);min-height:1.3em}
+.cst{transition:all .3s;border-radius:6px;padding:0 3px}
+.showc .cst{background:var(--line);color:var(--cst);outline:2px dashed var(--cst)}
+.vx{color:var(--cx);font-weight:700}.vy{color:var(--cy);font-weight:700}
+.plus{align-self:center;font-size:1.3rem;color:var(--mute)}
+.prac{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.prac button{min-width:110px}
+.prac button.right{background:var(--ok);color:#fff;border-color:transparent}
+.prac button.wrong{background:var(--bad);color:#fff;border-color:transparent}
+.prac button.right span,.prac button.wrong span{color:#fff}
+/* quiz */
+.quiz .q{padding:12px 0;border-bottom:1px solid var(--line)}
+.quiz .q:last-child{border:none}
+.opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.opts button.right{background:var(--ok);color:#fff;border-color:transparent}
+.opts button.wrong{background:var(--bad);color:#fff;border-color:transparent}
+.fb{font-size:.92rem;margin-top:6px;min-height:1.2em}
+.score{margin-top:12px;font-size:1.15rem;font-weight:700;display:none;align-items:center;gap:12px;flex-wrap:wrap}
+footer{color:var(--mute);font-size:.85rem;text-align:center;margin-top:30px}
+/* ---------- avatar ---------- */
+.avwrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.av{width:100%;max-width:220px;cursor:pointer;user-select:none}
+.av svg{width:100%;display:block;overflow:visible;background:none}
+.av .bodyg{animation:bob 3.2s ease-in-out infinite;transform-origin:100px 200px}
+.av .eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+.av .hairL{animation:sway 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:top center}
+.av .hairR{animation:sway 3.2s ease-in-out infinite reverse;transform-box:fill-box;transform-origin:top center}
+.av .brow{transition:transform .3s;transform-box:fill-box}
+.av .browL{transform-origin:right center}.av .browR{transform-origin:left center}
+.av .mo{opacity:0;transition:opacity .25s}.av .mo.n{opacity:1}
+.av .blush,.av .sweat,.av .spark{opacity:0;transition:opacity .3s}
+.av.smile .mo.n,.av.frown .mo.n{opacity:0}
+.av.smile .mo.s{opacity:1}.av.frown .mo.f{opacity:1}
+.av.smile .blush{opacity:.55}.av.smile .spark{opacity:1}.av.frown .sweat{opacity:.9}
+.av.smile .brow{transform:translateY(-3px)}
+.av.frown .browL{transform:rotate(14deg) translateY(2px)}.av.frown .browR{transform:rotate(-14deg) translateY(2px)}
+.av.hop svg{animation:hop .7s ease}
+.av.shake svg{animation:shake .55s ease}
+.av .spark{animation:twinkle 1s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}
+@keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+@keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.bubble{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.95rem;margin-bottom:10px;min-height:2.6em;max-width:260px;text-align:center;transition:border-color .3s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--line);border-bottom:0}
+.bubble.good{border-color:var(--ok)}.bubble.good::after{border-top-color:var(--ok)}
+.bubble.bad{border-color:var(--bad)}.bubble.bad::after{border-top-color:var(--bad)}
+.intro{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:center}
+.intro>*,.qgrid>*{min-width:0}
+.intro .avwrap{flex-direction:row;gap:10px}.intro .bubble{flex:1;margin:0}.intro .bubble::after{display:none}.intro .av{width:125px;flex:none}
+.qgrid{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:18px;align-items:start}
+.qgrid .avwrap{position:sticky;top:12px}
+@media (max-width:860px){.intro,.qgrid{grid-template-columns:minmax(0,1fr)}.intro .avwrap{flex-direction:column}.intro .bubble{margin-bottom:10px}.intro .bubble::after{display:block}.intro .av,.qgrid .av{width:auto;max-width:140px}.qgrid .avwrap{position:static;order:-1}}
+</style>
+<style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line,#e3e1da);border-radius:12px;background:var(--card,var(--surface,#fff));color:var(--ink,#1d2330);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+.pu-badge img{width:58px;height:58px;display:block}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute,var(--muted,#667085))}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="pu-hd">
+  <div class="pu-hd-main">
+  <h1>偏微分（Partial Derivative）互動教學</h1>
+  <p>工程數學 ・ 互動教學：把曲面「切一刀」，看切口有多陡</p>
+</div>
+  <div class="pu-badge"><img alt="靜宜大學校徽" src="data:image/webp;base64,UklGRp4NAABXRUJQVlA4IJINAABQLwCdASpkAGQAPpE8lkglo6IhNDhMcLASCWwAyJAJkoayxKYH9n30f7b/zF+c96Kf85vvvoAdMnXmnbN5u+ID1f7let9j/tP+rz73zJ7yfiZqBOo+SvoEe233Xv2f770F+uX/O9wD8vvKq8CLyr9afgC/ln9v/5X+C9ff/s/0/n3+kf/X/m/gK/Wz/q+vB7Pv3G9nD9qHFLDlY7viCW1/x/jRblVR/R3XoZS2XKu0cqedDpp3BGWkYNMzYdRkjmQnRE55yD4o50+qWmStkNkZhsI9Zo3VypJ62c71sQoWGxkmmsEAS4b1MFr82ULQBw7NEmQZ6G/Z35mWquOa2a1qiJsBP80y6mZb5zwYcVZyLDNEPnwFy2JgpQKDmz3TMMshOdquwEOcy/oHrRx/yt9zNyo/e/Kzrz7E0gD0/jrvnK+jtphdBC7c+QSA4gHi2wr12ekIUU44ga4VxjSpb4dT6kRhYj3wAX/ryYxW22D6F8xOs08XqIbsehEpS9KQb9ENWqAA/v9dAW0liceKq+YH0mRfu1vrWFByLR89d7VQsjuxClxIRffyOM1vXt+aazxaL7o1EM6cbazY3CksDSQ08EUyLFwACckGP2eRoZ5+Tu6xVk/ODdvdo+RJrIdNvdBSFr0QeDRz/5qinU2EKBkrcrZzcbk68o2ZPWIxSelUtHRpOsAuU4QQWhyPDIi2y+ZPGu6SjMfTgdungbpxguwdcsNK0BYRztV+jfNcVVQ9n6IWjA6aLKEBXneSX/ZQ7+vhJyEwgOQtEN2nM24mXuNs5X716YBv1qdmt9afYpjnoejTOQA2YPaKJJdJCOf8tBRjFF8lmf3JOIphtNfdUNxB4l1WaTQ0p2BaTuuK/cf0YXsSCoyzVHwF8AzF1SSM0mu7I/OFv/0B2yeX+Nai/LWKRxOND2qDVQkNIvrgvJ19vDRReS4R2UfaqQNCw0Td67pinRSLbeaT2MArke3jA31vHxLWFxyukzgT11ipse3hYXtdHDPuJILC3Jf+WyhnzrbECxWlekXGZHvfCq4byZgFC4EF006FVPkTG4mD8wLWCNRw1+amvRzIJpP10lX3IeIBV8tFoguMCTa6jKR67qhrroz6PVV6n4jYQJlEZU9uBMjgxGaBSpgajd0fGKC5DM7BWdoEYxj4cJqaAt0+vAqeW8C4pPZvpSxAupuVT6kjPiY+Glpm+Z2c29VdrPBCrujf4Oua77+elnYJlstt/ZzHe78Ca4+MCu+DgggtLIfzUSmISvQbVg6fU5PhowLwmU4I2OfCzFVzIrPhXZclWluD6cJbSQ5rPUqUCseByBFGIHsxNGxVCngn2q3kRPTzCq/Jrgtlhs9S5bLfeUN7jVYJmfKqQYQvmTwKT6bfyIx50R1fobx40eSAevQWahInd3Bwb9FPB1udcvOnF6KLTgJzPWGR4gExOTRE2XHm4SC55Jt4vo0K44Mk0mayLGynvlwaU2ghoRE8Oal8FDH026NyQFvN8iBVWVZgYceNoxO/WGWY0Gmy3zOck1Ysv/lLK021wwXY14Nm4aTWrEveonV/0h30SUOvc4VfCqlc5MQXaxQlZzOlgks4DqKWDUNlh0dCxJG4ASnAsg4kv5OnSoKJF9kD5lVf9goDmc9mUJ8Pmrohf/iS/Y3yWHkMUijVp2CifVfBohGu3dh1TS8CxfksZi+gYOrEvLAsIQgqmRBPeYLfgtoZgmfoLvYccjHfP7tpWO7zfp/N2ZbiOeVuN7JgLTup04o+LgleesjgSv5ovAV/C2/aMIg+h8ND/i+lHlqxlZZu8e/2zQCgpocgWGzeT1C67SQHW5CoYOQIjnV1sgDM9SP695ubjsaTTK3cYc2xLQryttnjYzliXC4moearYZsYStCrSsf/u1htDfIEQo5n9KFzGY0F0pgid0RBcab+EqWDPLM1jVwgcVAUZ3mWpTA+MnPmN22uov3pLDSQRUkJNxFddPnCcZz8zTtH3mwfYx+BAehlbkKKkpbOmVfJykW1dCLJpuJBRTMOeqWUionyxochrDNlcMYnYYD00SDhaH6FvRX8fg1TWW+SCq1+A2rb8u5CXHcwiMzbZXM/Sf8ajIj2+Bw+UvkXAhZuRArzT56c5KeAsRFRPb3y0jRI3vJKd4LDRtKNPiP6blJM7lqnQ14FugOOMKd0OPYnPC5Zjj+lFDAWJRLYa4345zRrwt6wmcuXIG0p3ZpyaK2AEzzWTDUQwfofDzsgZOue0GW+Kusk4B0jjVPhInfoAk7A2B+tTk9/rrr9b0ycHn4tQfk1GFkWs213SVfK0Pa+yIULFkzVUdkodXT923Qlf3rket2T/fEAPZ2wDrV+0LsG6PwkA2CKdrt3oXOmFQdjH8Ezb/JzDcnvhNIsp6iGQgN4erY0i2NJVSTzWXvnm1VCq2U9eXFRBmEqIxdJ9eqntQT+UeTpy8beiZYqbCLmXhMTZf9aebr/bDz96T2HRvchccO/WwanBicoCSkCGZlm6Iw+Xh/kHyXeIMmuON4WqTyVPbffFmmQ8F6ipQJP1oCNXmwU/8ad9PjLU5yLneujliwL7gREgSsQpVFagPkmh7ud8KAQmsHZMwpKM7KSJiGfS3bhSgwQ1q2GMk8J6v1Ph+j4YJmdeZV3SFZJLb9PHHM5n4/jDmOtDu1l8pFZQhVtW1TihZJHnvYqsNKro+SGABmKjFn1yfuqRcrRJJ/MyfTzDKMQf8nNxPfv7OvJbEJWTBysH1D1pLg/yLstx7lPDottqJnKXNcdMEfSf9QRVrloR6zEGM4GtkCOETrSDLojdVymcGRP6kH9yNdMcucGly1uv2B1GR6iYYuiyMv5JeOm8pZ8M9j+7y+AvDkwM+d5BwLMgFA6xtfCiDD7r/fD/mWRIOOb8EdNtWgxgOYd/ueerPaG+vp8X4uzt12Yxc2nEvVoji2UuicAjqRu0lSGZpsb6H/z/Wgzb4F3YCkw+0DdoJEdO+N8aiOdeeqYjfKQvWRY/vMG4CZDRMvIOLJP8J6X3FtkF/9rO7DS45YszN62iluqndrbOt3dmfB4JLd3Zm/8wRIPsCSTl7X36KcPizCylvV1jX9gZ6DUJICft8LRdjngvbac2b2xHFDXwXmaNcaEQetz4LfvwRviIbs4EKVFx+h2+hy/Et8LimVIVWe0xea5X7GBVaCTxxxikeLT6Rl+YhMKeMyFQCE0M/+6E2j+H5lpb3PI9etwBYbAK5eNjpqzksxqSTTezfrx23r/HbaU2rtC3zpKnM6FdkxCX+XKRtfx8hIqUOD8HxImKS7GNTSA9VzsqSu4PDtJZ4Bj94DBCTHwz20CyZYcw2SaS+uuAcbdia50Zja07Jnw8db16URDljnVYsfvw81dD4Dq+6yY4qg38d4yYGjMNgun1rZJpCz7rnSbRSofo1R/I5jrVqDIY7anl90txbq+4589jJ/puZPjRmKgGhVQjZnM6BtqJ0JO1YAsd4NxqR76VsPck95vhqd05c4jXhgens6sBBAWap4s7x7VdBqEqwvSweJm64eiU92CIosEGzRgj23O+eZjjIkHLY+US0HT7jjAJ1V+RO0VHN+MCbvFfhJQGg1u0Lw4ebRuaqBNlL1Epg0Ih09l4skDcaOdjT6LAHvmoRRphx2GScPwXBM05rWic/Pb06Tztmu0jFypGL1L7SCWUtoBtYtwuNuPx+By5M1AJnBdMqzmDabbnwZuXUHhbZSH7T8xj8j7SI88xd6zBPzAGSu7jefemLava/cMkvVLWfYnXbY7vGFQzYaGhUZ8ZSXWutIK33AY7Swt35FrdIFFfHOrmo7v4gbTpPA/oAFHnenV/r2TV1J/GD8MWaAUNO1cr2ruaE528x7mJcdyR38nu7n+mnkhRfhMTRurzmgqX+Lf4u3cDAXxmi/17ZUyl8FlPTG1+wGR2TGSKroKuC1QbAkBPa3NIymuy2QV9trQSG8wfZ+ilCfwWC53h22me8Kc7EDflDFFBeBlNtQQgXZTCdT6qTGKdNabKfvEMlYbuTBEsOy+j5Mpzr91/JrvFR5jGy0nqwgXlhBeu8KDWHtzhp7GO2WlXQ5/oXM2g0RVeFZEOWT8VonUsIC7JJeXy4LYs9YgYJXItv320So10IiCoQoyHrvrZrgxa3xM/3xENs+VWC4Ct45r4TdadVFPvV1MhvwcBTP8L/Hwt+z0HW82oEUHgxliaFSLCUyMaZk0NYwMQ5jfamJBiduhM86DBlu2ONEqF9NJlIA8Y8/d6utk/69Knq/u+QjxtVKO6gak8QlSwf3Rv7mj9wcZaQ1bwRPbLRuMcN/fbcycATWoKAmJsaVGHKmJWkv0qKuZMORw9WYnLb32vbRxUOCZTfFQ6q4hLdsOoEhqEDatFqaqKNRa4enJuHgrospFv7USi1Cnk76jLFmPch22vTPAlmnwL1oDVysXkFPMrgIS/Fpm+IJgxdL6N8DaNYraZJdek94iUE67yBbhh+Bn22N/T308LxI+f3OhLK2S9eSL+SUB3SY3URkvWtOQdI4ABVJRaC9J1Q6EUMJy+/atlQmZyAjLSvJRmYlnGSrxL53XIZbC92uU/Iw/zOeftQrSkuBpfze+tn7crQlLX6xHIsQBhQX/UFD7WFKsKS0xikAtyrWAAAAAAAA="><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</header>
+
+<!-- 0 -->
+<section class="card">
+  <h2><span class="num">0</span>一句話直覺：只讓一個變數動</h2>
+  <div class="intro">
+    <div>
+      <div class="def">
+        偏導數 <span class="frac"><span>∂<i class="m">f</i></span><span>∂<i class="m">x</i></span></span>
+        ＝ 把 <i class="m">y</i> <b>凍結</b>不動，只讓 <i class="m">x</i> 變化時，<i class="m">f</i> 的瞬間變化率
+      </div>
+      <div class="three">
+        <div><b class="t">單變數：只有一條路</b><i class="m">y</i> = <i class="m">f</i>(<i class="m">x</i>) 的圖形是一條曲線，導數就是切線斜率。</div>
+        <div><b class="t">雙變數：站在山坡上</b><i class="m">z</i> = <i class="m">f</i>(<i class="m">x</i>, <i class="m">y</i>) 是一片曲面。往東走和往北走，陡度通常不一樣！</div>
+        <div><b class="t">偏導數：先選方向</b>固定 <i class="m">y</i> = <i class="m">y</i>₀ 就是用平面去<b>切</b>曲面，切口曲線的切線斜率就是 <span class="frac"><span>∂<i class="m">f</i></span><span>∂<i class="m">x</i></span></span>。</div>
+      </div>
+      <p class="note">符號小知識：萊布尼茲發明了 <span class="frac"><span>d<i class="m">y</i></span><span>d<i class="m">x</i></span></span> 這種分數寫法；把 d 換成捲曲的 ∂，是提醒你「還有別的變數，只是暫時被凍結了」。</p>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub1">Guten Tag！我是萊布尼茲。點我聽故事！</div><div class="av" id="av1"></div></div>
+  </div>
+</section>
+
+<!-- 1 -->
+<section class="card">
+  <h2><span class="num">1</span>切一刀：曲面 ＋ 切割平面</h2>
+  <div class="ctl">
+    <label>函數<select id="fn"></select></label>
+    <div><label style="margin-bottom:4px">對哪個變數偏微分？</label>
+      <div class="seg"><button id="bx" class="on">對 x（凍結 y）</button><button id="by">對 y（凍結 x）</button></div></div>
+    <label>位置 <i class="m">x</i>₀ = <b id="x0v"></b><input id="x0" type="range" step="0.05"></label>
+    <label>位置 <i class="m">y</i>₀ = <b id="y0v"></b><input id="y0" type="range" step="0.05"></label>
+  </div>
+  <div class="freeze" id="freeze"></div>
+  <div class="two" style="margin-top:14px">
+    <div>
+      <div class="cvbox"><canvas id="cv3"></canvas></div>
+      <div class="legend">
+        <span><i style="background:var(--pl);opacity:.6"></i>切割平面</span>
+        <span><i id="lgc" style="background:var(--cx)"></i>切出的曲線</span>
+        <span><i style="background:var(--tg)"></i>切線</span>
+        <span>🖱 拖曳可旋轉</span>
+      </div>
+      <div class="row" style="margin-top:6px"><button id="resetView">重設視角</button><button id="topView">從上往下看</button><button id="sideView">從側面看</button></div>
+    </div>
+    <div>
+      <h3>讀數</h3>
+      <div class="stats">
+        <div><small>高度 f(x₀, y₀)</small><b id="sF"></b></div>
+        <div><small id="sDl">∂f/∂x（切線斜率）</small><b id="sD" class="tg"></b></div>
+      </div>
+      <div class="say" id="say1"></div>
+      <p class="note">試試看：<br>① 在「山丘」上把點移到山頂 (0, 0)，切線變水平，偏導數 = 0。<br>② 在「馬鞍」上，對 x 切是開口向上的拋物線，對 y 切卻是開口向下！同一點、不同方向，斜率不同。<br>③ 按「從側面看」，切口就變成一條普通的單變數曲線。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="card">
+  <h2><span class="num">2</span>正式定義：割線 → 切線（h → 0）</h2>
+  <p class="note" style="margin-top:0">沿用第 1 節的函數、位置與方向。把切口攤平來看，偏導數的定義和單變數導數<b>一模一樣</b>，只是另一個變數不動。</p>
+  <div class="formula" id="fGen"></div>
+  <div class="two">
+    <div>
+      <div class="cvbox"><canvas id="cv2"></canvas></div>
+      <div class="legend">
+        <span><i id="lgc2" style="background:var(--cx)"></i>切口曲線 g</span>
+        <span><i style="background:var(--sc)"></i>割線（差商）</span>
+        <span><i style="background:var(--tg)"></i>切線（偏導數）</span>
+      </div>
+    </div>
+    <div>
+      <div class="row">
+        <button id="sR">⟲ 重來</button><button id="sP">◀ 上一步</button><button id="sN" class="pri">下一步 ▶</button><button id="sA">▶ 自動播放</button>
+      </div>
+      <div class="stepbar"><div id="sBar"></div></div>
+      <div class="explain" id="sTxt"></div>
+      <div class="formula" id="fNum"></div>
+      <div class="formula" id="fEx"></div>
+    </div>
+  </div>
+  <h3 style="margin-top:10px">差商表：h 越小，越接近偏導數</h3>
+  <div class="tblwrap"><table id="tbl"></table></div>
+</section>
+
+<!-- 3 -->
+<section class="card">
+  <h2><span class="num">3</span>手算：其他變數「當成常數」</h2>
+  <p style="margin-top:0">規則只有一條：<b>對誰偏微分，誰就是變數；其他字母一律當成常數（像數字 3 一樣）。</b></p>
+  <div class="ctl" style="grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr))">
+    <div class="box">例：<i class="m">f</i>(<i class="m">x</i>, <i class="m">y</i>) = <i class="m">x</i>²<i class="m">y</i> + 3<i class="m">y</i>³ + sin <i class="m">x</i></div>
+    <div class="seg"><button id="hx" class="on">求 ∂f/∂x</button><button id="hy">求 ∂f/∂y</button></div>
+  </div>
+  <div class="row" style="margin-top:10px">
+    <button id="hR">⟲ 重來</button><button id="hP">◀ 上一步</button><button id="hN" class="pri">下一步 ▶</button>
+  </div>
+  <div class="stepbar"><div id="hBar"></div></div>
+  <div class="explain" id="hTxt"></div>
+  <div class="terms" id="terms"></div>
+  <div class="formula" id="hSum"></div>
+
+  <h3 style="margin-top:16px">隨機練習：單項式的偏導數</h3>
+  <div class="box"><span id="pQ" style="font-size:1.2rem"></span>
+    <div class="prac" id="pO"></div>
+    <div class="fb" id="pF"></div>
+    <div class="row" style="margin-top:6px"><button id="pNext">換一題</button><span class="note" id="pS"></span></div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="card">
+  <h2><span class="num">4</span>觀念小測驗</h2>
+  <div class="qgrid">
+    <div>
+      <div class="quiz" id="quiz"></div>
+      <div class="score" id="score"><span id="scoreTxt"></span><button id="retry" class="pri">再做一次</button></div>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub2">來考考你！答對我會笑，答錯我會皺眉喔。</div><div class="av" id="av2"></div></div>
+  </div>
+</section>
+
+<footer>偏微分互動教學 ・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fr=(a,b)=>`<span class="frac"><span>${a}</span><span>${b}</span></span>`;
+const M=s=>`<i class="m">${s}</i>`;
+const fmt=(v,d=3)=>{if(Math.abs(v)<5e-10)v=0;return v.toFixed(d).replace('-','−');};
+const LIM=`<span class="lim">lim<small>h→0</small></span>`;
+
+/* ---------- 函數 ---------- */
+const E=(x,y)=>Math.exp(-(x*x+y*y)/2);
+const FN={
+ hill:{lab:'山丘  f = 2e^(−(x²+y²)/2)',tex:`2e<sup>−(${M('x')}²+${M('y')}²)/2</sup>`,r:2.5,
+   f:(x,y)=>2*E(x,y),fx:(x,y)=>-2*x*E(x,y),fy:(x,y)=>-2*y*E(x,y),
+   fxs:`−2${M('x')}·e<sup>−(${M('x')}²+${M('y')}²)/2</sup>`,fys:`−2${M('y')}·e<sup>−(${M('x')}²+${M('y')}²)/2</sup>`},
+ bowl:{lab:'碗  f = x² + y²',tex:`${M('x')}² + ${M('y')}²`,r:2,
+   f:(x,y)=>x*x+y*y,fx:(x,y)=>2*x,fy:(x,y)=>2*y,fxs:`2${M('x')}`,fys:`2${M('y')}`},
+ saddle:{lab:'馬鞍  f = x² − y²',tex:`${M('x')}² − ${M('y')}²`,r:2,
+   f:(x,y)=>x*x-y*y,fx:(x,y)=>2*x,fy:(x,y)=>-2*y,fxs:`2${M('x')}`,fys:`−2${M('y')}`},
+ wave:{lab:'波浪  f = sin x · cos y',tex:`sin ${M('x')} · cos ${M('y')}`,r:3,
+   f:(x,y)=>Math.sin(x)*Math.cos(y),fx:(x,y)=>Math.cos(x)*Math.cos(y),fy:(x,y)=>-Math.sin(x)*Math.sin(y),
+   fxs:`cos ${M('x')} · cos ${M('y')}`,fys:`−sin ${M('x')} · sin ${M('y')}`},
+ x2y:{lab:'f = x²y',tex:`${M('x')}²${M('y')}`,r:2,
+   f:(x,y)=>x*x*y,fx:(x,y)=>2*x*y,fy:(x,y)=>x*x,fxs:`2${M('x')}${M('y')}`,fys:`${M('x')}²`}
+};
+const S={fn:'hill',dir:'x',x0:0.8,y0:0.5,az:-0.75,el:0.5,step:0};
+const RNG={};
+function rng(){
+  if(RNG[S.fn])return RNG[S.fn];
+  const F=FN[S.fn],r=F.r;let lo=1e9,hi=-1e9;
+  for(let i=0;i<=60;i++)for(let j=0;j<=60;j++){const v=F.f(-r+2*r*i/60,-r+2*r*j/60);if(v<lo)lo=v;if(v>hi)hi=v;}
+  return RNG[S.fn]={lo,hi};
+}
+const isX=()=>S.dir==='x';
+const V=()=>isX()?'x':'y';
+const g=t=>isX()?FN[S.fn].f(t,S.y0):FN[S.fn].f(S.x0,t);
+const t0=()=>isX()?S.x0:S.y0;
+const slope=()=>isX()?FN[S.fn].fx(S.x0,S.y0):FN[S.fn].fy(S.x0,S.y0);
+const dfv=()=>fr('∂'+M('f'),'∂'+M(V()));
+
+function sizeCanvas(cv,ratio,maxH){
+  const w=cv.parentElement.clientWidth;let h=Math.round(w*ratio);if(maxH)h=Math.min(h,maxH);
+  const dpr=window.devicePixelRatio||1;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+'px';
+  const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);return {c,w,h};
+}
+const PAL=[[68,1,84],[59,82,139],[33,145,140],[94,201,98],[253,231,37]];
+function pal(t){t=Math.max(0,Math.min(1,t))*(PAL.length-1);const i=Math.min(PAL.length-2,Math.floor(t)),u=t-i;return PAL[i].map((a,k)=>a+(PAL[i+1][k]-a)*u);}
+function niceStep(span){const raw=span/6,p=Math.pow(10,Math.floor(Math.log10(raw))),n=raw/p;return (n<1.5?1:n<3.5?2:n<7.5?5:10)*p;}
+
+/* ---------- 1. 3D ---------- */
+function draw3D(){
+  const {c,w,h}=sizeCanvas($('cv3'),0.8,520);
+  const F=FN[S.fn],r=F.r,R=rng(),zh=r*0.7;
+  const zs=v=>((v-R.lo)/(R.hi-R.lo||1)*2-1)*zh;
+  const ca=Math.cos(S.az),sa=Math.sin(S.az),ce=Math.cos(S.el),se=Math.sin(S.el);
+  const k=Math.min(w/(3.0*r),h/(2*(1.42*r*se+zh*ce)+0.35*r));
+  const cx=w/2,cy=h/2;
+  const P=(x,y,z)=>{const X=x*ca-y*sa,Y=x*sa+y*ca;return [cx+X*k,cy-(Y*se+z*ce)*k,Y*ce-z*se];};
+  // floor
+  const fl=[[-r,-r],[r,-r],[r,r],[-r,r]].map(p=>P(p[0],p[1],-zh));
+  c.fillStyle=css('--floor');c.strokeStyle=css('--axis');c.lineWidth=1;
+  c.beginPath();fl.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.closePath();c.fill();c.stroke();
+  c.strokeStyle=css('--grid');
+  for(let i=1;i<4;i++){const u=-r+2*r*i/4;let a=P(u,-r,-zh),b=P(u,r,-zh);c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.stroke();
+    a=P(-r,u,-zh);b=P(r,u,-zh);c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.stroke();}
+  // z axis at farthest corner
+  let far=[[-r,-r],[r,-r],[r,r],[-r,r]].sort((a,b)=>P(b[0],b[1],-zh)[2]-P(a[0],a[1],-zh)[2])[0];
+  let za=P(far[0],far[1],-zh),zb=P(far[0],far[1],zh);
+  c.strokeStyle=css('--axis');c.beginPath();c.moveTo(za[0],za[1]);c.lineTo(zb[0],zb[1]);c.stroke();
+  c.fillStyle=css('--mute');c.font='13px sans-serif';c.textAlign='center';c.textBaseline='middle';
+  c.fillText('z',zb[0],zb[1]-10);
+  let lx=P(0,-r*1.2,-zh),ly=P(r*1.2,0,-zh);c.fillText('x',lx[0],lx[1]);c.fillText('y',ly[0],ly[1]);
+  let tx1=P(r,-r*1.1,-zh),tx0=P(-r,-r*1.1,-zh);c.font='11px sans-serif';c.fillText(r,tx1[0],tx1[1]);c.fillText('−'+r,tx0[0],tx0[1]);
+  // polys
+  const polys=[],N=34,step=2*r/N;
+  for(let i=0;i<N;i++)for(let j=0;j<N;j++){
+    const x=-r+i*step,y=-r+j*step;
+    const z00=F.f(x,y),z10=F.f(x+step,y),z11=F.f(x+step,y+step),z01=F.f(x,y+step);
+    const pts=[P(x,y,zs(z00)),P(x+step,y,zs(z10)),P(x+step,y+step,zs(z11)),P(x,y+step,zs(z01))];
+    const zm=(z00+z10+z11+z01)/4;
+    const dzx=(zs(z10)-zs(z00)+zs(z11)-zs(z01))/(2*step),dzy=(zs(z01)-zs(z00)+zs(z11)-zs(z10))/(2*step);
+    const nl=Math.hypot(dzx,dzy,1),L=[-0.45,-0.5,0.74];
+    const lam=Math.max(0,(-dzx*L[0]-dzy*L[1]+L[2])/nl);
+    const col=pal((zm-R.lo)/(R.hi-R.lo||1)).map(v=>Math.round(v*(0.55+0.5*lam)));
+    polys.push({pts,d:(pts[0][2]+pts[1][2]+pts[2][2]+pts[3][2])/4,fill:`rgb(${col})`,stroke:`rgba(0,0,0,.12)`});
+  }
+  const plc=css('--pl'),NP=24,NZ=8;
+  for(let i=0;i<NP;i++)for(let j=0;j<NZ;j++){
+    const a=-r+2*r*i/NP,b=-r+2*r*(i+1)/NP,z0=-zh+2*zh*j/NZ,z1=-zh+2*zh*(j+1)/NZ;
+    const q=isX()?[[a,S.y0,z0],[b,S.y0,z0],[b,S.y0,z1],[a,S.y0,z1]]:[[S.x0,a,z0],[S.x0,b,z0],[S.x0,b,z1],[S.x0,a,z1]];
+    const pts=q.map(p=>P(...p));
+    polys.push({pts,d:(pts[0][2]+pts[1][2]+pts[2][2]+pts[3][2])/4,fill:plc,alpha:.26});
+  }
+  polys.sort((a,b)=>b.d-a.d);
+  for(const p of polys){c.globalAlpha=p.alpha||1;c.beginPath();p.pts.forEach((q,i)=>i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]));c.closePath();
+    c.fillStyle=p.fill;c.fill();if(p.stroke){c.strokeStyle=p.stroke;c.lineWidth=.5;c.stroke();}}
+  c.globalAlpha=1;
+  // curve
+  const P3=(t,z)=>isX()?P(t,S.y0,zs(z)):P(S.x0,t,zs(z));
+  c.strokeStyle=isX()?css('--cx'):css('--cy');c.lineWidth=3.5;c.beginPath();
+  for(let i=0;i<=160;i++){const t=-r+2*r*i/160,p=P3(t,g(t));i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]);}c.stroke();
+  // tangent
+  const a=t0(),ga=g(a),s=slope(),Lt=r*0.5;
+  const p1=P3(a-Lt,ga-s*Lt),p2=P3(a+Lt,ga+s*Lt);
+  c.strokeStyle=css('--tg');c.lineWidth=4;c.beginPath();c.moveTo(p1[0],p1[1]);c.lineTo(p2[0],p2[1]);c.stroke();
+  const pp=P3(a,ga);c.fillStyle=css('--pt');c.strokeStyle=css('--card');c.lineWidth=2;c.beginPath();c.arc(pp[0],pp[1],6,0,7);c.fill();c.stroke();
+  c.fillStyle=css('--ink');c.font='bold 13px sans-serif';c.fillText('P',pp[0]-12,pp[1]-12);
+}
+(function(){const cv=$('cv3');let d=null;
+  cv.addEventListener('pointerdown',e=>{d=[e.clientX,e.clientY];cv.setPointerCapture(e.pointerId);});
+  cv.addEventListener('pointermove',e=>{if(!d)return;S.az-=(e.clientX-d[0])*0.01;S.el=Math.max(0.02,Math.min(1.5,S.el+(e.clientY-d[1])*0.01));d=[e.clientX,e.clientY];draw3D();});
+  cv.addEventListener('pointerup',()=>d=null);cv.addEventListener('pointercancel',()=>d=null);})();
+
+function panel1(){
+  const F=FN[S.fn],s=slope(),X=fmt(S.x0,2),Y=fmt(S.y0,2);
+  $('x0v').textContent=X;$('y0v').textContent=Y;
+  $('freeze').innerHTML=isX()
+    ? `🧊 <b>凍結 ${M('y')} = ${Y}</b>：${M('f')}(${M('x')}, ${M('y')}) 變成只含 ${M('x')} 的函數 <b>${M('g')}(${M('x')}) = ${M('f')}(${M('x')}, ${Y})</b>。${fr('∂'+M('f'),'∂'+M('x'))}(${X}, ${Y}) 就是 ${M('g')}′(${X})。`
+    : `🧊 <b>凍結 ${M('x')} = ${X}</b>：${M('f')}(${M('x')}, ${M('y')}) 變成只含 ${M('y')} 的函數 <b>${M('g')}(${M('y')}) = ${M('f')}(${X}, ${M('y')})</b>。${fr('∂'+M('f'),'∂'+M('y'))}(${X}, ${Y}) 就是 ${M('g')}′(${Y})。`;
+  $('sF').textContent=fmt(F.f(S.x0,S.y0),3);$('sD').textContent=fmt(s,3);
+  $('sDl').textContent=`∂f/∂${V()}（切線斜率）`;
+  const dirTxt=isX()?'往東（+x）':'往北（+y）';
+  $('say1').innerHTML=Math.abs(s)<0.005
+    ? `📌 ${dirTxt}方向的切線幾乎<b>水平</b>：在這一點朝這個方向走，高度暫時不變（${dfv()} ≈ 0）。`
+    : `📌 ${dirTxt}每走 1 小步，高度約${s>0?'<b class="ok">上升</b>':'<b class="bad">下降</b>'}「步長 × ${fmt(Math.abs(s),3)}」。所以 ${dfv()} = ${fmt(s,3)}。`;
+  const cc=isX()?'var(--cx)':'var(--cy)';$('lgc').style.background=cc;$('lgc2').style.background=cc;
+}
+
+/* ---------- 2. 定義與 h→0 ---------- */
+const HS=[null,1.5,1,0.5,0.2,0.05,0];
+function draw2D(){
+  const {c,w,h}=sizeCanvas($('cv2'),0.68,440);
+  const F=FN[S.fn],r=F.r,R=rng(),pad=(R.hi-R.lo)*0.12||1,lo=R.lo-pad,hi=R.hi+pad;
+  const L=44,Rm=12,T=12,B=46;
+  const X=t=>L+(t+r)/(2*r)*(w-L-Rm),Y=z=>T+(hi-z)/(hi-lo)*(h-T-B);
+  c.font='11px sans-serif';c.textAlign='center';c.textBaseline='top';
+  const sx=niceStep(2*r),sz=niceStep(hi-lo);
+  c.strokeStyle=css('--grid');c.fillStyle=css('--mute');c.lineWidth=1;
+  for(let t=Math.ceil(-r/sx)*sx;t<=r+1e-9;t+=sx){c.beginPath();c.moveTo(X(t),T);c.lineTo(X(t),h-B);c.stroke();c.fillText(fmt(t,sx<1?1:0),X(t),h-B+4);}
+  c.textAlign='right';c.textBaseline='middle';
+  for(let z=Math.ceil(lo/sz)*sz;z<=hi+1e-9;z+=sz){c.beginPath();c.moveTo(L,Y(z));c.lineTo(w-Rm,Y(z));c.stroke();c.fillText(fmt(z,sz<1?1:0),L-5,Y(z));}
+  c.strokeStyle=css('--axis');c.strokeRect(L,T,w-L-Rm,h-T-B);
+  c.fillStyle=css('--mute');c.textAlign='center';c.textBaseline='bottom';c.font='12px sans-serif';
+  c.fillText(`${V()}　（${isX()?'y = '+fmt(S.y0,2):'x = '+fmt(S.x0,2)} 凍結）`,(L+w-Rm)/2,h-3);
+  c.save();c.beginPath();c.rect(L,T,w-L-Rm,h-T-B);c.clip();
+  const a=t0(),ga=g(a),s=slope(),H=HS[S.step];
+  // tangent (faint unless final)
+  c.strokeStyle=css('--tg');c.lineWidth=S.step===HS.length-1?3:1.5;c.setLineDash(S.step===HS.length-1?[]:[5,5]);c.globalAlpha=S.step===HS.length-1?1:.45;
+  c.beginPath();c.moveTo(X(-r),Y(ga+s*(-r-a)));c.lineTo(X(r),Y(ga+s*(r-a)));c.stroke();c.setLineDash([]);c.globalAlpha=1;
+  // curve
+  c.strokeStyle=isX()?css('--cx'):css('--cy');c.lineWidth=3;c.beginPath();
+  for(let i=0;i<=300;i++){const t=-r+2*r*i/300;i?c.lineTo(X(t),Y(g(t))):c.moveTo(X(t),Y(g(t)));}c.stroke();
+  if(H){
+    const b=a+H,gb=g(b),m=(gb-ga)/H;
+    c.strokeStyle=css('--sc');c.lineWidth=2.5;c.beginPath();c.moveTo(X(-r),Y(ga+m*(-r-a)));c.lineTo(X(r),Y(ga+m*(r-a)));c.stroke();
+    c.strokeStyle=css('--mute');c.lineWidth=1.3;c.setLineDash([4,4]);c.beginPath();c.moveTo(X(a),Y(ga));c.lineTo(X(b),Y(ga));c.lineTo(X(b),Y(gb));c.stroke();c.setLineDash([]);
+    c.fillStyle=css('--sc');c.beginPath();c.arc(X(b),Y(gb),5.5,0,7);c.fill();
+    c.fillStyle=css('--ink');c.font='12px sans-serif';c.textAlign='center';c.textBaseline='top';
+    if(X(b)-X(a)>30)c.fillText('h = '+H,(X(a)+X(b))/2,Y(ga)+4);
+    c.textAlign='left';c.textBaseline='middle';
+    if(Math.abs(Y(gb)-Y(ga))>18)c.fillText('Δf',X(b)+6,(Y(ga)+Y(gb))/2);
+    c.font='bold 12px sans-serif';c.fillText('Q',X(b)+8,Y(gb)-10);
+  }
+  c.fillStyle=css('--pt');c.strokeStyle=css('--card');c.lineWidth=2;c.beginPath();c.arc(X(a),Y(ga),6,0,7);c.fill();c.stroke();
+  c.fillStyle=css('--ink');c.font='bold 13px sans-serif';c.textAlign='right';c.textBaseline='bottom';c.fillText('P',X(a)-8,Y(ga)-6);
+  c.restore();
+}
+function panel2(){
+  const F=FN[S.fn],v=V(),X=fmt(S.x0,2),Y=fmt(S.y0,2),a=t0(),ga=g(a),s=slope(),H=HS[S.step],last=HS.length-1;
+  const shiftG=isX()?`${M('f')}(${M('x')}₀ + h, ${M('y')}₀)`:`${M('f')}(${M('x')}₀, ${M('y')}₀ + h)`;
+  $('fGen').innerHTML=`${fr('∂'+M('f'),'∂'+M(v))}(${M('x')}₀, ${M('y')}₀) = ${LIM}${fr(shiftG+' − '+M('f')+'('+M('x')+'₀, '+M('y')+'₀)','h')}`;
+  const pct=S.step/last*100;$('sBar').style.width=pct+'%';
+  let txt;
+  if(S.step===0) txt=`<b>第 0 步</b>：凍結 ${isX()?M('y')+' = '+Y:M('x')+' = '+X}，切出曲線 ${M('g')}(${M(v)})。黑點 P 是我們關心的位置，虛線是我們想求的切線（還不知道斜率）。`;
+  else if(S.step<last){const m=(g(a+H)-ga)/H;txt=`<b>第 ${S.step} 步</b>：取 h = ${H}，Q 在 P 的${isX()?'右邊':'前方'} h 處。割線斜率 = Δf ÷ h = <b class="sc">${fmt(m,4)}</b>（與真正答案差 ${fmt(Math.abs(m-s),4)}）。`;}
+  else txt=`<b>最後一步</b>：讓 h → 0，Q 一路滑向 P，<b class="sc">割線</b>變成<b class="tg">切線</b>。切線斜率就是偏導數 ${dfv()} = <b class="tg">${fmt(s,4)}</b>。`;
+  $('sTxt').innerHTML=txt;
+  if(H){const b=g(a+H),Hs=String(H);
+    const shN=isX()?`${M('f')}(${X} + ${Hs}, ${Y})`:`${M('f')}(${X}, ${Y} + ${Hs})`;
+    $('fNum').innerHTML=`代入：${fr(shN+' − '+M('f')+'('+X+', '+Y+')',Hs)} = ${fr(fmt(b,4)+' − ('+fmt(ga,4)+')',Hs)} = <b class="sc">${fmt((b-ga)/H,4)}</b>`;
+  } else $('fNum').innerHTML=S.step===0?'<span class="note">按「下一步 ▶」開始取 h。</span>':`<span class="note">h 已經趨近 0，割線斜率的極限 ⇒</span>`;
+  $('fEx').innerHTML=`公式解：${M('f')} = ${F.tex} ⇒ ${dfv()} = ${isX()?F.fxs:F.fys} ⇒ ${dfv()}(${X}, ${Y}) = <b class="tg">${fmt(s,4)}</b>`;
+  let html=`<tr><th>h</th>${[1,0.5,0.1,0.01,0.001].map(h=>`<td>${h}</td>`).join('')}<td><b>h → 0</b></td></tr>`;
+  html+=`<tr><th>差商</th>${[1,0.5,0.1,0.01,0.001].map(h=>`<td>${fmt((g(a+h)-ga)/h,4)}</td>`).join('')}<td class="tg"><b>${fmt(s,4)}</b></td></tr>`;
+  html+=`<tr><th>誤差</th>${[1,0.5,0.1,0.01,0.001].map(h=>`<td>${fmt(Math.abs((g(a+h)-ga)/h-s),4)}</td>`).join('')}<td>0</td></tr>`;
+  $('tbl').innerHTML=html;
+}
+let autoT=null;
+function setStep(k){S.step=Math.max(0,Math.min(HS.length-1,k));draw2D();panel2();}
+$('sR').onclick=()=>{stopAuto();setStep(0);};
+$('sP').onclick=()=>{stopAuto();setStep(S.step-1);};
+$('sN').onclick=()=>{stopAuto();setStep(S.step+1);};
+function stopAuto(){clearInterval(autoT);autoT=null;$('sA').textContent='▶ 自動播放';}
+$('sA').onclick=()=>{if(autoT){stopAuto();return;}if(S.step>=HS.length-1)setStep(0);$('sA').textContent='⏸ 暫停';
+  autoT=setInterval(()=>{if(S.step>=HS.length-1){stopAuto();return;}setStep(S.step+1);},1300);};
+
+/* ---------- 控制 ---------- */
+const sel=$('fn');Object.entries(FN).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=v.lab;sel.appendChild(o);});sel.value=S.fn;
+function syncSliders(){const r=FN[S.fn].r;['x0','y0'].forEach(id=>{const e=$(id);e.min=-r;e.max=r;S[id]=Math.max(-r,Math.min(r,S[id]));e.value=S[id];});}
+function updateAll(){panel1();draw3D();draw2D();panel2();}
+sel.onchange=()=>{S.fn=sel.value;syncSliders();updateAll();};
+['x0','y0'].forEach(id=>$(id).addEventListener('input',e=>{S[id]=parseFloat(e.target.value);updateAll();}));
+$('bx').onclick=()=>{S.dir='x';$('bx').classList.add('on');$('by').classList.remove('on');updateAll();};
+$('by').onclick=()=>{S.dir='y';$('by').classList.add('on');$('bx').classList.remove('on');updateAll();};
+$('resetView').onclick=()=>{S.az=-0.75;S.el=0.5;draw3D();};
+$('topView').onclick=()=>{S.el=1.5;draw3D();};
+$('sideView').onclick=()=>{S.el=0.03;S.az=isX()?0:-Math.PI/2;draw3D();};
+
+/* ---------- 3. 手算 ---------- */
+const HC={
+ x:{terms:[
+    {top:`<span class="vx">x</span>²·<span class="cst">y</span>`,tip:'y 是常數，跟著留下',bot:`2<span class="vx">x</span>·y`},
+    {top:`<span class="cst">3y³</span>`,tip:'整項都是常數',bot:`0`},
+    {top:`sin <span class="vx">x</span>`,tip:'一般的微分',bot:`cos <span class="vx">x</span>`}],
+   sum:`${fr('∂'+M('f'),'∂'+M('x'))} = 2${M('x')}${M('y')} + cos ${M('x')}`},
+ y:{terms:[
+    {top:`<span class="cst">x²</span>·<span class="vy">y</span>`,tip:'x² 是常數係數',bot:`x²`},
+    {top:`3<span class="vy">y</span>³`,tip:'一般的微分',bot:`9<span class="vy">y</span>²`},
+    {top:`<span class="cst">sin x</span>`,tip:'整項都是常數',bot:`0`}],
+   sum:`${fr('∂'+M('f'),'∂'+M('y'))} = ${M('x')}² + 9${M('y')}²`}
+};
+const HT=['按「下一步 ▶」開始。先看清楚：誰是變數、誰是常數？',
+ '<b>第 1 步</b>：把「不是變數」的字母圈起來，當成常數（灰色虛線框）。',
+ '<b>第 2 步</b>：逐項微分。常數係數照抄，整項是常數就變 0。',
+ '<b>第 3 步</b>：把各項結果加起來，完成！'];
+let hd='x',hs=0;
+function renderH(){
+  const D=HC[hd];$('hBar').style.width=(hs/3*100)+'%';$('hTxt').innerHTML=HT[hs];
+  const box=$('terms');box.className='terms'+(hs>=1?' showc':'');
+  box.innerHTML=D.terms.map((t,i)=>(i?'<span class="plus">+</span>':'')+`<div class="term"><div class="top">${t.top}</div><div class="tip">${hs>=1?t.tip:''}</div><div class="bot">${hs>=2?'↓ '+t.bot:''}</div></div>`).join('');
+  $('hSum').innerHTML=hs>=3?D.sum:'';
+}
+$('hx').onclick=()=>{hd='x';hs=0;$('hx').classList.add('on');$('hy').classList.remove('on');renderH();};
+$('hy').onclick=()=>{hd='y';hs=0;$('hy').classList.add('on');$('hx').classList.remove('on');renderH();};
+$('hR').onclick=()=>{hs=0;renderH();};$('hP').onclick=()=>{hs=Math.max(0,hs-1);renderH();};$('hN').onclick=()=>{hs=Math.min(3,hs+1);renderH();};
+
+const SUP={0:'',1:'',2:'²',3:'³',4:'⁴',5:'⁵'};
+function mono(c,m,n){if(c===0)return '0';let s='';
+  if(!(c===1&&(m||n)))s+=c;
+  if(m)s+=`<span class="vx">x</span>${SUP[m]}`;if(n)s+=`<span class="vy">y</span>${SUP[n]}`;return s||'1';}
+let pc=0,pt=0,pAns=null;
+function newPrac(){
+  const c=2+Math.floor(Math.random()*8);let m=Math.floor(Math.random()*5),n=Math.floor(Math.random()*5);if(m+n===0)m=2;
+  const v=Math.random()<.5?'x':'y',p=v==='x'?m:n;
+  const right=p?(v==='x'?mono(c*m,m-1,n):mono(c*n,m,n-1)):'0';
+  const cand=[right, v==='x'?mono(c*m*(n||1),Math.max(m-1,0),Math.max(n-1,0)):mono(c*n*(m||1),Math.max(m-1,0),Math.max(n-1,0)),
+    v==='x'?mono(c*m,m,n):mono(c*n,m,n), mono(c,m,n), v==='x'?mono(c*(m+1),m+1,n):mono(c*(n+1),m,n+1),'0', v==='x'?mono(c*n,m,Math.max(n-1,0)):mono(c*m,Math.max(m-1,0),n)];
+  const opts=[];cand.forEach(o=>{if(!opts.includes(o))opts.push(o);});
+  const pick=[right,...opts.filter(o=>o!==right).sort(()=>Math.random()-.5).slice(0,2)].sort(()=>Math.random()-.5);
+  pAns=right;
+  $('pQ').innerHTML=`${fr('∂','∂'+`<span class="${v==='x'?'vx':'vy'}">${v}</span>`)}( ${mono(c,m,n)} ) = ？`;
+  $('pO').innerHTML=pick.map(o=>`<button data-v="${encodeURIComponent(o)}">${o}</button>`).join('');
+  $('pF').innerHTML='';$('pO').dataset.done='';
+  $('pO').dataset.hint=v==='x'?(n?'把 y 的部分當常數照抄，只對 x 用冪次法則。':'只有 x，直接用冪次法則。'):(m?'把 x 的部分當常數照抄，只對 y 用冪次法則。':'只有 y，直接用冪次法則。');
+  if(!p)$('pO').dataset.hint=`這一項沒有 ${v}，對 ${v} 來說整項是常數！`;
+}
+$('pO').onclick=e=>{const b=e.target.closest('button');if(!b||$('pO').dataset.done)return;$('pO').dataset.done=1;pt++;
+  const o=decodeURIComponent(b.dataset.v);
+  if(o===pAns){pc++;b.classList.add('right');$('pF').innerHTML='✔ 正確！';}
+  else{b.classList.add('wrong');[...$('pO').children].forEach(x=>{if(decodeURIComponent(x.dataset.v)===pAns)x.classList.add('right');});$('pF').innerHTML='✘ '+$('pO').dataset.hint;}
+  $('pS').textContent=`已答 ${pt} 題，答對 ${pc} 題`;};
+$('pNext').onclick=newPrac;
+
+/* ---------- 萊布尼茲老師 ---------- */
+const LZ_SVG=`<svg viewBox="0 0 200 230" aria-label="萊布尼茲老師動畫">
+ <g class="bodyg">
+  <path d="M42 96 Q36 30 100 24 Q164 30 158 96 Q172 146 166 204 Q148 218 130 204 L70 204 Q52 218 34 204 Q28 146 42 96 Z" fill="#33241a"/>
+  <path d="M10 232 Q16 178 100 166 Q184 178 190 232 Z" fill="#2b2731"/>
+  <path d="M100 168 L78 232 M100 168 L122 232" stroke="#1d1a22" stroke-width="2"/>
+  <circle cx="100" cy="214" r="3" fill="#c9a24a"/><circle cx="100" cy="226" r="3" fill="#c9a24a"/>
+  <rect x="86" y="132" width="28" height="30" rx="9" fill="#e6bba0"/>
+  <path d="M82 154 Q100 166 118 154 L126 196 Q113 204 100 198 Q87 204 74 196 Z" fill="#f7f4ec" stroke="#cfc8b8" stroke-width="1.4"/>
+  <path d="M80 172 Q90 178 100 174 Q110 178 120 172 M78 186 Q89 192 100 188 Q111 192 122 186" stroke="#d6cfbf" stroke-width="1.3" fill="none"/>
+  <ellipse cx="100" cy="100" rx="31" ry="40" fill="#f2cbb0"/>
+  <path d="M80 126 Q100 146 120 126 Q112 140 100 141 Q88 140 80 126 Z" fill="#e8bc9f" opacity=".7"/>
+  <ellipse class="blush" cx="80" cy="116" rx="7" ry="4.5" fill="#f08080"/>
+  <ellipse class="blush" cx="120" cy="116" rx="7" ry="4.5" fill="#f08080"/>
+  <g class="hairL" fill="#4a3426" stroke="#2a1d14" stroke-width="1.6">
+   <circle cx="64" cy="80" r="12"/><circle cx="60" cy="102" r="13"/><circle cx="61" cy="125" r="13"/><circle cx="56" cy="148" r="14"/>
+   <circle cx="66" cy="168" r="13"/><circle cx="50" cy="172" r="13"/><circle cx="58" cy="192" r="13"/><circle cx="40" cy="194" r="11"/>
+   <path d="M58 98 q5 -4 7 3 M56 144 q6 -4 7 4 M46 168 q6 -4 7 4 M56 121 q5 -4 7 3 M54 188 q6 -4 7 4" fill="none"/>
+  </g>
+  <g class="hairR" fill="#4a3426" stroke="#2a1d14" stroke-width="1.6">
+   <circle cx="136" cy="80" r="12"/><circle cx="140" cy="102" r="13"/><circle cx="139" cy="125" r="13"/><circle cx="144" cy="148" r="14"/>
+   <circle cx="134" cy="168" r="13"/><circle cx="150" cy="172" r="13"/><circle cx="142" cy="192" r="13"/><circle cx="160" cy="194" r="11"/>
+   <path d="M138 98 q5 -4 7 3 M140 144 q6 -4 7 4 M146 168 q6 -4 7 4 M137 121 q5 -4 7 3 M140 188 q6 -4 7 4" fill="none"/>
+  </g>
+  <g fill="#4a3426" stroke="#2a1d14" stroke-width="1.6">
+   <circle cx="72" cy="58" r="13"/><circle cx="128" cy="58" r="13"/><circle cx="86" cy="42" r="14"/><circle cx="114" cy="42" r="14"/><circle cx="100" cy="36" r="13"/>
+   <path d="M70 72 Q74 58 90 56 Q98 64 100 54 Q102 64 110 56 Q126 58 130 72 Q116 62 100 66 Q84 62 70 72 Z" stroke="none"/>
+   <path d="M80 40 q6 -5 9 2 M108 40 q6 -5 9 2 M94 33 q6 -5 9 2 M66 56 q6 -5 9 2 M122 56 q6 -5 9 2" fill="none"/>
+  </g>
+  <path class="brow browL" d="M75 84 Q84 78 94 82" stroke="#3a2a1f" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+  <path class="brow browR" d="M106 82 Q116 78 125 84" stroke="#3a2a1f" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+  <g class="eyes"><ellipse cx="85" cy="95" rx="5.6" ry="4" fill="#fff"/><ellipse cx="115" cy="95" rx="5.6" ry="4" fill="#fff"/>
+   <circle cx="86" cy="95" r="3" fill="#2e1f16"/><circle cx="116" cy="95" r="3" fill="#2e1f16"/>
+   <circle cx="87" cy="93.8" r="1" fill="#fff"/><circle cx="117" cy="93.8" r="1" fill="#fff"/></g>
+  <path d="M101 92 Q99 108 95 116 Q99 121 104 119 Q108 118 107 115" stroke="#c48f72" stroke-width="2.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path class="mo n" d="M90 129 Q100 133 110 128" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path class="mo s" d="M88 126 Q100 140 112 126 Q100 131 88 126 Z" fill="#9b3a2c" stroke="#8a4a3a" stroke-width="1.5" stroke-linejoin="round"/>
+  <path class="mo f" d="M90 133 Q100 125 110 133" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path class="sweat" d="M128 70 Q133 80 128 84 Q123 80 128 70 Z" fill="#7cc3f0"/>
+  <text class="spark" x="24" y="40" font-size="18" fill="#f0b400">✦</text>
+  <text class="spark" x="164" y="36" font-size="14" fill="#f0b400">✦</text>
+  <text class="spark" x="174" y="92" font-size="11" fill="#f0b400">✦</text>
+ </g></svg>`;
+function makeAvatar(el,bubble){
+  el.innerHTML=LZ_SVG;let tm=null;
+  function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
+  return {mood(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
+    if(m==='smile'){el.classList.add('smile');restart('hop');}
+    if(m==='frown'){el.classList.add('frown');restart('shake');}
+    if(text!==undefined){bubble.innerHTML=text;bubble.className='bubble'+(m==='smile'?' good':m==='frown'?' bad':'');}
+    if(!hold)tm=setTimeout(()=>{el.classList.remove('smile','frown');bubble.className='bubble';},3200);}};
+}
+var AV1=makeAvatar($('av1'),$('bub1')),AV2=makeAvatar($('av2'),$('bub2'));
+const QUOTES=[
+ '1675 年，我在手稿裡寫下積分號 ∫——它是拉長的 S，代表拉丁文 summa（總和）。',
+ '1684 年，我發表了第一篇微分學論文《求極大與極小的新方法》（Nova Methodus）。',
+ 'dx、dy 這種寫法是我發明的。好的符號能幫大腦思考！',
+ '我研究曲線族時，就會只對其中一個參數求導、其他量固定——這正是偏微分的想法。',
+ '我研究過二進位：只用 0 和 1 就能表示所有數。今天的電腦正是這樣運作的。',
+ '我和牛頓為了「誰先發明微積分」爭論了很多年。現在大家公認：我們各自獨立發明。'];
+let qi=0;$('av1').onclick=()=>AV1.mood('smile',QUOTES[qi++%QUOTES.length]);
+
+/* ---------- 4. 小測驗 ---------- */
+const QZ=[
+ {q:`${fr('∂'+M('f'),'∂'+M('x'))} 的意思是？`,o:['只讓 x 變、y 固定時，f 的變化率','x 和 y 同時變時，f 的變化率','x 和 y 都固定時 f 的值','f 對 x 的平均值'],a:0,
+  e:'偏導數只讓一個變數動，其他變數凍結。',h:'想想「偏」字：只偏向一個變數。'},
+ {q:`${fr('∂'+M('f'),'∂'+M('x'))}(x₀, y₀) 在圖形上代表？`,o:['用平面 y = y₀ 切曲面，切口曲線在該點的切線斜率','用平面 x = x₀ 切曲面，切口曲線的斜率','曲面在該點的高度','切口曲線的長度'],a:0,
+  e:'對 x 偏微分 → 凍結 y → 用平面 y = y₀ 切。',h:'凍結的是 y，所以切割平面是 y = 常數。'},
+ {q:`定義式 ${LIM}${fr(M('f')+'(x₀+h, y₀) − '+M('f')+'(x₀, y₀)','h')} 中，h → 0 時割線會變成？`,o:['切線，斜率就是偏導數','水平線','垂直線','消失不見'],a:0,
+  e:'Q 滑向 P，割線的極限就是切線。',h:'回到第 2 節，按自動播放看看 Q 點怎麼移動。'},
+ {q:`${M('f')}(${M('x')}, ${M('y')}) = 5${M('y')}³，則 ${fr('∂'+M('f'),'∂'+M('x'))} = ？`,o:['0','15y²','5y³','15xy²'],a:0,
+  e:'式子裡沒有 x，對 x 而言 5y³ 是常數，微分得 0。',h:'對 x 來說，y 只是一個數字。'},
+ {q:'在曲面上的同一點，∂f/∂x 和 ∂f/∂y 一定相等嗎？',o:['不一定，兩個方向的陡度可以不同','一定相等','一定互為相反數','一定都是 0'],a:0,
+  e:'往東切和往北切是兩條不同的曲線，斜率當然可以不同（例如馬鞍面）。',h:'回到第 1 節，在「馬鞍」上切換對 x、對 y 看看。'},
+ {q:'某點 ∂f/∂x > 0、∂f/∂y < 0，代表？',o:['往東（+x）是上坡，往北（+y）是下坡','往東是下坡，往北是上坡','兩個方向都是上坡','這一點是山頂'],a:0,
+  e:'偏導數的正負，就是那個方向上坡或下坡。',h:'正的變化率 = 往前走高度增加。'}
+];
+const PRAISE=['Sehr gut！答對了 😄','Wunderbar！你抓到偏微分的精神了！','完全正確！好的觀念就像好的符號一樣清楚。','Bravo！凍結得剛剛好！'];
+let sc=0,dn=0,streak=0;
+function shuffle(a){return a.map(v=>[Math.random(),v]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);}
+function buildQuiz(){
+  sc=0;dn=0;streak=0;$('score').style.display='none';
+  $('quiz').innerHTML=QZ.map((z,i)=>{const ord=shuffle(z.o.map((t,j)=>j));
+    return `<div class="q"><div><b>Q${i+1}.</b> ${z.q}</div><div class="opts">${ord.map(j=>`<button data-q="${i}" data-o="${j}">${z.o[j]}</button>`).join('')}</div><div class="fb" id="fb${i}"></div></div>`;}).join('');
+}
+$('quiz').onclick=e=>{const b=e.target.closest('button');if(!b)return;const i=+b.dataset.q,j=+b.dataset.o,z=QZ[i],box=b.parentElement;if(box.dataset.done)return;box.dataset.done=1;dn++;
+  if(j===z.a){b.classList.add('right');sc++;streak++;$('fb'+i).innerHTML='✔ 正確！'+z.e;
+    AV2.mood('smile',streak>=3?`連對 ${streak} 題！Ausgezeichnet！你是偏微分高手 🎉`:PRAISE[Math.floor(Math.random()*PRAISE.length)]);}
+  else{b.classList.add('wrong');streak=0;[...box.children].forEach(x=>{if(+x.dataset.o===z.a)x.classList.add('right');});$('fb'+i).innerHTML='✘ '+z.e;AV2.mood('frown',z.h);}
+  if(dn===QZ.length){$('scoreTxt').textContent=`得分：${sc} / ${QZ.length}`;$('score').style.display='flex';
+    setTimeout(()=>{if(sc===QZ.length)AV2.mood('smile','滿分！你已經完全掌握偏微分的觀念了 🏆',true);
+      else if(sc>=QZ.length-2)AV2.mood('smile',`${sc} 分，很不錯！錯的題目再回去對應的小節玩一下。`,true);
+      else AV2.mood('frown','建議回到第 1、2 節，親手切幾刀、按幾次「下一步」，再來挑戰！',true);},3300);}
+};
+$('retry').onclick=()=>{buildQuiz();AV2.mood('','新的一輪！選項順序都換過了喔。');};
+
+/* ---------- init ---------- */
+syncSliders();renderH();newPrac();buildQuiz();updateAll();
+let rz=null;window.addEventListener('resize',()=>{cancelAnimationFrame(rz);rz=requestAnimationFrame(()=>{draw3D();draw2D();});});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{draw3D();draw2D();});
+</script>
+</body>
+</html>
