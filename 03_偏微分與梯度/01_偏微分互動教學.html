@@ -176,7 +176,7 @@ footer{color:var(--mute);font-size:.85rem;text-align:center;margin-top:30px}
       </div>
       <p class="note">符號小知識：萊布尼茲發明了 <span class="frac"><span>d<i class="m">y</i></span><span>d<i class="m">x</i></span></span> 這種分數寫法；把 d 換成捲曲的 ∂，是提醒你「還有別的變數，只是暫時被凍結了」。</p>
     </div>
-    <div class="avwrap"><div class="bubble" id="bub1">Guten Tag！我是萊布尼茲。點我聽故事！</div><div class="av" id="av1"></div></div>
+    <div class="avwrap"><div class="bubble" id="bub1">Bonjour！我是勒讓德（Legendre）。點我聽故事！</div><div class="av" id="av1"></div></div>
   </div>
 </section>
 
@@ -543,51 +543,46 @@ $('pO').onclick=e=>{const b=e.target.closest('button');if(!b||$('pO').dataset.do
   $('pS').textContent=`已答 ${pt} 題，答對 ${pc} 題`;};
 $('pNext').onclick=newPrac;
 
-/* ---------- 萊布尼茲老師 ---------- */
-const LZ_SVG=`<svg viewBox="0 0 200 230" aria-label="萊布尼茲老師動畫">
+/* ---------- 勒讓德老師 ---------- */
+const LG_SVG=`<svg viewBox="0 0 200 230" aria-label="勒讓德老師動畫">
  <g class="bodyg">
-  <path d="M42 96 Q36 30 100 24 Q164 30 158 96 Q172 146 166 204 Q148 218 130 204 L70 204 Q52 218 34 204 Q28 146 42 96 Z" fill="#33241a"/>
-  <path d="M10 232 Q16 178 100 166 Q184 178 190 232 Z" fill="#2b2731"/>
-  <path d="M100 168 L78 232 M100 168 L122 232" stroke="#1d1a22" stroke-width="2"/>
-  <circle cx="100" cy="214" r="3" fill="#c9a24a"/><circle cx="100" cy="226" r="3" fill="#c9a24a"/>
-  <rect x="86" y="132" width="28" height="30" rx="9" fill="#e6bba0"/>
-  <path d="M82 154 Q100 166 118 154 L126 196 Q113 204 100 198 Q87 204 74 196 Z" fill="#f7f4ec" stroke="#cfc8b8" stroke-width="1.4"/>
-  <path d="M80 172 Q90 178 100 174 Q110 178 120 172 M78 186 Q89 192 100 188 Q111 192 122 186" stroke="#d6cfbf" stroke-width="1.3" fill="none"/>
-  <ellipse cx="100" cy="100" rx="31" ry="40" fill="#f2cbb0"/>
-  <path d="M80 126 Q100 146 120 126 Q112 140 100 141 Q88 140 80 126 Z" fill="#e8bc9f" opacity=".7"/>
-  <ellipse class="blush" cx="80" cy="116" rx="7" ry="4.5" fill="#f08080"/>
-  <ellipse class="blush" cx="120" cy="116" rx="7" ry="4.5" fill="#f08080"/>
-  <g class="hairL" fill="#4a3426" stroke="#2a1d14" stroke-width="1.6">
-   <circle cx="64" cy="80" r="12"/><circle cx="60" cy="102" r="13"/><circle cx="61" cy="125" r="13"/><circle cx="56" cy="148" r="14"/>
-   <circle cx="66" cy="168" r="13"/><circle cx="50" cy="172" r="13"/><circle cx="58" cy="192" r="13"/><circle cx="40" cy="194" r="11"/>
-   <path d="M58 98 q5 -4 7 3 M56 144 q6 -4 7 4 M46 168 q6 -4 7 4 M56 121 q5 -4 7 3 M54 188 q6 -4 7 4" fill="none"/>
-  </g>
-  <g class="hairR" fill="#4a3426" stroke="#2a1d14" stroke-width="1.6">
-   <circle cx="136" cy="80" r="12"/><circle cx="140" cy="102" r="13"/><circle cx="139" cy="125" r="13"/><circle cx="144" cy="148" r="14"/>
-   <circle cx="134" cy="168" r="13"/><circle cx="150" cy="172" r="13"/><circle cx="142" cy="192" r="13"/><circle cx="160" cy="194" r="11"/>
-   <path d="M138 98 q5 -4 7 3 M140 144 q6 -4 7 4 M146 168 q6 -4 7 4 M137 121 q5 -4 7 3 M140 188 q6 -4 7 4" fill="none"/>
-  </g>
-  <g fill="#4a3426" stroke="#2a1d14" stroke-width="1.6">
-   <circle cx="72" cy="58" r="13"/><circle cx="128" cy="58" r="13"/><circle cx="86" cy="42" r="14"/><circle cx="114" cy="42" r="14"/><circle cx="100" cy="36" r="13"/>
-   <path d="M70 72 Q74 58 90 56 Q98 64 100 54 Q102 64 110 56 Q126 58 130 72 Q116 62 100 66 Q84 62 70 72 Z" stroke="none"/>
-   <path d="M80 40 q6 -5 9 2 M108 40 q6 -5 9 2 M94 33 q6 -5 9 2 M66 56 q6 -5 9 2 M122 56 q6 -5 9 2" fill="none"/>
-  </g>
-  <path class="brow browL" d="M75 84 Q84 78 94 82" stroke="#3a2a1f" stroke-width="3.2" fill="none" stroke-linecap="round"/>
-  <path class="brow browR" d="M106 82 Q116 78 125 84" stroke="#3a2a1f" stroke-width="3.2" fill="none" stroke-linecap="round"/>
-  <g class="eyes"><ellipse cx="85" cy="95" rx="5.6" ry="4" fill="#fff"/><ellipse cx="115" cy="95" rx="5.6" ry="4" fill="#fff"/>
-   <circle cx="86" cy="95" r="3" fill="#2e1f16"/><circle cx="116" cy="95" r="3" fill="#2e1f16"/>
-   <circle cx="87" cy="93.8" r="1" fill="#fff"/><circle cx="117" cy="93.8" r="1" fill="#fff"/></g>
-  <path d="M101 92 Q99 108 95 116 Q99 121 104 119 Q108 118 107 115" stroke="#c48f72" stroke-width="2.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-  <path class="mo n" d="M90 129 Q100 133 110 128" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>
-  <path class="mo s" d="M88 126 Q100 140 112 126 Q100 131 88 126 Z" fill="#9b3a2c" stroke="#8a4a3a" stroke-width="1.5" stroke-linejoin="round"/>
-  <path class="mo f" d="M90 133 Q100 125 110 133" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>
-  <path class="sweat" d="M128 70 Q133 80 128 84 Q123 80 128 70 Z" fill="#7cc3f0"/>
-  <text class="spark" x="24" y="40" font-size="18" fill="#f0b400">✦</text>
-  <text class="spark" x="164" y="36" font-size="14" fill="#f0b400">✦</text>
-  <text class="spark" x="174" y="92" font-size="11" fill="#f0b400">✦</text>
+  <path d="M62 88 Q40 74 40 52 Q50 60 56 56 Q48 34 70 28 Q72 40 80 38 Q80 16 102 12 Q100 28 110 30 Q120 10 140 20 Q128 32 136 38 Q158 30 160 52 Q150 54 150 60 Q166 72 138 88 Z" fill="#efeee9" stroke="#b8b4aa" stroke-width="1.6"/>
+  <path d="M10 232 Q18 166 100 154 Q182 166 190 232 Z" fill="#c3c7cf" stroke="#9aa0ab" stroke-width="1.4"/>
+  <path d="M72 154 Q100 184 128 154 L136 178 Q100 202 64 178 Z" fill="#f7f6f1" stroke="#c9c4b8" stroke-width="1.4"/>
+  <path d="M84 164 Q100 174 116 164 M80 176 Q100 188 120 176" stroke="#d8d3c6" stroke-width="1.2" fill="none"/>
+  <rect x="85" y="134" width="30" height="24" rx="10" fill="#ebc2a6"/>
+  <ellipse cx="66" cy="104" rx="6.5" ry="11" fill="#ebc2a6"/><ellipse cx="134" cy="104" rx="6.5" ry="11" fill="#ebc2a6"/>
+  <ellipse cx="100" cy="104" rx="34" ry="41" fill="#f2cdb2"/>
+  <path d="M70 112 Q76 132 92 140 M130 112 Q124 132 108 140" stroke="#dba98c" stroke-width="2" fill="none" stroke-linecap="round" opacity=".8"/>
+  <ellipse cx="80" cy="114" rx="9" ry="7" fill="#e7b296" opacity=".55"/><ellipse cx="120" cy="114" rx="9" ry="7" fill="#e7b296" opacity=".55"/>
+  <ellipse class="blush" cx="80" cy="118" rx="7" ry="4.5" fill="#f08080"/>
+  <ellipse class="blush" cx="120" cy="118" rx="7" ry="4.5" fill="#f08080"/>
+  <g class="hairL" fill="#efeee9" stroke="#b0ab9f" stroke-width="1.6">
+   <path d="M68 72 Q46 56 22 66 Q38 72 36 80 Q18 84 14 102 Q32 94 40 98 Q28 110 32 122 Q48 108 65 112 Q62 92 68 72 Z"/>
+   <path d="M36 80 Q50 80 60 88 M40 98 Q52 96 62 102" fill="none"/></g>
+  <g class="hairR" fill="#efeee9" stroke="#b0ab9f" stroke-width="1.6">
+   <path d="M132 72 Q154 56 178 66 Q162 72 164 80 Q182 84 186 102 Q168 94 160 98 Q172 110 168 122 Q152 108 135 112 Q138 92 132 72 Z"/>
+   <path d="M164 80 Q150 80 140 88 M160 98 Q148 96 138 102" fill="none"/></g>
+  <path d="M78 68 Q84 56 94 60 Q98 52 108 58 Q116 54 122 66 Q112 62 106 66 Q100 60 94 66 Q86 62 78 68 Z" fill="#efeee9" stroke="#b0ab9f" stroke-width="1.4"/>
+  <path d="M58 48 Q70 40 78 46 M96 22 Q104 36 98 48 M124 26 Q120 38 128 44 M148 42 Q140 48 140 56 M50 64 Q58 62 64 68" stroke="#a8a497" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path class="brow browL" d="M73 82 Q84 80 95 88" stroke="#4a3a2a" stroke-width="4.6" fill="none" stroke-linecap="round"/>
+  <path class="brow browR" d="M105 88 Q116 80 127 82" stroke="#4a3a2a" stroke-width="4.6" fill="none" stroke-linecap="round"/>
+  <path d="M77 92 Q85 89 93 93 M107 93 Q115 89 123 92" stroke="#c99a7e" stroke-width="1.6" fill="none"/>
+  <g class="eyes"><ellipse cx="85" cy="97" rx="5" ry="3.4" fill="#fff"/><ellipse cx="115" cy="97" rx="5" ry="3.4" fill="#fff"/>
+   <circle cx="85.8" cy="97.3" r="2.8" fill="#4d5a66"/><circle cx="114.2" cy="97.3" r="2.8" fill="#4d5a66"/>
+   <circle cx="86.7" cy="96.2" r=".9" fill="#fff"/><circle cx="115.1" cy="96.2" r=".9" fill="#fff"/></g>
+  <path d="M101 96 Q100 110 95 118 Q99 125 106 122 Q110 120 107 116" stroke="#b9856a" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M94 121 Q97 124 100 123" stroke="#b9856a" stroke-width="1.6" fill="none"/>
+  <path class="mo n" d="M88 131 Q94 125 100 128 Q106 125 112 131 Q106 138 100 137 Q94 138 88 131 Z" fill="#c4503f" stroke="#9c3a2c" stroke-width="1.2"/>
+  <path class="mo s" d="M86 128 Q100 144 114 128 Q100 133 86 128 Z" fill="#b2392c" stroke="#9c3a2c" stroke-width="1.5" stroke-linejoin="round"/>
+  <path class="mo f" d="M89 136 Q94 128 100 130 Q106 128 111 136 Q100 133 89 136 Z" fill="#c4503f" stroke="#9c3a2c" stroke-width="1.4" stroke-linejoin="round"/>
+  <path class="sweat" d="M138 76 Q143 86 138 90 Q133 86 138 76 Z" fill="#7cc3f0"/>
+  <text class="spark" x="30" y="44" font-size="18" fill="#f0b400">✦</text>
+  <text class="spark" x="160" y="40" font-size="14" fill="#f0b400">✦</text>
+  <text class="spark" x="170" y="96" font-size="11" fill="#f0b400">✦</text>
  </g></svg>`;
 function makeAvatar(el,bubble){
-  el.innerHTML=LZ_SVG;let tm=null;
+  el.innerHTML=LG_SVG;let tm=null;
   function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
   return {mood(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
     if(m==='smile'){el.classList.add('smile');restart('hop');}
@@ -597,12 +592,12 @@ function makeAvatar(el,bubble){
 }
 var AV1=makeAvatar($('av1'),$('bub1')),AV2=makeAvatar($('av2'),$('bub2'));
 const QUOTES=[
- '1675 年，我在手稿裡寫下積分號 ∫——它是拉長的 S，代表拉丁文 summa（總和）。',
- '1684 年，我發表了第一篇微分學論文《求極大與極小的新方法》（Nova Methodus）。',
- 'dx、dy 這種寫法是我發明的。好的符號能幫大腦思考！',
- '我研究曲線族時，就會只對其中一個參數求導、其他量固定——這正是偏微分的想法。',
- '我研究過二進位：只用 0 和 1 就能表示所有數。今天的電腦正是這樣運作的。',
- '我和牛頓為了「誰先發明微積分」爭論了很多年。現在大家公認：我們各自獨立發明。'];
+ '1786 年，我在一篇研究極大、極小值的論文裡，第一次用捲曲的 ∂ 來表示偏微分，好和一般的 d 區分。',
+ '不過後來我自己也不用 ∂ 了！直到 1841 年雅可比（Jacobi）重新採用，這個符號才流行到今天。',
+ '1805 年我發表了「最小平方法」，後來和高斯為了誰先發明吵了好久。今天的 MSE 損失函數就是它的後代！',
+ '我寫的教科書《幾何原理》（1794）在歐洲和美國用了將近一百年。',
+ '勒讓德多項式、勒讓德符號、勒讓德轉換……好多數學名詞都用我的名字命名。',
+ '一百多年來，書上流傳的「勒讓德肖像」其實是另一位同姓的政治人物！我唯一確認的畫像是一幅水彩漫畫——就是我現在這個蓬頭皺眉的樣子。'];
 let qi=0;$('av1').onclick=()=>AV1.mood('smile',QUOTES[qi++%QUOTES.length]);
 
 /* ---------- 4. 小測驗 ---------- */
@@ -620,7 +615,7 @@ const QZ=[
  {q:'某點 ∂f/∂x > 0、∂f/∂y < 0，代表？',o:['往東（+x）是上坡，往北（+y）是下坡','往東是下坡，往北是上坡','兩個方向都是上坡','這一點是山頂'],a:0,
   e:'偏導數的正負，就是那個方向上坡或下坡。',h:'正的變化率 = 往前走高度增加。'}
 ];
-const PRAISE=['Sehr gut！答對了 😄','Wunderbar！你抓到偏微分的精神了！','完全正確！好的觀念就像好的符號一樣清楚。','Bravo！凍結得剛剛好！'];
+const PRAISE=['Très bien！答對了 😄','Magnifique！你抓到偏微分的精神了！','完全正確！好的觀念就像好的符號一樣清楚。','Bravo！凍結得剛剛好！'];
 let sc=0,dn=0,streak=0;
 function shuffle(a){return a.map(v=>[Math.random(),v]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);}
 function buildQuiz(){
@@ -630,7 +625,7 @@ function buildQuiz(){
 }
 $('quiz').onclick=e=>{const b=e.target.closest('button');if(!b)return;const i=+b.dataset.q,j=+b.dataset.o,z=QZ[i],box=b.parentElement;if(box.dataset.done)return;box.dataset.done=1;dn++;
   if(j===z.a){b.classList.add('right');sc++;streak++;$('fb'+i).innerHTML='✔ 正確！'+z.e;
-    AV2.mood('smile',streak>=3?`連對 ${streak} 題！Ausgezeichnet！你是偏微分高手 🎉`:PRAISE[Math.floor(Math.random()*PRAISE.length)]);}
+    AV2.mood('smile',streak>=3?`連對 ${streak} 題！Formidable！你是偏微分高手 🎉`:PRAISE[Math.floor(Math.random()*PRAISE.length)]);}
   else{b.classList.add('wrong');streak=0;[...box.children].forEach(x=>{if(+x.dataset.o===z.a)x.classList.add('right');});$('fb'+i).innerHTML='✘ '+z.e;AV2.mood('frown',z.h);}
   if(dn===QZ.length){$('scoreTxt').textContent=`得分：${sc} / ${QZ.length}`;$('score').style.display='flex';
     setTimeout(()=>{if(sc===QZ.length)AV2.mood('smile','滿分！你已經完全掌握偏微分的觀念了 🏆',true);
