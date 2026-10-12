@@ -1,0 +1,741 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mini-batch 互動教學</title>
+<style>
+:root{--bg:#f7f6f2;--card:#fff;--ink:#1d2330;--mute:#667085;--line:#e3e1da;--ok:#1f9d6b;--bad:#d6334f;
+  --blue:#2b6cb0;--orange:#dd6b20;--soft:#f1efe8;--hl:#fff1e3;
+  --s8:#d6334f;--s32:#e08a1e;--s128:#1f9d6b;--s512:#2b6cb0;--sgd:#7b4fc9;}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --blue:#6aa8ff;--orange:#ff9d57;--soft:#252a35;--hl:#3a2c1f;
+  --s8:#ff6f86;--s32:#ffb35c;--s128:#4fd19d;--s512:#6aa8ff;--sgd:#b493ff;}}
+:root[data-theme="dark"]{--bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --blue:#6aa8ff;--orange:#ff9d57;--soft:#252a35;--hl:#3a2c1f;
+  --s8:#ff6f86;--s32:#ffb35c;--s128:#4fd19d;--s512:#6aa8ff;--sgd:#b493ff;}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.65}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.9rem;line-height:1.3}
+header .sub{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 20px 22px;margin:18px 0}
+.card h2{margin:0 0 12px;font-size:1.35rem;display:flex;align-items:center;gap:10px}
+.num{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:var(--blue);color:#fff;font-size:1rem;flex:none}
+p{margin:.4em 0 .7em}
+.mute{color:var(--mute)}
+.note{background:var(--soft);border-left:4px solid var(--blue);border-radius:8px;padding:10px 14px;margin:12px 0}
+.note.warn{border-left-color:var(--orange)}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+.grid2>*{min-width:0}
+.panel{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--card);min-width:0}
+.panel h3{margin:0 0 8px;font-size:1.05rem}
+button{font:inherit;border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:10px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--blue)}
+button.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+button:disabled{opacity:.45;cursor:default}
+.ctrls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{padding:4px 10px;border-radius:999px;font-size:.92rem}
+label{cursor:pointer}
+input[type=range]{width:100%;accent-color:var(--blue)}
+canvas{display:block;width:100%}
+.big{font-size:1.9rem;font-weight:700;line-height:1.2}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0}
+.stat{background:var(--soft);border-radius:10px;padding:10px 12px;min-width:0}
+.stat .k{font-size:.85rem;color:var(--mute)}
+.stat .v{font-size:1.35rem;font-weight:700}
+.formula{font-family:"Cambria Math","Times New Roman",serif;font-size:1.15rem;background:var(--soft);border-radius:10px;padding:8px 14px;display:inline-block;margin:6px 0;max-width:100%;overflow-x:auto}
+/* cards (digit) */
+.deck{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.dc{position:relative;width:44px;height:44px;border-radius:6px;border:2px solid transparent;transition:opacity .3s,transform .3s,border-color .3s}
+.dc canvas{width:100%;height:100%;border-radius:4px;image-rendering:pixelated}
+.dc .tag{position:absolute;right:-6px;top:-8px;font-size:.7rem;color:#fff;border-radius:999px;padding:0 5px;line-height:1.4}
+.dc.used{opacity:.3}
+.dc.cur{transform:translateY(-4px)}
+.boxes{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;min-height:70px}
+.box{border:2px dashed var(--line);border-radius:10px;padding:6px 8px 8px;animation:pop .35s ease}
+.box .bt{font-size:.8rem;color:var(--mute);margin-bottom:4px}
+.box .row{display:flex;gap:4px;flex-wrap:wrap}
+.box .dc{width:32px;height:32px;border:none}
+@keyframes pop{from{transform:scale(.85);opacity:0}to{transform:none;opacity:1}}
+.msg{min-height:1.6em;font-weight:600}
+/* step animation */
+.stepbar{height:6px;background:var(--soft);border-radius:999px;overflow:hidden;margin:6px 0 10px}
+.stepbar>div{height:100%;background:var(--orange);transition:width .3s}
+.explain{background:var(--hl);border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-height:4.2em}
+.explain b{color:var(--orange)}
+.batchrow{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.bi{display:flex;flex-direction:column;align-items:center;width:58px;font-size:.78rem}
+.bi canvas{width:52px;height:52px;border-radius:6px;image-rendering:pixelated}
+.bi .pr{min-height:2.6em;text-align:center;line-height:1.3;opacity:0;transition:opacity .3s}
+.bi .pr.show{opacity:1}
+.ok{color:var(--ok)}.bad{color:var(--bad)}
+.tensor{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:6px 0;opacity:.15;transition:opacity .3s}
+.tensor.show{opacity:1}
+.stack{position:relative;width:86px;height:70px;flex:none}
+.stack span{position:absolute;width:52px;height:52px;border:2px solid var(--blue);background:var(--card);border-radius:4px}
+.code{border:1px solid #2e3441;background:#1b1f27;color:#d7dce5;border-radius:10px;padding:10px 0;font-family:Consolas,"Courier New",monospace;font-size:.88rem;overflow-x:auto;margin:0}
+.code .ln{display:block;padding:1px 14px;white-space:pre;border-left:4px solid transparent}
+.code .ln.hl{background:rgba(255,157,87,.18);border-left-color:#ff9d57}
+.code .cm{color:#8b95a7}.code .kw{color:#c792ea}.code .st{color:#c3e88d}.code .nm{color:#f78c6c}
+.out{background:#11141a;color:#b9f0c9;border-radius:10px;padding:10px 14px;font-family:Consolas,"Courier New",monospace;font-size:.86rem;white-space:pre;overflow-x:auto;min-height:3em;margin:8px 0 0}
+.out .cm{color:#8b95a7}
+.out .w{color:#ffcf6e}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.9rem;margin:6px 0}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:14px;height:4px;border-radius:2px}
+.tabs{display:flex;gap:6px;margin-bottom:8px}
+.frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;line-height:1.1;margin:0 2px}
+.frac>span:first-child{border-bottom:1.5px solid currentColor;padding:0 3px}
+/* quiz */
+.q{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:10px 0}
+.q .qt{font-weight:600;margin-bottom:6px}
+.q .opts{display:grid;gap:6px}
+.q .opts button{text-align:left;background:var(--card)}
+.q .opts button.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--card))}
+.q .opts button.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,var(--card))}
+.q .ex{margin-top:8px;font-size:.93rem;display:none}
+.q .ex.show{display:block}
+.score{font-size:1.2rem;font-weight:700;margin:10px 0}
+footer{text-align:center;color:var(--mute);font-size:.9rem;margin-top:30px}
+/* avatar */
+.avwrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.av{width:100%;max-width:220px;cursor:pointer;user-select:none}
+.av svg{width:100%;display:block;overflow:visible;background:none}
+.av .bodyg{animation:bob 3.2s ease-in-out infinite;transform-origin:100px 200px}
+.av .eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+.av .hairL{animation:sway 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:top center}
+.av .hairR{animation:sway 3.2s ease-in-out infinite reverse;transform-box:fill-box;transform-origin:top center}
+.av .brow{transition:transform .3s;transform-box:fill-box}
+.av .browL{transform-origin:right center}.av .browR{transform-origin:left center}
+.av .mo{opacity:0;transition:opacity .25s}.av .mo.n{opacity:1}
+.av .blush,.av .sweat,.av .spark{opacity:0;transition:opacity .3s}
+.av.smile .mo.n,.av.frown .mo.n{opacity:0}
+.av.smile .mo.s{opacity:1}.av.frown .mo.f{opacity:1}
+.av.smile .blush{opacity:.55}.av.smile .spark{opacity:1}.av.frown .sweat{opacity:.9}
+.av.smile .brow{transform:translateY(-3px)}
+.av.frown .browL{transform:rotate(14deg) translateY(2px)}.av.frown .browR{transform:rotate(-14deg) translateY(2px)}
+.av.hop svg{animation:hop .7s ease}
+.av.shake svg{animation:shake .55s ease}
+.av .spark{animation:twinkle 1s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}
+@keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+@keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.bubble{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.95rem;margin-bottom:10px;min-height:2.6em;max-width:260px;text-align:center;transition:border-color .3s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--line);border-bottom:0}
+.bubble.good{border-color:var(--ok)}.bubble.good::after{border-top-color:var(--ok)}
+.bubble.bad{border-color:var(--bad)}.bubble.bad::after{border-top-color:var(--bad)}
+.intro{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:center}
+.intro>*,.qgrid>*{min-width:0}
+.intro .avwrap{flex-direction:row;gap:10px}.intro .bubble{flex:1;margin:0}.intro .bubble::after{display:none}.intro .av{width:125px;flex:none}
+.qgrid{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:18px;align-items:start}
+.qgrid .avwrap{position:sticky;top:12px}
+/* badge (text only) */
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink)}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute)}
+@media (max-width:860px){.grid2{grid-template-columns:minmax(0,1fr)}
+  .intro,.qgrid{grid-template-columns:minmax(0,1fr)}.intro .avwrap{flex-direction:column}.intro .bubble{margin-bottom:10px}.intro .bubble::after{display:block}.intro .av,.qgrid .av{width:auto;max-width:140px}.qgrid .avwrap{position:static;order:-1}}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}header h1{font-size:1.5rem}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="pu-hd">
+  <div class="pu-hd-main">
+    <h1>Mini-batch 是什麼？以 MNIST 為例</h1>
+    <p class="sub">工程數學 ・ 互動教學：batch size、iteration 與 epoch 的關係</p>
+  </div>
+  <div class="pu-badge"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</header>
+
+<!-- 0 -->
+<section class="card">
+  <h2><span class="num">0</span>一句話直覺</h2>
+  <div class="intro">
+    <div>
+      <p>MNIST 有 <b>60,000 張</b>手寫數字訓練圖片（每張 28×28 灰階）。訓練時不會一次把 6 萬張全部丟進模型，而是<b>洗牌後切成一小批一小批</b>，每一批稱為一個 <b>mini-batch</b>。</p>
+      <p>三個名詞一定要分清楚：</p>
+      <div class="stats">
+        <div class="stat"><div class="k">batch size（批次大小）</div><div class="v">一批幾張</div></div>
+        <div class="stat"><div class="k">iteration / step（迭代）</div><div class="v">處理一批＝更新一次</div></div>
+        <div class="stat"><div class="k">epoch（回合）</div><div class="v">6 萬張全看過一遍</div></div>
+      </div>
+      <div class="formula">每個 epoch 的更新次數 = ⌈ 訓練資料數 ÷ batch size ⌉ ＝ ⌈ 60000 ÷ B ⌉</div>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub1">Bonjour！我是楊立昆老師，MNIST 就是我們整理的。點我聽故事！</div><div class="av" id="av1" title="點我聽故事"></div></div>
+  </div>
+</section>
+
+<!-- 1 -->
+<section class="card">
+  <h2><span class="num">1</span>洗牌、切批：一個 epoch 到底發生什麼事</h2>
+  <div class="grid2">
+    <div class="panel">
+      <h3>迷你版：24 張圖、親手發牌</h3>
+      <div class="ctrls"><span class="mute">batch size：</span><div class="chips" id="dkB"></div></div>
+      <div class="ctrls">
+        <button id="dkShuf">🔀 洗牌（開始新 epoch）</button>
+        <button id="dkNext">發下一批 ▶</button>
+        <button id="dkAuto">▶ 自動發完</button>
+      </div>
+      <div class="msg" id="dkMsg"></div>
+      <div class="deck" id="deck"></div>
+      <div class="boxes" id="boxes"></div>
+      <div id="dkPrev" class="mute" style="margin-top:8px;font-size:.92rem"></div>
+    </div>
+    <div class="panel">
+      <h3>放大到真正的 MNIST：60,000 張</h3>
+      <div class="ctrls"><span class="mute">batch size B：</span></div>
+      <div class="chips" id="mnB"></div>
+      <div class="ctrls" style="margin-top:10px"><span class="mute">訓練 epoch 數：<b id="mnEv">5</b></span></div>
+      <input type="range" id="mnE" min="1" max="20" value="5">
+      <div class="stats">
+        <div class="stat"><div class="k">每個 epoch 更新次數</div><div class="v" id="mnIt"></div></div>
+        <div class="stat"><div class="k">最後一批的張數</div><div class="v" id="mnLast"></div></div>
+        <div class="stat"><div class="k">總更新次數</div><div class="v" id="mnTot"></div></div>
+      </div>
+      <canvas id="mnStrip" style="height:46px"></canvas>
+      <p class="mute" style="font-size:.9rem;margin-top:6px">↑ 一條長條代表洗牌後的 60,000 張圖，相鄰顏色交替＝一個個 batch。</p>
+      <div class="note" id="mnNote"></div>
+    </div>
+  </div>
+  <div class="note">重點：<b>每個 epoch 都會用到全部資料、每張剛好一次</b>；洗牌只改變「順序」與「哪些圖分在同一批」。每個 epoch 開始前重新洗牌，所以每個 epoch 的分組都不一樣。</div>
+</section>
+
+<!-- 2 -->
+<section class="card">
+  <h2><span class="num">2</span>一個 mini-batch 做了什麼：一批 → 一次更新</h2>
+  <div class="ctrls"><span class="mute">這一批的大小：</span><div class="chips" id="sbB"></div>
+    <span class="mute" style="margin-left:auto">累計參數更新次數：<b id="sbCnt">0</b></span></div>
+  <div class="grid2">
+    <div>
+      <div class="batchrow" id="sbRow"></div>
+      <div class="tensor" id="sbTen"><div class="stack" id="sbStack"></div><div><div>疊成一個 4 維張量</div><div class="formula" id="sbShape"></div></div></div>
+      <div id="sbMean" class="formula" style="opacity:.15;transition:opacity .3s"></div>
+      <canvas id="sbG" style="height:190px;opacity:.15;transition:opacity .3s"></canvas>
+      <div id="sbUpd" class="formula" style="opacity:.15;transition:opacity .3s">θ ← θ − η · ĝ</div>
+    </div>
+    <div>
+      <div class="ctrls">
+        <button id="sbReset">⟲ 重來</button><button id="sbPrev">◀ 上一步</button><button id="sbNext">下一步 ▶</button><button id="sbPlay">▶ 自動播放</button><button id="sbNew">換下一批 ⏭</button>
+      </div>
+      <div class="stepbar"><div id="sbBar"></div></div>
+      <div class="explain" id="sbExp"></div>
+      <pre class="code" id="sbCode"></pre>
+      <div class="out" id="sbOut"></div>
+    </div>
+  </div>
+  <div class="note">關鍵觀念：不論 batch 是 8 張還是 512 張，<b>一批只會產生一個平均梯度、只更新一次參數</b>。batch 越大，每次更新「看得越多」，但一個 epoch 內更新的次數越少。</div>
+</section>
+
+<!-- 3 -->
+<section class="card">
+  <h2><span class="num">3</span>batch size 決定梯度的「雜訊」</h2>
+  <p>每個 mini-batch 算出的梯度，都只是「全部 60,000 張的真實梯度」的<b>估計值</b>。下面用一個 2 參數模型（w, b）實際計算：每支細箭頭是一個隨機 batch 的梯度，粗箭頭是用全部資料算的真實梯度。</p>
+  <div class="grid2">
+    <div class="panel">
+      <canvas id="nzC" style="height:360px"></canvas>
+    </div>
+    <div class="panel">
+      <div class="ctrls"><span class="mute">batch size B：<b id="nzBv"></b></span><button id="nzRe" style="margin-left:auto">🎲 重新抽樣</button></div>
+      <input type="range" id="nzB" min="0" max="11" value="3">
+      <div class="stats">
+        <div class="stat"><div class="k">實測雜訊大小（標準差）</div><div class="v" id="nzStd"></div></div>
+        <div class="stat"><div class="k">理論值 σ₁ / √B</div><div class="v" id="nzTh"></div></div>
+        <div class="stat"><div class="k">方向平均偏差</div><div class="v" id="nzAng"></div></div>
+      </div>
+      <div class="formula">雜訊 ∝ <span class="frac"><span>1</span><span>√B</span></span></div>
+      <p>batch 變成 <b>4 倍</b>，雜訊只<b>減半</b>；變成 100 倍，雜訊才剩 1/10。所以 batch 加大的效益會遞減。</p>
+      <p class="mute" style="font-size:.92rem">B = 60000 時就是「全批次梯度下降」：每次都算出完全相同的真實梯度，沒有雜訊。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="card">
+  <h2><span class="num">4</span>不同 batch size 賽跑：誰先到谷底？</h2>
+  <p>同一個 2 參數模型、同一份 60,000 筆資料、同一個起點，用 SGD 訓練。左圖是參數 (w, b) 在損失函數等高線上走的路徑，右圖是損失變化。<b>切換右圖的橫軸</b>，結論會完全不同！</p>
+  <div class="ctrls">
+    <span class="mute">epoch 數：<b id="rcEv">3</b></span><input type="range" id="rcE" min="1" max="10" value="3" style="width:160px">
+    <label><input type="checkbox" id="rcLR"> 學習率跟著 batch 等比例放大（以 B=32、η=0.02 為基準）</label>
+    <button id="rcPlay">▶ 重新播放</button>
+  </div>
+  <div class="legend" id="rcLeg"></div>
+  <div class="grid2">
+    <div class="panel"><canvas id="rcC" style="height:380px"></canvas></div>
+    <div class="panel">
+      <div class="tabs" id="rcX"></div>
+      <canvas id="rcL" style="height:330px"></canvas>
+    </div>
+  </div>
+  <div class="note" id="rcNote"></div>
+  <p class="mute" style="font-size:.9rem">註：「示意時間」使用簡化的 GPU 計時模型：每批時間 = 0.3 ms 固定開銷 + 0.004 ms × max(B, 128)，代表 GPU 一次大約能平行處理 128 張，batch 太小時 GPU 吃不飽。真實時間依硬體而定，可用 Colab 實驗驗證。</p>
+</section>
+
+<!-- 5 -->
+<section class="card">
+  <h2><span class="num">5</span>在 Keras / PyTorch 中設定 mini-batch</h2>
+  <div class="grid2">
+    <div>
+      <div class="tabs" id="fwT"></div>
+      <div class="ctrls"><span class="mute">batch_size：</span><div class="chips" id="fwB"></div></div>
+      <div class="ctrls">
+        <label><input type="checkbox" id="fwSh" checked> shuffle=True</label>
+        <label id="fwDLw"><input type="checkbox" id="fwDL"> drop_last=True</label>
+      </div>
+      <pre class="code" id="fwCode"></pre>
+    </div>
+    <div>
+      <div class="mute">執行時你會看到：</div>
+      <div class="out" id="fwOut"></div>
+      <div class="note warn" id="fwWarn"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 6 -->
+<section class="card">
+  <h2><span class="num">6</span>觀念小測驗</h2>
+  <div class="qgrid">
+    <div><div id="quiz"></div><div class="score" id="qScore"></div><button id="qAgain" style="display:none">再做一次</button></div>
+    <div class="avwrap"><div class="bubble" id="bub2">來考考你！答對我會笑，答錯我會皺眉喔。</div><div class="av" id="av2"></div></div>
+  </div>
+</section>
+
+<footer>Mini-batch 互動教學 ・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+
+<script>
+var $=function(id){return document.getElementById(id)};
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
+function rng(seed){var a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){var u=1-r(),v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function fmt(n){return n.toLocaleString('en-US')}
+function setupCanvas(cv,h){var dpr=window.devicePixelRatio||1;var w=cv.clientWidth||300;h=h||cv.clientHeight;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);var c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);return {c:c,w:w,h:h}}
+var BCOL={8:'--s8',32:'--s32',128:'--s128',512:'--s512',60000:'--sgd'};
+
+/* ---------- 模擬手寫數字 ---------- */
+var FONT='"Segoe Print","Bradley Hand","Comic Sans MS","Chalkboard SE","Segoe UI",cursive';
+function digitCanvas(d,seed){
+  var r=rng(seed*7919+d*131+1),cv=document.createElement('canvas');cv.width=28;cv.height=28;
+  var c=cv.getContext('2d');c.fillStyle='#000';c.fillRect(0,0,28,28);
+  c.save();c.translate(14+(r()-.5)*3,15+(r()-.5)*3);c.rotate((r()-.5)*.5);c.scale(.9+r()*.25,.9+r()*.25);
+  c.fillStyle='#fff';c.strokeStyle='#fff';c.lineWidth=1+r()*1.2;
+  c.font='bold 21px '+FONT;c.textAlign='center';c.textBaseline='middle';
+  c.fillText(String(d),0,1);c.strokeText(String(d),0,1);c.restore();
+  return cv;
+}
+
+/* ---------- 頭像：楊立昆老師 ---------- */
+var LECUN_SVG='<svg viewBox="0 0 200 230" aria-label="楊立昆老師動畫"><g class="bodyg">'+
+'<path d="M14 232 Q20 172 100 162 Q180 172 186 232 Z" fill="#2c3e5c"/>'+
+'<path d="M80 165 L100 205 L120 165 Z" fill="#dbe7f5"/>'+
+'<path d="M80 165 L92 186 L84 196 L70 170 Z" fill="#c7d6ea"/><path d="M120 165 L108 186 L116 196 L130 170 Z" fill="#c7d6ea"/>'+
+'<path d="M70 170 L96 214 L74 232 L50 232 Z" fill="#22324b"/><path d="M130 170 L104 214 L126 232 L150 232 Z" fill="#22324b"/>'+
+'<rect x="84" y="134" width="32" height="34" rx="10" fill="#e3b69a"/>'+
+'<ellipse cx="66" cy="106" rx="6" ry="10" fill="#e3b69a"/><ellipse cx="134" cy="106" rx="6" ry="10" fill="#e3b69a"/>'+
+'<ellipse cx="100" cy="102" rx="33" ry="40" fill="#f0c6aa"/>'+
+'<ellipse class="blush" cx="80" cy="118" rx="7" ry="4.5" fill="#f08080"/><ellipse class="blush" cx="120" cy="118" rx="7" ry="4.5" fill="#f08080"/>'+
+'<path d="M67 96 Q62 62 100 57 Q138 62 133 96 Q131 80 121 73 Q104 67 86 71 Q72 77 67 96 Z" fill="#6f7276"/>'+
+'<path d="M80 66 Q96 60 114 63" stroke="#a9adb2" stroke-width="3" fill="none" stroke-linecap="round"/>'+
+'<path d="M74 72 Q84 66 92 66" stroke="#a9adb2" stroke-width="2" fill="none" stroke-linecap="round"/>'+
+'<g class="hairL"><path d="M66 98 Q61 84 69 74 L74 92 Z" fill="#8c9095"/></g>'+
+'<g class="hairR"><path d="M134 98 Q139 84 131 74 L126 92 Z" fill="#8c9095"/></g>'+
+'<path class="brow browL" d="M75 84 Q84 79 93 82" stroke="#3a3a3a" stroke-width="3.2" fill="none" stroke-linecap="round"/>'+
+'<path class="brow browR" d="M107 82 Q116 79 125 84" stroke="#3a3a3a" stroke-width="3.2" fill="none" stroke-linecap="round"/>'+
+'<g class="eyes"><ellipse cx="85" cy="97" rx="3.8" ry="3" fill="#3a2e26"/><ellipse cx="115" cy="97" rx="3.8" ry="3" fill="#3a2e26"/>'+
+'<circle cx="86.2" cy="95.9" r="1" fill="#fff"/><circle cx="116.2" cy="95.9" r="1" fill="#fff"/></g>'+
+'<rect x="72" y="88" width="25" height="18" rx="5" fill="none" stroke="#151515" stroke-width="3.4"/>'+
+'<rect x="103" y="88" width="25" height="18" rx="5" fill="none" stroke="#151515" stroke-width="3.4"/>'+
+'<path d="M97 95 Q100 92.5 103 95" stroke="#151515" stroke-width="3" fill="none"/>'+
+'<path d="M72 93 L66 96 M128 93 L134 96" stroke="#151515" stroke-width="3"/>'+
+'<path d="M100 104 Q97 116 100 120 Q104 122 108 119" stroke="#c9967a" stroke-width="2.2" fill="none" stroke-linecap="round"/>'+
+'<path class="mo n" d="M88 128 Q100 136 112 127" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>'+
+'<path class="mo s" d="M87 126 Q100 141 113 126 Q100 131 87 126 Z" fill="#9b3a2c" stroke="#8a4a3a" stroke-width="1.5" stroke-linejoin="round"/>'+
+'<path class="mo f" d="M89 133 Q100 125 111 133" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>'+
+'<path class="sweat" d="M138 72 Q143 82 138 86 Q133 82 138 72 Z" fill="#7cc3f0"/>'+
+'<text class="spark" x="30" y="44" font-size="18" fill="#f0b400">✦</text><text class="spark" x="160" y="40" font-size="14" fill="#f0b400">✦</text><text class="spark" x="170" y="96" font-size="11" fill="#f0b400">✦</text>'+
+'</g></svg>';
+function makeAvatar(el,bubble){
+  el.innerHTML=LECUN_SVG;var tm=null;
+  function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
+  return {mood:function(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
+    if(m==='smile'){el.classList.add('smile');restart('hop');}
+    if(m==='frown'){el.classList.add('frown');restart('shake');}
+    if(text!==undefined){bubble.innerHTML=text;bubble.className='bubble'+(m==='smile'?' good':m==='frown'?' bad':'');}
+    if(!hold) tm=setTimeout(function(){el.classList.remove('smile','frown');bubble.className='bubble';},3200);}};
+}
+var AV1=makeAvatar($('av1'),$('bub1')), AV2=makeAvatar($('av2'),$('bub2'));
+var QUOTES=[
+ 'MNIST 的意思是 Modified NIST：我和 Corinna Cortes、Christopher Burges 把美國 NIST 的手寫數字資料重新整理，訓練集 60,000 張、測試集 10,000 張。',
+ '1980 年代末我在 AT&amp;T 貝爾實驗室做卷積神經網路 LeNet，後來被用來辨識銀行支票上的手寫數字。',
+ '1998 年我和 Bottou、Bengio、Haffner 發表〈Gradient-Based Learning Applied to Document Recognition〉，用的就是隨機梯度下降訓練。',
+ '「隨機逼近」的源頭是 Robbins 與 Monro 在 1951 年的論文——SGD 的數學基礎比深度學習早了半個世紀。',
+ '2018 年我和 Hinton、Bengio 一起獲得圖靈獎，表彰深度學習的貢獻。',
+ '2018 年有人研究發現小 batch（2～32）常常泛化得更好，我在推特上開玩笑：朋友不會讓朋友用超過 32 的 mini-batch！'
+];
+var qi=0;$('av1').addEventListener('click',function(){AV1.mood('smile',QUOTES[qi++%QUOTES.length]);});
+
+/* ---------- 1A 迷你發牌 ---------- */
+var DK={N:24,B:4,order:[],dealt:0,epoch:0,labels:[],cvs:[],prevFirst:null,timer:null};
+(function(){var r=rng(5);for(var i=0;i<DK.N;i++){DK.labels.push(Math.floor(r()*10));DK.cvs.push(digitCanvas(DK.labels[i],i+3));}})();
+var BOXCOL=['#2b6cb0','#dd6b20','#1f9d6b','#7b4fc9','#d6334f','#0f8b8d','#b7791f'];
+function dkShuffle(){
+  if(DK.order.length&&DK.dealt>0)DK.prevFirst=DK.order.slice(0,DK.B);
+  var r=rng(Date.now()%100000+DK.epoch*17),a=[];for(var i=0;i<DK.N;i++)a.push(i);
+  for(i=a.length-1;i>0;i--){var j=Math.floor(r()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}
+  DK.order=a;DK.dealt=0;DK.epoch++;$('boxes').innerHTML='';dkRender();
+}
+function cardEl(idx,small){var d=document.createElement('div');d.className='dc';var c=document.createElement('canvas');c.width=28;c.height=28;c.getContext('2d').drawImage(DK.cvs[idx],0,0);d.appendChild(c);return d}
+function dkRender(){
+  var deck=$('deck');deck.innerHTML='';var nb=Math.ceil(DK.N/DK.B);
+  DK.order.forEach(function(idx,pos){var el=cardEl(idx);var bi=Math.floor(pos/DK.B);
+    if(bi<DK.dealt){el.classList.add('used');el.style.borderColor=BOXCOL[bi%BOXCOL.length];}
+    if(bi===DK.dealt-1){el.classList.add('cur');el.classList.remove('used');}
+    deck.appendChild(el);});
+  var m='第 '+DK.epoch+' 個 epoch ・ 已發 '+DK.dealt+' / '+nb+' 批 ・ 參數已更新 '+DK.dealt+' 次';
+  if(DK.dealt===nb){m+=' ✔ 這個 epoch 完成！每張圖剛好用了一次。';}
+  $('dkMsg').textContent=m;
+  $('dkNext').disabled=$('dkAuto').disabled=(DK.dealt>=nb);
+  $('dkPrev').innerHTML=DK.prevFirst?('上一個 epoch 的第 1 批是：'+DK.prevFirst.map(function(i){return DK.labels[i]}).join('、')+' ← 和這一次比比看，分組不一樣了！'):'';
+}
+function dkDeal(){
+  var nb=Math.ceil(DK.N/DK.B);if(DK.dealt>=nb)return;
+  var s=DK.dealt*DK.B,e=Math.min(s+DK.B,DK.N),box=document.createElement('div');box.className='box';
+  box.style.borderColor=BOXCOL[DK.dealt%BOXCOL.length];
+  var n=e-s;box.innerHTML='<div class="bt">Batch '+(DK.dealt+1)+'（'+n+' 張）'+(n<DK.B?' ← 不足額':'')+'</div>';
+  var row=document.createElement('div');row.className='row';
+  for(var p=s;p<e;p++)row.appendChild(cardEl(DK.order[p],true));
+  box.appendChild(row);$('boxes').appendChild(box);DK.dealt++;dkRender();
+}
+[4,5,6,8].forEach(function(b){var bt=document.createElement('button');bt.textContent=b;bt.onclick=function(){clearInterval(DK.timer);DK.B=b;DK.prevFirst=null;[].forEach.call($('dkB').children,function(x){x.classList.toggle('on',x===bt)});DK.epoch=0;dkShuffle();};if(b===4)bt.classList.add('on');$('dkB').appendChild(bt);});
+$('dkShuf').onclick=function(){clearInterval(DK.timer);dkShuffle()};
+$('dkNext').onclick=function(){clearInterval(DK.timer);dkDeal()};
+$('dkAuto').onclick=function(){clearInterval(DK.timer);DK.timer=setInterval(function(){dkDeal();if(DK.dealt>=Math.ceil(DK.N/DK.B))clearInterval(DK.timer)},550)};
+dkShuffle();
+
+/* ---------- 1B MNIST 換算 ---------- */
+var MN={B:128};
+var MNLIST=[1,8,32,64,100,128,256,512,1000,60000];
+MNLIST.forEach(function(b){var bt=document.createElement('button');bt.textContent=b===60000?'60000（全部）':b;bt.onclick=function(){MN.B=b;mnRender()};bt.dataset.b=b;$('mnB').appendChild(bt)});
+function mnRender(){
+  var B=MN.B,E=+$('mnE').value,it=Math.ceil(60000/B),last=60000-(it-1)*B;
+  [].forEach.call($('mnB').children,function(x){x.classList.toggle('on',+x.dataset.b===B)});
+  $('mnEv').textContent=E;$('mnIt').textContent=fmt(it);$('mnLast').textContent=fmt(last)+' 張';$('mnTot').textContent=fmt(it*E);
+  var t;
+  if(B===1)t='B = 1：每次只看 1 張就更新，這就是最原始的「純」SGD。一個 epoch 要更新 60,000 次，GPU 大多閒著。';
+  else if(B===60000)t='B = 60000：一批就是全部資料，這就是「全批次梯度下降」(batch GD)。一個 epoch 只更新 1 次！';
+  else if(last!==B)t='60000 不能被 '+B+' 整除，最後一批只有 '+last+' 張。PyTorch 可用 drop_last=True 丟掉它；因為每次洗牌不同，被丟掉的圖每個 epoch 都不一樣。';
+  else t='60000 ÷ '+B+' 剛好整除，每一批都是 '+B+' 張。';
+  $('mnNote').textContent=t;drawStrip();
+}
+function drawStrip(){
+  var o=setupCanvas($('mnStrip'),46),c=o.c,w=o.w,B=MN.B,nb=Math.ceil(60000/B);
+  var c1=css('--blue'),c2=css('--orange');
+  c.clearRect(0,0,w,46);
+  if(w*B/60000<0.8){var g=c.createLinearGradient(0,0,w,0);c.fillStyle=c1;c.globalAlpha=.55;c.fillRect(0,4,w,30);c.globalAlpha=1;
+    c.fillStyle=css('--ink');c.font='13px sans-serif';c.textAlign='center';c.fillText(fmt(nb)+' 個 batch 太細了，畫不出分界',w/2,24);}
+  else for(var i=0;i<nb;i++){var x0=i*B/60000*w,x1=Math.min(60000,(i+1)*B)/60000*w;c.fillStyle=i%2?c2:c1;c.fillRect(x0,4,Math.max(x1-x0,.5),30);}
+  c.fillStyle=css('--mute');c.font='11px sans-serif';c.textAlign='left';c.fillText('第 1 張',0,45);c.textAlign='right';c.fillText('第 60,000 張',w,45);
+}
+$('mnE').oninput=mnRender;mnRender();
+
+/* ---------- 2 一個 batch 的流程 ---------- */
+var SB={B:8,step:0,cnt:0,seed:11,timer:null,items:[]};
+var SB_LINES=[
+ ['<span class="kw">for</span> x, y <span class="kw">in</span> train_loader:','<span class="cm"># 取出一個 mini-batch</span>'],
+ ['    <span class="kw">print</span>(x.shape)',''],
+ ['    out = model(x)','<span class="cm"># B 張圖一起前向傳播</span>'],
+ ['    loss = criterion(out, y)','<span class="cm"># 預設 reduction=<span class="st">\'mean\'</span>：取平均</span>'],
+ ['    optimizer.zero_grad()',''],
+ ['    loss.backward()','<span class="cm"># 算出「平均 loss」的梯度</span>'],
+ ['    optimizer.step()','<span class="cm"># 參數更新一次</span>']];
+var SB_STEPS=[
+ {l:[0],t:'<b>取出一批</b>：DataLoader 從洗好牌的資料中，依序拿出下一個 mini-batch，共 B 張圖和 B 個正確答案 y。'},
+ {l:[1],t:'<b>疊成張量</b>：B 張 28×28 的灰階圖疊成形狀 (B, 1, 28, 28) 的張量，GPU 可以一次平行處理。'},
+ {l:[2],t:'<b>前向傳播</b>：B 張圖同時通過模型，每張得到一個預測，並各自算出一個損失 ℓᵢ（綠色＝猜對、紅色＝猜錯）。'},
+ {l:[3],t:'<b>取平均</b>：CrossEntropyLoss 預設把 B 個損失<b>平均</b>成一個數字。這就是這一批的 loss。'},
+ {l:[4,5],t:'<b>反向傳播</b>：每張圖其實都「想」把參數往不同方向推（細箭頭），平均之後只剩<b>一個</b>梯度方向 ĝ（粗箭頭）。'},
+ {l:[6],t:'<b>更新參數</b>：θ ← θ − η·ĝ，參數只更新<b>一次</b>。然後回到 for 迴圈，取下一批……'}];
+[4,8,16].forEach(function(b){var bt=document.createElement('button');bt.textContent=b;bt.dataset.b=b;bt.onclick=function(){SB.B=b;sbNewBatch(false)};$('sbB').appendChild(bt)});
+function sbNewBatch(inc){
+  clearInterval(SB.timer);$('sbPlay').textContent='▶ 自動播放';
+  if(inc)SB.seed++;var r=rng(SB.seed*97+SB.B);SB.items=[];
+  for(var i=0;i<SB.B;i++){var d=Math.floor(r()*10),p=0.25+0.74*Math.pow(r(),.6),pred=d;
+    if(p<0.5){pred=(d+1+Math.floor(r()*9))%10;}
+    var ang=-0.6+gauss(r)*0.9,len=0.5+r()*0.9;
+    SB.items.push({d:d,p:p,pred:pred,loss:-Math.log(p),gx:Math.cos(ang)*len,gy:Math.sin(ang)*len,cv:digitCanvas(d,SB.seed*31+i)});}
+  SB.step=0;[].forEach.call($('sbB').children,function(x){x.classList.toggle('on',+x.dataset.b===SB.B)});
+  var row=$('sbRow');row.innerHTML='';
+  SB.items.forEach(function(it){var d=document.createElement('div');d.className='bi';var c=document.createElement('canvas');c.width=28;c.height=28;c.getContext('2d').drawImage(it.cv,0,0);
+    d.appendChild(c);var pr=document.createElement('div');pr.className='pr';
+    pr.innerHTML='<span class="'+(it.pred===it.d?'ok':'bad')+'">猜 '+it.pred+(it.pred===it.d?' ✔':' ✘')+'</span><br>ℓ='+it.loss.toFixed(2);d.appendChild(pr);row.appendChild(d);});
+  var st=$('sbStack');st.innerHTML='';for(var k=0;k<Math.min(SB.B,6);k++){var s=document.createElement('span');s.style.left=(k*6)+'px';s.style.top=(k*3)+'px';st.appendChild(s);}
+  $('sbShape').textContent='x.shape = ('+SB.B+', 1, 28, 28)';
+  sbRender();
+}
+function sbMeanLoss(){var s=0;SB.items.forEach(function(it){s+=it.loss});return s/SB.items.length}
+function sbRender(){
+  var s=SB.step,st=SB_STEPS[s];
+  $('sbBar').style.width=((s+1)/SB_STEPS.length*100)+'%';$('sbExp').innerHTML='步驟 '+(s+1)+' / '+SB_STEPS.length+'：'+st.t;
+  $('sbCode').innerHTML=SB_LINES.map(function(L,i){return '<span class="ln'+(st.l.indexOf(i)>=0?' hl':'')+'">'+L[0]+(L[1]?'   '+L[1]:'')+'</span>'}).join('');
+  $('sbTen').classList.toggle('show',s>=1);
+  [].forEach.call(document.querySelectorAll('#sbRow .pr'),function(p){p.classList.toggle('show',s>=2)});
+  var m=sbMeanLoss();
+  $('sbMean').innerHTML='loss = (ℓ₁ + ℓ₂ + … + ℓ<sub>'+SB.B+'</sub>) ÷ '+SB.B+' = <b>'+m.toFixed(4)+'</b>';
+  $('sbMean').style.opacity=s>=3?1:.15;$('sbG').style.opacity=s>=4?1:.15;$('sbUpd').style.opacity=s>=5?1:.15;
+  var cnt=SB.cnt+(s>=5?1:0);$('sbCnt').textContent=cnt;
+  $('sbUpd').innerHTML='θ ← θ − η · ĝ　（第 <b>'+cnt+'</b> 次更新）';
+  var out='';
+  if(s>=1)out+='torch.Size(['+SB.B+', 1, 28, 28])\n';
+  if(s>=3)out+='<span class="cm">&gt;&gt;&gt; loss</span>\ntensor('+m.toFixed(4)+', grad_fn=&lt;NllLossBackward0&gt;)\n';
+  if(s>=5)out+='<span class="cm"># 參數已更新 '+cnt+' 次</span>';
+  $('sbOut').innerHTML=out||'<span class="cm"># 輸出會出現在這裡</span>';
+  sbDrawG();
+}
+function sbDrawG(){
+  var o=setupCanvas($('sbG'),190),c=o.c,w=o.w,h=o.h,cx=w/2,cy=h/2,sc=Math.min(w,h)*0.32;
+  c.clearRect(0,0,w,h);c.strokeStyle=css('--line');c.lineWidth=1;c.beginPath();c.moveTo(0,cy);c.lineTo(w,cy);c.moveTo(cx,0);c.lineTo(cx,h);c.stroke();
+  var mx=0,my=0;SB.items.forEach(function(it){mx+=it.gx;my+=it.gy});mx/=SB.B;my/=SB.B;
+  var oc=css('--orange');
+  SB.items.forEach(function(it){arrow(c,cx,cy,cx+it.gx*sc,cy-it.gy*sc,oc,1.3,.55)});
+  arrow(c,cx,cy,cx+mx*sc,cy-my*sc,css('--ink'),3.5,1);
+  c.fillStyle=css('--mute');c.font='12px sans-serif';c.textAlign='left';c.fillText('細箭頭：每張圖各自的梯度（'+SB.B+' 支）',8,16);c.fillText('粗箭頭：平均梯度 ĝ（只用這一個更新）',8,32);
+}
+function arrow(c,x0,y0,x1,y1,col,lw,a){c.save();c.globalAlpha=a;c.strokeStyle=col;c.fillStyle=col;c.lineWidth=lw;c.beginPath();c.moveTo(x0,y0);c.lineTo(x1,y1);c.stroke();
+  var ang=Math.atan2(y1-y0,x1-x0),hl=4+lw*2;c.beginPath();c.moveTo(x1,y1);c.lineTo(x1-hl*Math.cos(ang-.4),y1-hl*Math.sin(ang-.4));c.lineTo(x1-hl*Math.cos(ang+.4),y1-hl*Math.sin(ang+.4));c.closePath();c.fill();c.restore();}
+$('sbNext').onclick=function(){if(SB.step<SB_STEPS.length-1){SB.step++;sbRender()}};
+$('sbPrev').onclick=function(){if(SB.step>0){SB.step--;sbRender()}};
+$('sbReset').onclick=function(){clearInterval(SB.timer);$('sbPlay').textContent='▶ 自動播放';SB.step=0;sbRender()};
+$('sbNew').onclick=function(){if(SB.step>=5)SB.cnt++;sbNewBatch(true)};
+$('sbPlay').onclick=function(){
+  if(SB.timer){clearInterval(SB.timer);SB.timer=null;this.textContent='▶ 自動播放';return}
+  this.textContent='⏸ 暫停';if(SB.step>=SB_STEPS.length-1){SB.step=0;sbRender()}
+  SB.timer=setInterval(function(){if(SB.step<SB_STEPS.length-1){SB.step++;sbRender()}else{clearInterval(SB.timer);SB.timer=null;$('sbPlay').textContent='▶ 自動播放'}},1300);
+};
+sbNewBatch(false);
+
+/* ---------- 共用資料：60000 筆的線性迴歸（2 參數 w, b） ---------- */
+var N=60000,X=new Float64Array(N),Y=new Float64Array(N);
+(function(){var r=rng(2024);for(var i=0;i<N;i++){X[i]=1.5+gauss(r);Y[i]=2*X[i]+1+0.5*gauss(r);}})();
+var M=(function(){var sx=0,sy=0,sxx=0,sxy=0,syy=0;for(var i=0;i<N;i++){sx+=X[i];sy+=Y[i];sxx+=X[i]*X[i];sxy+=X[i]*Y[i];syy+=Y[i]*Y[i]}return{sx:sx/N,sy:sy/N,sxx:sxx/N,sxy:sxy/N,syy:syy/N}})();
+function fullLoss(w,b){return 0.5*(w*w*M.sxx+2*w*b*M.sx+b*b-2*w*M.sxy-2*b*M.sy+M.syy)}
+function fullGrad(w,b){return[w*M.sxx+b*M.sx-M.sxy,w*M.sx+b-M.sy]}
+var WSTAR=(function(){var det=M.sxx-M.sx*M.sx;var w=(M.sxy-M.sx*M.sy)/det;return[w,M.sy-w*M.sx]})();
+var LSTAR=fullLoss(WSTAR[0],WSTAR[1]);
+
+/* ---------- 3 梯度雜訊 ---------- */
+var NZLIST=[1,2,4,8,16,32,64,128,256,512,4096,60000],NZT=[1.2,0.6],NZseed=1;
+var NZsig1=(function(){var s=0,K=N,g=fullGrad(NZT[0],NZT[1]);for(var i=0;i<K;i++){var res=NZT[0]*X[i]+NZT[1]-Y[i];var dx=res*X[i]-g[0],dy=res-g[1];s+=dx*dx+dy*dy}return Math.sqrt(s/K)})();
+function sampleBatchGrad(B,r){
+  if(B>=N)return fullGrad(NZT[0],NZT[1]);
+  var gw=0,gb=0,used={};
+  for(var k=0;k<B;k++){var i;do{i=Math.floor(r()*N)}while(used[i]);used[i]=1;var res=NZT[0]*X[i]+NZT[1]-Y[i];gw+=res*X[i];gb+=res}
+  return[gw/B,gb/B];
+}
+function nzRender(){
+  var B=NZLIST[+$('nzB').value];$('nzBv').textContent=B===60000?'60000（全批次）':fmt(B);
+  var r=rng(NZseed*1000+B),K=B>=4096?40:300,G=[],g=fullGrad(NZT[0],NZT[1]),s=0,angS=0,gn=Math.hypot(g[0],g[1]);
+  for(var k=0;k<K;k++){var e=sampleBatchGrad(B,r);G.push(e);var dx=e[0]-g[0],dy=e[1]-g[1];s+=dx*dx+dy*dy;
+    var cs=(e[0]*g[0]+e[1]*g[1])/(Math.hypot(e[0],e[1])*gn||1);angS+=Math.acos(Math.max(-1,Math.min(1,cs)))*180/Math.PI}
+  var std=Math.sqrt(s/K);G=G.slice(0,40);
+  $('nzStd').textContent=std.toFixed(3);$('nzTh').textContent=(B>=N?0:NZsig1/Math.sqrt(B)).toFixed(3);$('nzAng').textContent=(angS/K).toFixed(1)+'°';
+  var o=setupCanvas($('nzC'),360),c=o.c,w=o.w,h=o.h;c.clearRect(0,0,w,h);
+  var cxv=g[0]/2,cyv=g[1]/2,half=gn/2+1.3*NZsig1,sc=Math.min(w,h)/2/half;
+  function P(x,y){return[w/2+(x-cxv)*sc,h/2-(y-cyv)*sc]}
+  var o0=P(0,0);c.strokeStyle=css('--line');c.beginPath();c.moveTo(0,o0[1]);c.lineTo(w,o0[1]);c.moveTo(o0[0],0);c.lineTo(o0[0],h);c.stroke();
+  c.fillStyle=css('--mute');c.font='12px sans-serif';c.textAlign='right';c.fillText('∂L/∂w',w-6,o0[1]-6);c.textAlign='left';c.fillText('∂L/∂b',o0[0]+6,14);
+  var tp=P(g[0],g[1]);c.strokeStyle=css('--blue');c.globalAlpha=.35;c.setLineDash([4,4]);c.beginPath();c.arc(tp[0],tp[1],std*sc,0,Math.PI*2);c.stroke();c.setLineDash([]);c.globalAlpha=1;
+  var oc=css('--orange');G.forEach(function(e){var p=P(e[0],e[1]);arrow(c,o0[0],o0[1],p[0],p[1],oc,1.2,.45)});
+  arrow(c,o0[0],o0[1],tp[0],tp[1],css('--ink'),3.5,1);
+  c.fillStyle=css('--ink');c.textAlign='left';c.font='13px sans-serif';c.fillText('細箭頭：40 個隨機 batch 的梯度　粗箭頭：真實梯度　虛線圈：1 個標準差',8,h-8);
+}
+$('nzB').oninput=nzRender;$('nzRe').onclick=function(){NZseed++;nzRender()};nzRender();
+
+/* ---------- 4 賽跑 ---------- */
+var RC={E:3,lr:false,xmode:'epoch',series:[],prog:1,anim:null};
+var RCB=[8,32,128,512,60000],ETA0=0.02,ETAMAX=0.4,TH0=[-1,-2.5];
+function tBatch(B){return 0.3+0.004*Math.max(B,128)} // ms
+function runSeries(B,E,lr){
+  var eta=lr?Math.min(ETA0*B/32,ETAMAX):ETA0,capped=lr&&ETA0*B/32>ETAMAX;
+  var r=rng(B*13+5),perm=new Int32Array(N);for(var i=0;i<N;i++)perm[i]=i;
+  var w=TH0[0],b=TH0[1],nb=Math.ceil(N/B),tot=nb*E,step=Math.max(1,Math.ceil(tot/2500)),tb=tBatch(B),u=0;
+  var pts=[{e:0,u:0,t:0,w:w,b:b,L:fullLoss(w,b)}],ep=[fullLoss(w,b)];
+  for(var e=0;e<E;e++){
+    for(i=N-1;i>0;i--){var j=Math.floor(r()*(i+1));var t=perm[i];perm[i]=perm[j];perm[j]=t}
+    for(var k=0;k<nb;k++){
+      var gw=0,gb=0,s=k*B,en=Math.min(s+B,N);
+      if(B>=N){var fg=fullGrad(w,b);gw=fg[0];gb=fg[1]}
+      else{for(var q=s;q<en;q++){var id=perm[q],res=w*X[id]+b-Y[id];gw+=res*X[id];gb+=res}gw/=(en-s);gb/=(en-s)}
+      w-=eta*gw;b-=eta*gb;u++;
+      if(u<=200||u%step===0||k===nb-1)pts.push({e:e+(k+1)/nb,u:u,t:u*tb/1000,w:w,b:b,L:fullLoss(w,b)});
+    }
+    ep.push(fullLoss(w,b));
+  }
+  return{B:B,eta:eta,capped:capped,pts:pts,ep:ep,col:css(BCOL[B])};
+}
+function rcCompute(){RC.series=RCB.map(function(B){return runSeries(B,RC.E,RC.lr)});rcLegend();}
+function rcLegend(){
+  $('rcLeg').innerHTML=RC.series.map(function(s){return '<span><i style="background:'+css(BCOL[s.B])+'"></i>B='+(s.B===60000?'60000（全批次 GD）':s.B)+'，η='+(+s.eta.toFixed(4))+(s.capped?'（已達上限）':'')+'</span>'}).join('');
+}
+var CW={w0:-1.6,w1:3.6,b0:-3.6,b1:3.2};
+function rcDraw(){
+  var o=setupCanvas($('rcC'),380),c=o.c,w=o.w,h=o.h;
+  var P=function(pw,pb){return[(pw-CW.w0)/(CW.w1-CW.w0)*w,h-(pb-CW.b0)/(CW.b1-CW.b0)*h]};
+  // contour
+  var img=c.createImageData(Math.round(w),Math.round(h)),dk=css('--bg')==='#15181f';
+  var bg=dk?[29,33,43]:[255,255,255],ln=dk?[90,100,120]:[200,198,190],fl=dk?[36,42,56]:[246,244,238];
+  var W=img.width,H=img.height,lv=new Float32Array(W*H);
+  for(var yy=0;yy<H;yy++)for(var xx=0;xx<W;xx++){var pw=CW.w0+(xx/W)*(CW.w1-CW.w0),pb=CW.b1-(yy/H)*(CW.b1-CW.b0);lv[yy*W+xx]=Math.floor(Math.log(fullLoss(pw,pb)-LSTAR+0.02)*2.2)}
+  for(yy=0;yy<H;yy++)for(xx=0;xx<W;xx++){var id=yy*W+xx,v=lv[id],edge=(xx<W-1&&lv[id+1]!==v)||(yy<H-1&&lv[id+W]!==v),col=edge?ln:(v%2?fl:bg);
+    img.data[id*4]=col[0];img.data[id*4+1]=col[1];img.data[id*4+2]=col[2];img.data[id*4+3]=255}
+  var dpr=window.devicePixelRatio||1;c.save();c.setTransform(1,0,0,1,0,0);var tmp=document.createElement('canvas');tmp.width=W;tmp.height=H;tmp.getContext('2d').putImageData(img,0,0);c.drawImage(tmp,0,0,W*dpr,H*dpr);c.restore();
+  var emax=RC.prog*RC.E;
+  RC.series.slice().reverse().forEach(function(s){c.strokeStyle=css(BCOL[s.B]);c.lineWidth=s.B===60000?2.5:1.4;c.globalAlpha=.9;c.beginPath();
+    var first=true;s.pts.forEach(function(p){if(p.e>emax+1e-9)return;var q=P(p.w,p.b);if(first){c.moveTo(q[0],q[1]);first=false}else c.lineTo(q[0],q[1])});c.stroke();
+    var lastp=null;s.pts.forEach(function(p){if(p.e<=emax+1e-9)lastp=p});if(lastp){var q=P(lastp.w,lastp.b);c.globalAlpha=1;c.fillStyle=css(BCOL[s.B]);c.beginPath();c.arc(q[0],q[1],4.5,0,7);c.fill()}});
+  c.globalAlpha=1;var st=P(TH0[0],TH0[1]),op=P(WSTAR[0],WSTAR[1]);
+  c.fillStyle=css('--ink');c.beginPath();c.arc(st[0],st[1],5,0,7);c.fill();c.font='13px sans-serif';c.fillText('起點',st[0]+8,st[1]+4);
+  c.font='18px sans-serif';c.textAlign='center';c.fillText('★',op[0],op[1]+6);c.font='12px sans-serif';c.fillText('最低點',op[0],op[1]-10);c.textAlign='left';
+  c.fillStyle=css('--mute');c.fillText('w →',w-34,h-8);c.fillText('b ↑',6,14);
+  rcDrawL();
+}
+function rcDrawL(){
+  var o=setupCanvas($('rcL'),330),c=o.c,w=o.w,h=o.h,mx=46,my=26,pw=w-mx-12,ph=h-my-34;c.clearRect(0,0,w,h);
+  var mode=RC.xmode,emax=RC.prog*RC.E,xmin,xmax,logx=false;
+  var all=RC.series;
+  if(mode==='epoch'){xmin=0;xmax=RC.E}
+  else if(mode==='upd'){logx=true;xmin=1;xmax=Math.ceil(N/8)*RC.E}
+  else{logx=true;xmin=0.001;xmax=0;all.forEach(function(s){xmax=Math.max(xmax,s.pts[s.pts.length-1].t)})}
+  var ymin=Math.log10(0.1),ymax=Math.log10(60);
+  function PX(x){return mx+(logx?(Math.log10(Math.max(x,xmin))-Math.log10(xmin))/(Math.log10(xmax)-Math.log10(xmin)):(x-xmin)/(xmax-xmin))*pw}
+  function PY(L){var v=Math.log10(Math.min(Math.max(L,0.1),60));return my+(ymax-v)/(ymax-ymin)*ph}
+  c.strokeStyle=css('--line');c.fillStyle=css('--mute');c.font='11px sans-serif';c.lineWidth=1;
+  [0.1,0.3,1,3,10,30].forEach(function(v){var y=PY(v);c.beginPath();c.moveTo(mx,y);c.lineTo(mx+pw,y);c.stroke();c.textAlign='right';c.fillText(v,mx-5,y+4)});
+  var ticks=[];if(mode==='epoch'){for(var e=0;e<=RC.E;e++)ticks.push(e)}else if(mode==='upd'){[1,10,100,1000,10000,100000].forEach(function(v){if(v<=xmax)ticks.push(v)})}else{[0.001,0.01,0.1,1,10,100].forEach(function(v){if(v<=xmax)ticks.push(v)})}
+  c.textAlign='center';ticks.forEach(function(v){var x=PX(v);c.beginPath();c.moveTo(x,my);c.lineTo(x,my+ph);c.stroke();c.fillText(fmt(v),x,my+ph+14)});
+  c.fillText(mode==='epoch'?'epoch':mode==='upd'?'參數更新次數（對數軸）':'示意訓練時間（秒，對數軸）',mx+pw/2,h-4);
+  c.save();c.translate(12,my+ph/2);c.rotate(-Math.PI/2);c.fillText('全體訓練損失 L（對數軸）',0,0);c.restore();
+  var ys=PY(LSTAR);c.setLineDash([5,4]);c.strokeStyle=css('--mute');c.beginPath();c.moveTo(mx,ys);c.lineTo(mx+pw,ys);c.stroke();c.setLineDash([]);c.textAlign='left';c.fillText('可達到的最小損失',mx+4,ys-4);
+  all.forEach(function(s){c.strokeStyle=css(BCOL[s.B]);c.lineWidth=s.B===60000?2.5:1.6;c.beginPath();var first=true;
+    if(mode==='epoch'){s.ep.forEach(function(L,i){if(i>emax+1e-9)return;var x=PX(i),y=PY(L);if(first){c.moveTo(x,y);first=false}else c.lineTo(x,y)});
+      c.stroke();c.fillStyle=css(BCOL[s.B]);s.ep.forEach(function(L,i){if(i>emax+1e-9)return;c.beginPath();c.arc(PX(i),PY(L),3,0,7);c.fill()})}
+    else{s.pts.forEach(function(p){if(p.e>emax+1e-9)return;var xv=mode==='upd'?p.u:p.t;if(xv<=0)return;var x=PX(xv),y=PY(p.L);if(first){c.moveTo(x,y);first=false}else c.lineTo(x,y)});c.stroke()}});
+}
+function rcNote(){
+  var t;
+  if(RC.xmode==='epoch')t='以 <b>epoch</b> 為橫軸：小 batch 一個 epoch 更新幾千次，所以每個 epoch 下降最多；全批次 GD 一個 epoch 只走一步，幾乎沒動。但小 batch 的路徑歪七扭八，最後會在谷底附近抖動。';
+  else if(RC.xmode==='upd')t='以 <b>更新次數</b> 為橫軸：在「走同樣步數」時，大 batch 每一步方向比較準，曲線在小 batch 的下方或重疊。小 batch 的優勢來自「步數多」，不是每一步更好。';
+  else t='以 <b>示意時間</b> 為橫軸（實務上最在意的）：太小的 batch 讓 GPU 吃不飽、太大的 batch 每個 epoch 走太少步，通常是<b>中等大小</b>（如 32～128）最划算。';
+  if(RC.lr)t+='<br>✔ 已開啟學習率縮放：大 batch 用比較大的 η，彌補步數少的缺點；但 η 不能無限放大（太大會發散），這裡上限設為 '+ETAMAX+'。';
+  else t+='<br>試試勾選「學習率跟著 batch 等比例放大」，看看 B=512 和全批次 GD 會不會追上來。';
+  $('rcNote').innerHTML=t;
+}
+[['epoch','以 epoch 為橫軸'],['upd','以更新次數為橫軸'],['time','以示意時間為橫軸']].forEach(function(m){var bt=document.createElement('button');bt.textContent=m[1];bt.dataset.m=m[0];
+  bt.onclick=function(){RC.xmode=m[0];[].forEach.call($('rcX').children,function(x){x.classList.toggle('on',x.dataset.m===RC.xmode)});rcNote();rcDrawL()};if(m[0]==='epoch')bt.classList.add('on');$('rcX').appendChild(bt)});
+function rcPlay(){cancelAnimationFrame(RC.anim);var t0=performance.now();(function f(now){RC.prog=Math.min(1,(now-t0)/2600);rcDraw();if(RC.prog<1)RC.anim=requestAnimationFrame(f)})(t0)}
+$('rcE').oninput=function(){RC.E=+this.value;$('rcEv').textContent=RC.E;rcCompute();RC.prog=1;rcDraw()};
+$('rcLR').onchange=function(){RC.lr=this.checked;rcCompute();rcNote();rcPlay()};
+$('rcPlay').onclick=rcPlay;
+rcCompute();rcNote();RC.prog=1;rcDraw();
+
+/* ---------- 5 框架設定 ---------- */
+var FW={fw:'keras',B:128,sh:true,dl:false};
+[['keras','Keras'],['torch','PyTorch']].forEach(function(f){var bt=document.createElement('button');bt.textContent=f[1];bt.dataset.f=f[0];bt.onclick=function(){FW.fw=f[0];FW.sh=true;$('fwSh').checked=true;fwRender()};$('fwT').appendChild(bt)});
+[['def','不指定（用預設）'],[8,'8'],[32,'32'],[128,'128'],[512,'512']].forEach(function(b){var bt=document.createElement('button');bt.textContent=b[1];bt.dataset.b=b[0];bt.onclick=function(){FW.B=b[0];fwRender()};$('fwB').appendChild(bt)});
+$('fwSh').onchange=function(){FW.sh=this.checked;fwRender()};$('fwDL').onchange=function(){FW.dl=this.checked;fwRender()};
+function fwRender(){
+  [].forEach.call($('fwT').children,function(x){x.classList.toggle('on',x.dataset.f===FW.fw)});
+  [].forEach.call($('fwB').children,function(x){x.classList.toggle('on',x.dataset.b==String(FW.B))});
+  var k=FW.fw==='keras',def=FW.B==='def',B=def?(k?32:1):FW.B;
+  $('fwDLw').style.display=k?'none':'';
+  var code,out,warn=[];
+  var cm=function(s){return '<span class="cm">'+s+'</span>'},nm=function(s){return '<span class="nm">'+s+'</span>'};
+  if(k){
+    code=['model.compile(optimizer=keras.optimizers.SGD(learning_rate='+nm('0.01')+'),',
+          '              loss=<span class="st">\'sparse_categorical_crossentropy\'</span>,',
+          '              metrics=[<span class="st">\'accuracy\'</span>])',
+          'model.fit(x_train, y_train,'];
+    if(!def)code.push('          batch_size='+nm(B)+',      '+cm('# ← mini-batch 大小'));
+    code.push('          epochs='+nm(5)+',');
+    if(!FW.sh)code.push('          shuffle='+nm('False')+',   '+cm('# ← 不洗牌（不建議）'));
+    else code.push('          shuffle='+nm('True')+',    '+cm('# ← 預設就是 True'));
+    code.push('          validation_data=(x_test, y_test))');
+    var it=Math.ceil(60000/B);
+    out='Epoch 1/5\n'+it+'/'+it+' ━━━━━━━━━━━━━━━━━━━━ <span class="cm">（後面接著時間、accuracy、loss）</span>\nEpoch 2/5\n'+it+'/'+it+' ━━━━━━━━━━━━━━━━━━━━ ...\n\n<span class="cm"># '+it+' = ⌈60000 ÷ '+B+'⌉，就是每個 epoch 的更新次數</span>';
+    if(def)warn.push('Keras 的 fit() 不指定 batch_size 時，預設是 <b>32</b>，所以進度條顯示 1875/1875。');
+    if(!FW.sh)warn.push('shuffle=False 會讓每個 epoch 的 batch 組成都一樣；若資料依類別排序，訓練會非常不穩定。');
+    if(!warn.length)warn.push('Keras 不會丟掉最後不足額的 batch；60000 ÷ '+B+(60000%B?' 餘 '+(60000%B)+'，最後一批只有 '+(60000%B)+' 張。':' 剛好整除。'));
+  }else{
+    code=['train_loader = DataLoader(train_ds,'];
+    if(!def)code.push('                          batch_size='+nm(B)+',   '+cm('# ← mini-batch 大小'));
+    if(FW.sh)code.push('                          shuffle='+nm('True')+',     '+cm('# ← 每個 epoch 重新洗牌'));
+    if(FW.dl)code.push('                          drop_last='+nm('True')+',   '+cm('# ← 丟掉不足額的最後一批'));
+    code[code.length-1]=code[code.length-1].replace(/,(\s+<span class="cm">)/,')$1');
+    if(code.length===1)code[0]='train_loader = DataLoader(train_ds)   '+cm('# 全部用預設值');
+    code.push('optimizer = torch.optim.SGD(model.parameters(), lr='+nm('0.01')+')');
+    var rem=60000%B,n=FW.dl?Math.floor(60000/B):Math.ceil(60000/B);
+    out='<span class="cm">&gt;&gt;&gt; len(train_loader)</span>\n'+n+'\n<span class="cm">&gt;&gt;&gt; x, y = next(iter(train_loader))</span>\n<span class="cm">&gt;&gt;&gt; x.shape</span>\ntorch.Size(['+B+', 1, 28, 28])';
+    if(rem)out+=FW.dl?'\n<span class="cm"># 最後 '+rem+' 張被丟掉（每個 epoch 丟掉的都不同）</span>':'\n<span class="cm"># 最後一批：torch.Size(['+rem+', 1, 28, 28])</span>';
+    if(def)warn.push('PyTorch 的 DataLoader 不指定 batch_size 時預設是 <b>1</b>：一個 epoch 要更新 60,000 次，非常慢！');
+    if(!FW.sh)warn.push('PyTorch 的 shuffle 預設是 <b>False</b>，訓練時一定要自己寫 shuffle=True（測試集則不需要）。');
+    if(!warn.length)warn.push('PyTorch 的 for 迴圈每跑一圈就是一個 batch；len(train_loader) 就是每個 epoch 的更新次數。');
+  }
+  $('fwCode').innerHTML=code.map(function(l){return '<span class="ln">'+l+'</span>'}).join('');
+  $('fwOut').innerHTML=out;$('fwWarn').innerHTML=warn.join('<br>');
+}
+fwRender();
+
+/* ---------- 6 小測驗 ---------- */
+var QZ=[
+ {q:'MNIST 訓練集 60,000 張，batch size = 100，一個 epoch 會更新參數幾次？',o:['600 次','100 次','60,000 次','1 次'],a:0,e:'60000 ÷ 100 = 600。每處理一個 batch 更新一次。',h:'想想看：一個 epoch 要切成幾批？'},
+ {q:'處理完一個 mini-batch（例如 128 張），參數會更新幾次？',o:['1 次','128 次','依學習率而定','一個 epoch 結束才更新'],a:0,e:'128 張的損失先平均成一個數，算出一個平均梯度，只更新一次。',h:'回想第 2 節：細箭頭平均成幾支粗箭頭？'},
+ {q:'每個 epoch 開始前重新洗牌，會造成什麼結果？',o:['每個 epoch 的 batch 分組不同，但每張圖仍剛好用一次','有些圖會被跳過','有些圖一個 epoch 會用兩次','訓練資料變少'],a:0,e:'洗牌只改變順序和分組；預設情況下每個 epoch 仍完整用到全部資料。',h:'回到第 1 節發牌看看，每張牌發了幾次？'},
+ {q:'batch size 從 32 增加到 128（4 倍），梯度估計的雜訊大約變成原來的多少？',o:['1/2','1/4','1/16','不變'],a:0,e:'雜訊 ∝ 1/√B，√4 = 2，所以變成一半。',h:'第 3 節的公式：雜訊和 B 的平方根成反比。'},
+ {q:'同樣訓練 5 個 epoch，batch 越大，下列何者越少？',o:['參數更新的總次數','看過的圖片總張數','模型參數的數量','測試集的大小'],a:0,e:'總張數都是 5 × 60,000；但大 batch 每個 epoch 更新次數少，總更新次數就少。',h:'epoch 數固定時，看的張數一樣，那什麼會變？'},
+ {q:'PyTorch 的 DataLoader 若不指定 batch_size，預設是多少？',o:['1','32','64','全部資料'],a:0,e:'PyTorch 預設 batch_size=1、shuffle=False；Keras 的 fit() 預設 32。',h:'第 5 節切換到「不指定」看看 PyTorch 的輸出。'},
+ {q:'把 batch size 加大很多時，學習率通常應該怎麼調？',o:['適度調大','調小','完全不用動','設成 0'],a:0,e:'大 batch 梯度較準但步數少，常見做法是學習率跟著放大（但有上限，太大會發散）。',h:'第 4 節勾選學習率縮放，看看大 batch 的表現。'},
+ {q:'只改變「測試時」的 batch size（例如從 32 改成 1000），測試準確率會怎樣？',o:['不變，只影響速度與記憶體','一定變高','一定變低','模型會重新訓練'],a:0,e:'測試時沒有更新參數，batch size 只是一次算幾張，結果相同（一般模型在 eval 模式下）。',h:'測試時有沒有在更新參數？'}];
+var QS={ans:[],score:0,streak:0};
+var PRAISE=['Très bien！完全正確！','太好了，觀念很清楚！','答對了！你已經懂 mini-batch 了。','漂亮！','正確！繼續保持！'];
+function qBuild(){
+  QS={ans:new Array(QZ.length).fill(-1),score:0,streak:0};var box=$('quiz');box.innerHTML='';$('qScore').textContent='';$('qAgain').style.display='none';
+  QZ.forEach(function(z,qi){var d=document.createElement('div');d.className='q';d.innerHTML='<div class="qt">'+(qi+1)+'. '+z.q+'</div><div class="opts"></div><div class="ex"></div>';
+    var ord=z.o.map(function(_,i){return i});for(var i=ord.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=ord[i];ord[i]=ord[j];ord[j]=t}
+    ord.forEach(function(oi){var b=document.createElement('button');b.textContent=z.o[oi];b.onclick=function(){qAnswer(qi,oi,d)};b.dataset.oi=oi;d.querySelector('.opts').appendChild(b)});
+    box.appendChild(d)});
+}
+function qAnswer(qi,oi,d){
+  if(QS.ans[qi]>=0)return;QS.ans[qi]=oi;var z=QZ[qi],ok=oi===z.a;
+  [].forEach.call(d.querySelectorAll('.opts button'),function(b){var k=+b.dataset.oi;b.disabled=true;b.style.opacity=1;if(k===z.a)b.classList.add('right');if(k===oi&&!ok)b.classList.add('wrong')});
+  var ex=d.querySelector('.ex');ex.innerHTML=(ok?'<span class="ok">✔ 正確！</span>':'<span class="bad">✘ 不對喔。</span>')+z.e;ex.classList.add('show');
+  if(ok){QS.score++;QS.streak++;AV2.mood('smile',QS.streak>=3?'連續答對 '+QS.streak+' 題！你可以去訓練 LeNet 了！':PRAISE[Math.floor(Math.random()*PRAISE.length)])}
+  else{QS.streak=0;AV2.mood('frown',z.h)}
+  var done=QS.ans.every(function(a){return a>=0});
+  if(done){$('qScore').textContent='得分：'+QS.score+' / '+QZ.length;$('qAgain').style.display='';
+    setTimeout(function(){var s=QS.score,n=QZ.length,t;
+      if(s===n)t='滿分！batch、iteration、epoch 你都分得清清楚楚。Magnifique！';
+      else if(s>=n-2)t='很不錯！錯的題目看看解釋，再回去玩一下對應的那一節。';
+      else t='再加油！建議先回到第 1、2 節，把「一批更新一次」的觀念弄清楚。';
+      AV2.mood(s>=n-2?'smile':'frown',t,true)},3300)}
+}
+$('qAgain').onclick=function(){qBuild();AV2.mood('','新的一輪！選項順序已經打亂囉。');window.scrollTo({top:$('quiz').getBoundingClientRect().top+window.scrollY-80,behavior:'smooth'})};
+qBuild();
+
+/* ---------- 重畫 ---------- */
+function redrawAll(){drawStrip();sbDrawG();nzRender();rcLegend();rcDraw()}
+var rT;window.addEventListener('resize',function(){clearTimeout(rT);rT=setTimeout(redrawAll,150)});
+if(window.matchMedia)window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){RC.series.forEach(function(s){s.col=css(BCOL[s.B])});redrawAll()});
+</script>
+</body>
+</html>

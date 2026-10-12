@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AlexNet 互動教學</title>
+<style>
+:root{--bg:#f7f6f2;--card:#fff;--ink:#1d2330;--mute:#667085;--line:#e3e1da;--ok:#1f9d6b;--bad:#d6334f;
+  --blue:#2b6cb0;--orange:#dd6b20;--soft:#f1efe8;--hl:#fff1e3;
+  --s8:#d6334f;--s32:#e08a1e;--s128:#1f9d6b;--s512:#2b6cb0;--sgd:#7b4fc9;}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --blue:#6aa8ff;--orange:#ff9d57;--soft:#252a35;--hl:#3a2c1f;
+  --s8:#ff6f86;--s32:#ffb35c;--s128:#4fd19d;--s512:#6aa8ff;--sgd:#b493ff;}}
+:root[data-theme="dark"]{--bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --blue:#6aa8ff;--orange:#ff9d57;--soft:#252a35;--hl:#3a2c1f;
+  --s8:#ff6f86;--s32:#ffb35c;--s128:#4fd19d;--s512:#6aa8ff;--sgd:#b493ff;}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.65}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.9rem;line-height:1.3}
+header .sub{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 20px 22px;margin:18px 0}
+.card h2{margin:0 0 12px;font-size:1.35rem;display:flex;align-items:center;gap:10px}
+.num{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:var(--blue);color:#fff;font-size:1rem;flex:none}
+p{margin:.4em 0 .7em}
+.mute{color:var(--mute)}
+.note{background:var(--soft);border-left:4px solid var(--blue);border-radius:8px;padding:10px 14px;margin:12px 0}
+.note.warn{border-left-color:var(--orange)}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+.grid2>*{min-width:0}
+.panel{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--card);min-width:0}
+.panel h3{margin:0 0 8px;font-size:1.05rem}
+button{font:inherit;border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:10px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--blue)}
+button.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+button:disabled{opacity:.45;cursor:default}
+.ctrls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{padding:4px 10px;border-radius:999px;font-size:.92rem}
+label{cursor:pointer}
+input[type=range]{width:100%;accent-color:var(--blue)}
+canvas{display:block;width:100%}
+.big{font-size:1.9rem;font-weight:700;line-height:1.2}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0}
+.stat{background:var(--soft);border-radius:10px;padding:10px 12px;min-width:0}
+.stat .k{font-size:.85rem;color:var(--mute)}
+.stat .v{font-size:1.35rem;font-weight:700}
+.formula{font-family:"Cambria Math","Times New Roman",serif;font-size:1.15rem;background:var(--soft);border-radius:10px;padding:8px 14px;display:inline-block;margin:6px 0;max-width:100%;overflow-x:auto}
+/* cards (digit) */
+.deck{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.dc{position:relative;width:44px;height:44px;border-radius:6px;border:2px solid transparent;transition:opacity .3s,transform .3s,border-color .3s}
+.dc canvas{width:100%;height:100%;border-radius:4px;image-rendering:pixelated}
+.dc .tag{position:absolute;right:-6px;top:-8px;font-size:.7rem;color:#fff;border-radius:999px;padding:0 5px;line-height:1.4}
+.dc.used{opacity:.3}
+.dc.cur{transform:translateY(-4px)}
+.boxes{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;min-height:70px}
+.box{border:2px dashed var(--line);border-radius:10px;padding:6px 8px 8px;animation:pop .35s ease}
+.box .bt{font-size:.8rem;color:var(--mute);margin-bottom:4px}
+.box .row{display:flex;gap:4px;flex-wrap:wrap}
+.box .dc{width:32px;height:32px;border:none}
+@keyframes pop{from{transform:scale(.85);opacity:0}to{transform:none;opacity:1}}
+.msg{min-height:1.6em;font-weight:600}
+/* step animation */
+.stepbar{height:6px;background:var(--soft);border-radius:999px;overflow:hidden;margin:6px 0 10px}
+.stepbar>div{height:100%;background:var(--orange);transition:width .3s}
+.explain{background:var(--hl);border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-height:4.2em}
+.explain b{color:var(--orange)}
+.batchrow{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.bi{display:flex;flex-direction:column;align-items:center;width:58px;font-size:.78rem}
+.bi canvas{width:52px;height:52px;border-radius:6px;image-rendering:pixelated}
+.bi .pr{min-height:2.6em;text-align:center;line-height:1.3;opacity:0;transition:opacity .3s}
+.bi .pr.show{opacity:1}
+.ok{color:var(--ok)}.bad{color:var(--bad)}
+.tensor{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:6px 0;opacity:.15;transition:opacity .3s}
+.tensor.show{opacity:1}
+.stack{position:relative;width:86px;height:70px;flex:none}
+.stack span{position:absolute;width:52px;height:52px;border:2px solid var(--blue);background:var(--card);border-radius:4px}
+.code{border:1px solid #2e3441;background:#1b1f27;color:#d7dce5;border-radius:10px;padding:10px 0;font-family:Consolas,"Courier New",monospace;font-size:.88rem;overflow-x:auto;margin:0}
+.code .ln{display:block;padding:1px 14px;white-space:pre;border-left:4px solid transparent}
+.code .ln.hl{background:rgba(255,157,87,.18);border-left-color:#ff9d57}
+.code .cm{color:#8b95a7}.code .kw{color:#c792ea}.code .st{color:#c3e88d}.code .nm{color:#f78c6c}
+.out{background:#11141a;color:#b9f0c9;border-radius:10px;padding:10px 14px;font-family:Consolas,"Courier New",monospace;font-size:.86rem;white-space:pre;overflow-x:auto;min-height:3em;margin:8px 0 0}
+.out .cm{color:#8b95a7}
+.out .w{color:#ffcf6e}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.9rem;margin:6px 0}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:14px;height:4px;border-radius:2px}
+.tabs{display:flex;gap:6px;margin-bottom:8px}
+.frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;line-height:1.1;margin:0 2px}
+.frac>span:first-child{border-bottom:1.5px solid currentColor;padding:0 3px}
+/* quiz */
+.q{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:10px 0}
+.q .qt{font-weight:600;margin-bottom:6px}
+.q .opts{display:grid;gap:6px}
+.q .opts button{text-align:left;background:var(--card)}
+.q .opts button.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--card))}
+.q .opts button.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,var(--card))}
+.q .ex{margin-top:8px;font-size:.93rem;display:none}
+.q .ex.show{display:block}
+.score{font-size:1.2rem;font-weight:700;margin:10px 0}
+footer{text-align:center;color:var(--mute);font-size:.9rem;margin-top:30px}
+/* avatar */
+.avwrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.av{width:100%;max-width:220px;cursor:pointer;user-select:none}
+.av svg{width:100%;display:block;overflow:visible;background:none}
+.av .bodyg{animation:bob 3.2s ease-in-out infinite;transform-origin:100px 200px}
+.av .eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+.av .hairL{animation:sway 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:top center}
+.av .hairR{animation:sway 3.2s ease-in-out infinite reverse;transform-box:fill-box;transform-origin:top center}
+.av .brow{transition:transform .3s;transform-box:fill-box}
+.av .browL{transform-origin:right center}.av .browR{transform-origin:left center}
+.av .mo{opacity:0;transition:opacity .25s}.av .mo.n{opacity:1}
+.av .blush,.av .sweat,.av .spark{opacity:0;transition:opacity .3s}
+.av.smile .mo.n,.av.frown .mo.n{opacity:0}
+.av.smile .mo.s{opacity:1}.av.frown .mo.f{opacity:1}
+.av.smile .blush{opacity:.55}.av.smile .spark{opacity:1}.av.frown .sweat{opacity:.9}
+.av.smile .brow{transform:translateY(-3px)}
+.av.frown .browL{transform:rotate(14deg) translateY(2px)}.av.frown .browR{transform:rotate(-14deg) translateY(2px)}
+.av.hop svg{animation:hop .7s ease}
+.av.shake svg{animation:shake .55s ease}
+.av .spark{animation:twinkle 1s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}
+@keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+@keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.bubble{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.95rem;margin-bottom:10px;min-height:2.6em;max-width:260px;text-align:center;transition:border-color .3s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--line);border-bottom:0}
+.bubble.good{border-color:var(--ok)}.bubble.good::after{border-top-color:var(--ok)}
+.bubble.bad{border-color:var(--bad)}.bubble.bad::after{border-top-color:var(--bad)}
+.intro{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:center}
+.intro>*,.qgrid>*{min-width:0}
+.intro .avwrap{flex-direction:row;gap:10px}.intro .bubble{flex:1;margin:0}.intro .bubble::after{display:none}.intro .av{width:125px;flex:none}
+.qgrid{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:18px;align-items:start}
+.qgrid .avwrap{position:sticky;top:12px}
+/* badge (text only) */
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink)}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute)}
+@media (max-width:860px){.grid2{grid-template-columns:minmax(0,1fr)}
+  .intro,.qgrid{grid-template-columns:minmax(0,1fr)}.intro .avwrap{flex-direction:column}.intro .bubble{margin-bottom:10px}.intro .bubble::after{display:block}.intro .av,.qgrid .av{width:auto;max-width:140px}.qgrid .avwrap{position:static;order:-1}}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}header h1{font-size:1.5rem}}
+</style>
+<style>
+.tree{font-family:Consolas,"Courier New",monospace;font-size:.95rem;line-height:1.9;background:var(--soft);border-radius:10px;padding:10px 14px;overflow-x:auto;white-space:pre}
+.tree .nd{cursor:pointer;border-radius:6px;padding:1px 6px}
+.tree .nd:hover,.tree .nd.on{background:var(--hl);outline:1px solid var(--orange)}
+.tree .ct{color:var(--mute)}
+.archwrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--card);padding:6px 0}
+.archwrap svg{display:block;min-width:1040px;width:100%;height:auto}
+.blk{cursor:pointer}
+.blk:hover .fr{stroke:var(--orange);stroke-width:2.2}
+.blk.on .fr{stroke:var(--orange);stroke-width:3}
+.detail{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;margin-top:12px}
+.detail>*{min-width:0}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;font-size:.95rem}
+.kv b{color:var(--mute);font-weight:500}
+.cv4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.cv4>div{min-width:0;text-align:center;font-size:.88rem}
+.cv4 canvas{width:100%;image-rendering:pixelated;border-radius:6px;border:1px solid var(--line);cursor:crosshair}
+.kgrid{display:inline-grid;grid-template-columns:repeat(3,38px);gap:3px;margin:4px 0}
+.kgrid span{background:var(--soft);border-radius:5px;text-align:center;font-family:Consolas,monospace;padding:4px 0;font-size:.9rem}
+.calc{font-family:Consolas,"Courier New",monospace;font-size:.84rem;background:var(--soft);border-radius:10px;padding:8px 12px;overflow-x:auto;white-space:pre;min-height:3em}
+.aug{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.aug canvas{width:100%;border-radius:8px;border:1px solid var(--line)}
+.copy{position:absolute;top:6px;right:8px;z-index:2;font-size:.8rem;padding:2px 10px;background:#2a303c;color:#d7dce5;border-color:#3a4150}
+.codewrap{position:relative}
+.codewrap .code{max-height:560px}
+@media (max-width:860px){.detail{grid-template-columns:minmax(0,1fr)}.cv4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="pu-hd">
+  <div class="pu-hd-main">
+    <h1>AlexNet：讓深度學習一戰成名的 CNN</h1>
+    <p class="sub">工程數學 ・ 互動教學：AlexNet 架構，以 Oxford-IIIT Pet 貓狗分類為例</p>
+  </div>
+  <div class="pu-badge"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</header>
+
+<!-- 0 -->
+<section class="card">
+  <h2><span class="num">0</span>一句話直覺</h2>
+  <div class="intro">
+    <div>
+      <p><b>AlexNet</b> 是 2012 年由 Alex Krizhevsky、Ilya Sutskever 與 Geoffrey Hinton 提出的卷積神經網路（Convolutional Neural Network, CNN）。它在 ImageNet 影像辨識競賽中，把 top-5 錯誤率從第二名的 26.2% 一口氣降到 <b>15.3%</b>，從此開啟深度學習時代。</p>
+      <p>整個網路可以用一句話記住：<b>5 層卷積「看圖找特徵」＋ 3 層全連接「根據特徵做判斷」</b>。</p>
+      <div class="stats">
+        <div class="stat"><div class="k">輸入</div><div class="v">227×227×3 彩色圖</div></div>
+        <div class="stat"><div class="k">卷積層 + 池化</div><div class="v">5 層 + 3 次</div></div>
+        <div class="stat"><div class="k">全連接層</div><div class="v">3 層</div></div>
+        <div class="stat"><div class="k">參數量（貓狗版）</div><div class="v">5,829 萬</div></div>
+      </div>
+      <p class="mute">本頁用 PyTorch 內建的 <code>torchvision.datasets.OxfordIIITPet</code> 貓狗資料集，設定 <code>target_types='binary-category'</code>，把原本 1000 類的 AlexNet 改成「貓或狗」二元分類。</p>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub1">Hello！我是 Hinton 老師，AlexNet 是我和兩位學生一起做的。點我聽故事！</div><div class="av" id="av1" title="點我聽故事"></div></div>
+  </div>
+</section>
+
+<!-- 1 -->
+<section class="card">
+  <h2><span class="num">1</span>資料集：Oxford-IIIT Pet（torchvision 內建）</h2>
+  <div class="grid2">
+    <div class="panel">
+      <h3>一行下載，點下面的項目看說明</h3>
+      <pre class="code" style="margin-bottom:8px"><span class="ln">ds = datasets.OxfordIIITPet(<span class="st">'./data'</span>, split=<span class="st">'trainval'</span>,</span><span class="ln">        target_types=<span class="st">'binary-category'</span>, download=<span class="nm">True</span>)</span></pre>
+<div class="tree" id="tree"><span class="nd" data-k="root">📦 data/oxford-iiit-pet/</span>
+ ├─ <span class="nd" data-k="img">📁 images/</span>              <span class="ct">7,349 張（37 個品種）</span>
+ └─ <span class="nd" data-k="ann">📁 annotations/</span>
+     ├─ <span class="nd" data-k="tv">📄 trainval.txt</span>     <span class="ct">3,680 張</span>
+     └─ <span class="nd" data-k="te">📄 test.txt</span>         <span class="ct">3,669 張</span>
+ <span class="nd" data-k="bin">🏷️ target_types='binary-category'</span>  <span class="ct">→ 0 = Cat、1 = Dog</span></div>
+      <div class="note" id="treeNote"></div>
+      <div class="ctrls"><span class="mute">batch size：</span><div class="chips" id="dsB"></div></div>
+      <div class="stats">
+        <div class="stat"><div class="k">訓練 3,680 張：每個 epoch 更新次數</div><div class="v" id="dsTr"></div></div>
+        <div class="stat"><div class="k">測試 3,669 張：批次數</div><div class="v" id="dsVa"></div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>資料擴增（data augmentation）：AlexNet 的招牌技巧</h3>
+      <p>每張圖先縮放成 256×256，訓練時<b>隨機裁切</b>出一塊區域，並<b>隨機左右翻轉</b>。同一張貓，每個 epoch 看到的都不太一樣，等於免費多出很多訓練資料。</p>
+      <div class="ctrls"><button id="augBtn">🎲 再產生 6 個隨機版本</button><button id="augAni">🐱 / 🐶 切換</button></div>
+      <div class="ctrls"><span class="mute">裁切大小：</span><div class="chips" id="augSz"></div></div>
+      <div class="grid2" style="gap:10px">
+        <div><canvas id="augSrc" style="width:100%;border-radius:8px;border:1px solid var(--line)"></canvas><div class="mute" style="font-size:.85rem;text-align:center" id="augCap">原圖 256×256（編號框＝6 個裁切位置）</div></div>
+        <div class="aug" id="augOut"></div>
+      </div>
+      <p style="font-size:.92rem;margin-top:8px">看翻轉：原圖的動物<b>向右歪 30°</b>、太陽在<b>左上角</b>；有標「翻轉」的版本會變成向左歪、太陽跑到右邊。看裁切：每個版本只保留框內的部分，有時切掉耳朵、有時切掉下巴。</p>
+      <p class="mute" style="font-size:.88rem">註：本頁的貓狗都是程式畫的示意圖，實際資料集是真實照片（大小不一，讀取時會統一縮放）。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="card">
+  <h2><span class="num">2</span>AlexNet 架構總覽：點任一層看細節</h2>
+  <div class="ctrls">
+    <button id="arReset">⟲ 重來</button><button id="arPrev">◀ 上一層</button><button id="arNext">下一層 ▶</button><button id="arPlay">▶ 自動播放</button>
+    <span style="margin-left:auto" class="mute">最後一層：</span><div class="chips" id="arOut"></div>
+  </div>
+  <div class="stepbar"><div id="arBar"></div></div>
+  <div class="archwrap"><svg id="arch" viewBox="0 0 1040 300"></svg></div>
+  <div class="detail">
+    <div class="panel">
+      <h3 id="dtTitle"></h3>
+      <div class="explain" id="dtExp"></div>
+      <div class="kv" id="dtKV" style="margin-top:10px"></div>
+    </div>
+    <div class="panel">
+      <h3>輸出尺寸與參數怎麼算？</h3>
+      <div id="dtF"></div>
+    </div>
+  </div>
+  <div class="grid2" style="margin-top:14px">
+    <div class="panel"><h3>每層參數量</h3><canvas id="barP" style="height:250px"></canvas></div>
+    <div class="panel"><h3>每層乘加運算次數（每張圖）</h3><canvas id="barM" style="height:250px"></canvas></div>
+  </div>
+  <div class="note" id="arNote"></div>
+</section>
+
+<!-- 3 -->
+<section class="card">
+  <h2><span class="num">3</span>卷積 → ReLU → 最大池化：實際算給你看</h2>
+  <p>AlexNet 第一層的濾波器學到的多半是「邊緣、顏色變化」偵測器。下面用 3×3 濾波器在一張 96×96 的灰階貓圖上真的做一次卷積。<b>點中間的卷積結果任一點</b>，看那一點是怎麼算出來的。</p>
+  <div class="ctrls"><span class="mute">濾波器：</span><div class="chips" id="kSel"></div><button id="kAni">🐱 / 🐶 切換</button></div>
+  <div class="grid2">
+    <div>
+      <div class="cv4">
+        <div><canvas id="cvIn"></canvas><div id="lbIn"></div></div>
+        <div><canvas id="cvConv"></canvas><div id="lbConv"></div></div>
+        <div><canvas id="cvRelu"></canvas><div id="lbRelu"></div></div>
+        <div><canvas id="cvPool"></canvas><div id="lbPool"></div></div>
+      </div>
+      <p class="mute" style="font-size:.88rem">卷積結果：<span style="color:var(--orange)">橘色＝正值</span>、<span style="color:var(--blue)">藍色＝負值</span>。ReLU 把負值全部變成 0；池化用 3×3、步長 2（和 AlexNet 一樣是重疊池化）。</p>
+    </div>
+    <div>
+      <div>濾波器權重：</div><div class="kgrid" id="kGrid"></div>
+      <div class="calc" id="kCalc">點卷積結果上的任一點……</div>
+      <div class="note">尺寸：96 → ⌊(96 − 3 + 0)/1⌋ + 1 = <b>94</b>（卷積）→ 94（ReLU 不改尺寸）→ ⌊(94 − 3)/2⌋ + 1 = <b>46</b>（池化）。AlexNet 的 Conv1 有 <b>96 個</b>這樣的濾波器，而且每個是 11×11×3，同時看紅綠藍三個通道。</div>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="card">
+  <h2><span class="num">4</span>AlexNet 的兩個關鍵武器：ReLU 與 Dropout</h2>
+  <div class="grid2">
+    <div class="panel">
+      <h3>ReLU：梯度不會「飽和」</h3>
+      <div class="ctrls"><span class="mute">x = <b id="acXv">2.0</b></span><input type="range" id="acX" min="-6" max="6" step="0.1" value="2" style="flex:1"></div>
+      <canvas id="acC" style="height:240px"></canvas>
+      <div class="legend"><span><i style="background:var(--blue)"></i>sigmoid</span><span><i style="background:var(--ok)"></i>tanh</span><span><i style="background:var(--orange)"></i>ReLU</span><span class="mute">實線＝函數　虛線＝導數（梯度）</span></div>
+      <div class="calc" id="acT"></div>
+      <p style="font-size:.93rem">sigmoid、tanh 在 |x| 很大時導數趨近 0（飽和），反向傳播時梯度一層層變小。ReLU = max(0, x) 在 x &gt; 0 時導數固定為 1。AlexNet 論文指出，用 ReLU 的 CNN 訓練速度比 tanh 快好幾倍。</p>
+    </div>
+    <div class="panel">
+      <h3>Dropout：訓練時隨機關掉一半神經元</h3>
+      <div class="ctrls"><button id="dpTrain" class="on">🎲 訓練模式（再丟一次）</button><button id="dpTest">測試模式</button></div>
+      <svg id="dpS" viewBox="0 0 420 260" style="width:100%;height:auto;display:block"></svg>
+      <div class="explain" id="dpT"></div>
+      <p style="font-size:.93rem">AlexNet 的 FC6、FC7 後面都接 Dropout(0.5)。全連接層參數多、最容易過擬合（overfitting）；隨機關掉神經元，逼網路不能只依賴少數特徵。只有約 3,700 張訓練圖的貓狗資料集更需要它。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="card">
+  <h2><span class="num">5</span>動手做：用 Oxford-IIIT Pet 訓練 AlexNet（PyTorch，Colab 可直接執行）</h2>
+  <div class="tabs" id="cdT"></div>
+  <div class="grid2">
+    <div class="codewrap"><button class="copy" id="cdCopy">複製程式碼</button><pre class="code" id="cdC"></pre></div>
+    <div>
+      <div class="mute">執行時你會看到（參數量已實測，與上方第 2 節一致）：</div>
+      <div class="out" id="cdO" style="max-height:560px"></div>
+    </div>
+  </div>
+  <div class="note warn">只有約 3,700 張訓練圖，卻要學 5,800 多萬個參數，<b>從頭訓練很容易過擬合</b>，驗證準確率通常明顯低於訓練準確率。也要注意資料狗多貓少：如果準確率一直停在 <b>0.68 附近</b>，代表模型只會「全部猜狗」，可以把學習率降到 0.001，或把 <code>USE_BN</code> 改成 True（在卷積後加 BatchNorm）。完整版程式（含架構圖、準確率曲線、混淆矩陣）請用另外提供的 Colab 筆記本。</div>
+</section>
+
+<!-- 6 -->
+<section class="card">
+  <h2><span class="num">6</span>觀念小測驗</h2>
+  <div class="qgrid">
+    <div><div id="quiz"></div><div class="score" id="qScore"></div><button id="qAgain" style="display:none">再做一次</button></div>
+    <div class="avwrap"><div class="bubble" id="bub2">來考考你！答對我會笑，答錯我會皺眉喔。</div><div class="av" id="av2"></div></div>
+  </div>
+</section>
+
+<footer>AlexNet 互動教學 ・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+
+<script>
+var $=function(id){return document.getElementById(id)};
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
+function rng(seed){var a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function fmt(n){return Math.round(n).toLocaleString('en-US')}
+function setupCanvas(cv,h){var dpr=window.devicePixelRatio||1;var w=cv.clientWidth||300;h=h||cv.clientHeight;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);var c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);return {c:c,w:w,h:h}}
+
+var HINTON_SVG='<svg viewBox="0 0 200 230" aria-label="Hinton老師動畫"><g class="bodyg">'+
+'<path d="M14 232 Q20 166 100 156 Q180 166 186 232 Z" fill="#26385f"/>'+
+'<path d="M66 165 Q100 188 134 165" stroke="#1d2c4c" stroke-width="7" fill="none" stroke-linecap="round"/>'+
+'<path d="M14 232 Q18 205 34 192 M186 232 Q182 205 166 192" stroke="#1d2c4c" stroke-width="2" fill="none" opacity=".6"/>'+
+'<rect x="84" y="132" width="32" height="32" rx="10" fill="#e0b39b"/>'+
+'<path d="M79 153 L100 172 L92 185 L71 163 Z" fill="#f6f6f3" stroke="#d6d6d0" stroke-width="1"/>'+
+'<path d="M121 153 L100 172 L108 185 L129 163 Z" fill="#f6f6f3" stroke="#d6d6d0" stroke-width="1"/>'+
+'<ellipse cx="65" cy="104" rx="6.5" ry="11" fill="#e0b39b"/><ellipse cx="135" cy="104" rx="6.5" ry="11" fill="#e0b39b"/>'+
+'<path d="M66 98 Q65 56 100 56 Q135 56 134 98 Q133 130 117 142 Q100 151 83 142 Q67 130 66 98 Z" fill="#efc4aa"/>'+
+'<ellipse class="blush" cx="80" cy="118" rx="7" ry="4.5" fill="#f08080"/><ellipse class="blush" cx="120" cy="118" rx="7" ry="4.5" fill="#f08080"/>'+
+'<path d="M64 98 Q56 70 66 54 L70 50 Q74 42 82 41 L86 36 Q96 32 104 35 L110 33 Q122 35 128 42 L134 44 Q141 54 139 72 Q141 86 135 99 Q133 82 126 72 Q114 70 100 74 Q86 77 78 84 Q70 90 64 98 Z" fill="#8b8077"/>'+
+'<g class="hairL"><path d="M127 52 Q106 52 89 63 Q76 72 69 94 L74 86 L76 94 L80 82 L84 90 L88 77 L92 85 L97 73 L101 80 L106 69 L111 74 L116 64 L121 67 Q124 60 127 52 Z" fill="#a1968c"/>'+
+'<path d="M118 58 Q100 62 86 76 M108 55 Q92 60 78 76 M124 58 Q112 64 104 72" stroke="#c8c0b7" stroke-width="1.8" fill="none" stroke-linecap="round"/></g>'+
+'<g class="hairR"><path d="M135 99 Q142 84 136 70 L130 86 Z" fill="#7b7067"/></g>'+
+'<path d="M80 44 Q96 36 114 40 M70 56 Q80 46 94 43 M118 46 Q130 52 134 64" stroke="#6c6259" stroke-width="1.6" fill="none" stroke-linecap="round"/>'+
+'<path d="M90 40 Q104 37 116 43" stroke="#bdb4ab" stroke-width="2" fill="none" stroke-linecap="round"/>'+
+'<path class="brow browL" d="M75 88 Q84 84 93 87" stroke="#6a5e55" stroke-width="3" fill="none" stroke-linecap="round"/>'+
+'<path class="brow browR" d="M107 87 Q116 84 125 88" stroke="#6a5e55" stroke-width="3" fill="none" stroke-linecap="round"/>'+
+'<g class="eyes"><ellipse cx="85" cy="97" rx="5" ry="3.2" fill="#fff"/><ellipse cx="115" cy="97" rx="5" ry="3.2" fill="#fff"/>'+
+'<circle cx="85" cy="97" r="2.6" fill="#6f90ab"/><circle cx="115" cy="97" r="2.6" fill="#6f90ab"/>'+
+'<circle cx="85" cy="97" r="1.2" fill="#1f2328"/><circle cx="115" cy="97" r="1.2" fill="#1f2328"/>'+
+'<circle cx="86" cy="96" r=".8" fill="#fff"/><circle cx="116" cy="96" r=".8" fill="#fff"/></g>'+
+'<path d="M79 93.5 Q85 91 91 93.5 M109 93.5 Q115 91 121 93.5" stroke="#b9866c" stroke-width="1.2" fill="none"/>'+
+'<path d="M79 102 Q85 105 91 102 M109 102 Q115 105 121 102" stroke="#cf9a7f" stroke-width="1.1" fill="none"/>'+
+'<path d="M101 97 Q96 116 99 122 Q104 126 110 121" stroke="#c39073" stroke-width="2.4" fill="none" stroke-linecap="round"/>'+
+'<path d="M85 114 Q82 123 87 131 M115 114 Q118 123 113 131" stroke="#d6a284" stroke-width="1.3" fill="none" stroke-linecap="round"/>'+
+'<path class="mo n" d="M89 132 Q100 133 111 131" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>'+
+'<path class="mo s" d="M87 127 Q100 142 113 127 Q100 132 87 127 Z" fill="#9b3a2c" stroke="#8a4a3a" stroke-width="1.5" stroke-linejoin="round"/>'+
+'<path class="mo f" d="M89 135 Q100 127 111 135" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>'+
+'<path class="sweat" d="M139 72 Q144 82 139 86 Q134 82 139 72 Z" fill="#7cc3f0"/>'+
+'<text class="spark" x="30" y="44" font-size="18" fill="#f0b400">✦</text><text class="spark" x="160" y="40" font-size="14" fill="#f0b400">✦</text><text class="spark" x="170" y="96" font-size="11" fill="#f0b400">✦</text>'+
+'</g></svg>';
+function makeAvatar(el,bubble){
+  el.innerHTML=HINTON_SVG;var tm=null;
+  function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
+  return {mood:function(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
+    if(m==='smile'){el.classList.add('smile');restart('hop');}
+    if(m==='frown'){el.classList.add('frown');restart('shake');}
+    if(text!==undefined){bubble.innerHTML=text;bubble.className='bubble'+(m==='smile'?' good':m==='frown'?' bad':'');}
+    if(!hold) tm=setTimeout(function(){el.classList.remove('smile','frown');bubble.className='bubble';},3200);}};
+}
+
+var AV1=makeAvatar($('av1'),$('bub1')), AV2=makeAvatar($('av2'),$('bub2'));
+var QUOTES=[
+ '2012 年我和學生 Alex Krizhevsky、Ilya Sutskever 用 AlexNet 參加 ImageNet 競賽：top-5 錯誤率 15.3%，第二名是 26.2%，大家都嚇了一跳。',
+ 'AlexNet 是用兩張 GTX 580 顯示卡訓練的，每張只有 3GB 記憶體，放不下整個網路，所以把網路拆成上下兩半，各放一張卡，訓練了五、六天。',
+ '1986 年我和 Rumelhart、Williams 在《Nature》發表反向傳播的論文，讓多層神經網路可以有效地訓練。',
+ 'Dropout 是我們實驗室提出的點子：訓練時隨機關掉一半的神經元，逼網路不要只依賴少數特徵。AlexNet 的全連接層就用了它。',
+ '2018 年我和 LeCun、Bengio 一起獲得圖靈獎；2024 年我和 John Hopfield 共同獲得諾貝爾物理學獎。',
+ '我是 19 世紀數學家喬治・布爾（George Boole）的玄孫，就是「布林代數」的那位布爾。'
+];
+var qi=0;$('av1').addEventListener('click',function(){AV1.mood('smile',QUOTES[qi++%QUOTES.length]);});
+
+/* ---------- 程式畫的貓與狗 ---------- */
+function drawAnimal(c,S,type,color,skipBg){
+  var k=S/100;c.save();c.scale(k,k);
+  var C=color?{bg:'#cfe3ef',fur:type==='cat'?'#e9a35a':'#b98a5e',fur2:type==='cat'?'#f6d6ae':'#e8d2b5',ear:'#f2a5a5',eye:'#2f3a2a',nose:'#d0586a',dark:'#5a3b2a'}
+                :{bg:'#6e6e6e',fur:'#b4b4b4',fur2:'#e6e6e6',ear:'#9a9a9a',eye:'#1a1a1a',nose:'#3a3a3a',dark:'#2a2a2a'};
+  if(!skipBg){c.fillStyle=C.bg;c.fillRect(0,0,100,100);
+  if(color){c.fillStyle='#a9cf8a';c.fillRect(0,78,100,22)}}
+  if(type==='cat'){
+    c.fillStyle=C.fur;c.beginPath();c.moveTo(24,40);c.lineTo(30,12);c.lineTo(46,30);c.fill();c.beginPath();c.moveTo(76,40);c.lineTo(70,12);c.lineTo(54,30);c.fill();
+    c.fillStyle=C.ear;c.beginPath();c.moveTo(29,32);c.lineTo(31,19);c.lineTo(40,29);c.fill();c.beginPath();c.moveTo(71,32);c.lineTo(69,19);c.lineTo(60,29);c.fill();
+    c.fillStyle=C.fur;c.beginPath();c.ellipse(50,52,30,26,0,0,7);c.fill();
+    c.fillStyle=C.fur2;c.beginPath();c.ellipse(50,63,15,11,0,0,7);c.fill();
+    c.fillStyle=color?'#9fd36b':'#f0f0f0';c.beginPath();c.ellipse(38,48,6,7,0,0,7);c.ellipse(62,48,6,7,0,0,7);c.fill();
+    c.fillStyle=C.eye;c.beginPath();c.ellipse(38,49,2.2,5.5,0,0,7);c.ellipse(62,49,2.2,5.5,0,0,7);c.fill();
+    c.fillStyle=C.nose;c.beginPath();c.moveTo(46,58);c.lineTo(54,58);c.lineTo(50,63);c.fill();
+    c.strokeStyle=C.dark;c.lineWidth=1.3;c.beginPath();c.moveTo(50,63);c.quadraticCurveTo(46,69,42,66);c.moveTo(50,63);c.quadraticCurveTo(54,69,58,66);
+    [[-1,60],[0,63],[1,66]].forEach(function(p){c.moveTo(36,p[1]);c.lineTo(14,p[1]+p[0]*5);c.moveTo(64,p[1]);c.lineTo(86,p[1]+p[0]*5)});c.stroke();
+    if(color){c.strokeStyle='#c97b35';c.lineWidth=2.5;c.beginPath();c.moveTo(50,27);c.lineTo(50,36);c.moveTo(43,29);c.lineTo(45,36);c.moveTo(57,29);c.lineTo(55,36);c.stroke()}
+  }else{
+    c.fillStyle=C.fur;c.beginPath();c.ellipse(50,48,27,28,0,0,7);c.fill();
+    c.fillStyle=C.dark;c.beginPath();c.ellipse(24,50,10,22,0.25,0,7);c.fill();c.beginPath();c.ellipse(76,50,10,22,-0.25,0,7);c.fill();
+    c.fillStyle=C.fur2;c.beginPath();c.ellipse(50,64,17,14,0,0,7);c.fill();
+    c.fillStyle=C.eye;c.beginPath();c.arc(39,44,4,0,7);c.arc(61,44,4,0,7);c.fill();
+    c.fillStyle='#fff';c.beginPath();c.arc(40.2,42.8,1.2,0,7);c.arc(62.2,42.8,1.2,0,7);c.fill();
+    c.fillStyle=C.eye;c.beginPath();c.ellipse(50,57,7,5,0,0,7);c.fill();
+    c.strokeStyle=C.eye;c.lineWidth=1.5;c.beginPath();c.moveTo(50,62);c.lineTo(50,67);c.moveTo(50,67);c.quadraticCurveTo(44,72,40,68);c.moveTo(50,67);c.quadraticCurveTo(56,72,60,68);c.stroke();
+    c.fillStyle=color?'#e86b7d':'#4a4a4a';c.beginPath();c.ellipse(50,73,4.5,6,0,0,7);c.fill();
+  }
+  c.restore();
+}
+
+/* ---------- 1 資料集 ---------- */
+var TREE={root:'牛津大學 Visual Geometry Group（就是提出 VGG 的團隊）2012 年整理的寵物資料集。torchvision 會從牛津的網站下載並解壓到這裡，約 800 MB。',
+ img:'7,349 張貓狗照片，共 <b>37 個品種</b>：<b>12 種貓、25 種狗</b>。照片大小不一，讀取時統一縮放；檔名就是品種名稱，例如 Abyssinian_1.jpg、beagle_1.jpg。',
+ ann:'標註資料夾：記錄每張圖屬於哪個品種、是貓還是狗，還有切割遮罩（segmentation）。',
+ tv:'<b>split=\'trainval\'</b>：3,680 張（約 1/3 是貓、2/3 是狗）。訓練時常再切一部分當驗證集，用來挑最好的 epoch。',
+ te:'<b>split=\'test\'</b>：3,669 張，訓練時完全不看，最後拿來算準確率、畫混淆矩陣。',
+ bin:'<b>target_types</b> 決定標籤：<code>\'category\'</code> 是 37 個品種（0～36），<code>\'binary-category\'</code> 是貓狗二元標籤（<b>0 = Cat、1 = Dog</b>，類別名稱在 <code>ds.bin_classes</code>）。注意資料「狗多貓少」，全部猜狗就有約 68% 準確率！'};
+[].forEach.call(document.querySelectorAll('#tree .nd'),function(n){n.onclick=function(){[].forEach.call(document.querySelectorAll('#tree .nd'),function(x){x.classList.toggle('on',x===n)});$('treeNote').innerHTML=TREE[n.dataset.k]}});
+document.querySelector('#tree .nd[data-k="bin"]').click();
+var DSB=32;[16,32,64,128].forEach(function(b){var bt=document.createElement('button');bt.textContent=b;bt.dataset.b=b;bt.onclick=function(){DSB=b;dsR()};$('dsB').appendChild(bt)});
+function dsR(){[].forEach.call($('dsB').children,function(x){x.classList.toggle('on',+x.dataset.b===DSB)});
+  $('dsTr').textContent='⌈3680/'+DSB+'⌉ = '+Math.ceil(3680/DSB);$('dsVa').textContent='⌈3669/'+DSB+'⌉ = '+Math.ceil(3669/DSB)}
+dsR();
+var AUG={type:'cat',seed:1,cs:150};
+var AUGCOL=['#dd6b20','#2b6cb0','#1f9d6b','#7b4fc9','#d6334f','#0f8b8d'];
+function augSource(){var src=document.createElement('canvas');src.width=256;src.height=256;var c=src.getContext('2d'),k=256/100;
+  c.fillStyle='#cfe3ef';c.fillRect(0,0,256,256);c.fillStyle='#a9cf8a';c.fillRect(0,200,256,56);
+  c.fillStyle='#f6c945';c.beginPath();c.arc(34,34,20,0,7);c.fill();c.strokeStyle='#f6c945';c.lineWidth=4;
+  for(var a=0;a<8;a++){var t=a*Math.PI/4;c.beginPath();c.moveTo(34+Math.cos(t)*26,34+Math.sin(t)*26);c.lineTo(34+Math.cos(t)*34,34+Math.sin(t)*34);c.stroke()}
+  c.save();c.translate(132,136);c.rotate(30*Math.PI/180);c.scale(0.8,0.8);c.translate(-128,-128);drawAnimal(c,256,AUG.type,true,true);c.restore();
+  return src}
+function augR(){
+  var src=augSource(),cs=AUG.cs,o=setupCanvas($('augSrc'),$('augSrc').clientWidth||200),c=o.c,s=o.w/256;c.drawImage(src,0,0,o.w,o.w);
+  var r=rng(AUG.seed*101+cs),box=$('augOut');box.innerHTML='';
+  var flips=[true,true,true,false,false,false];for(var i=5;i>0;i--){var j=Math.floor(r()*(i+1));var t=flips[i];flips[i]=flips[j];flips[j]=t}
+  for(i=0;i<6;i++){var x=Math.floor(r()*(257-cs)),y=Math.floor(r()*(257-cs)),fl=flips[i],cv=document.createElement('canvas');cv.width=cs;cv.height=cs;var cc=cv.getContext('2d');
+    if(fl){cc.translate(cs,0);cc.scale(-1,1)}cc.drawImage(src,x,y,cs,cs,0,0,cs,cs);
+    var d=document.createElement('div');cv.style.borderColor=AUGCOL[i];cv.style.borderWidth='2px';d.appendChild(cv);
+    var lb=document.createElement('div');lb.style.fontSize='.75rem';lb.style.textAlign='center';
+    lb.innerHTML='<b style="color:'+AUGCOL[i]+'">'+(i+1)+'</b> '+(fl?'<b>翻轉</b>':'未翻轉');d.appendChild(lb);box.appendChild(d);
+    c.strokeStyle=AUGCOL[i];c.lineWidth=2;c.setLineDash(i?[5,3]:[]);c.strokeRect(x*s,y*s,cs*s,cs*s);c.setLineDash([]);
+    c.fillStyle=AUGCOL[i];c.font='bold 13px sans-serif';c.fillText(i+1,x*s+4,y*s+14)}
+  $('augCap').textContent='原圖 256×256（編號框＝6 個 '+cs+'×'+cs+' 裁切位置）';
+}
+[[150,'誇張示意 150×150'],[227,'AlexNet 實際 227×227']].forEach(function(o){var bt=document.createElement('button');bt.textContent=o[1];bt.dataset.c=o[0];
+  bt.onclick=function(){AUG.cs=o[0];[].forEach.call($('augSz').children,function(x){x.classList.toggle('on',+x.dataset.c===AUG.cs)});augR()};if(o[0]===150)bt.classList.add('on');$('augSz').appendChild(bt)});
+$('augBtn').onclick=function(){AUG.seed++;augR()};$('augAni').onclick=function(){AUG.type=AUG.type==='cat'?'dog':'cat';augR()};
+$('augSrc').style.height=$('augSrc').clientWidth+'px';augR();
+
+/* ---------- 2 架構 ---------- */
+var NOUT=1;
+var L=[
+ {id:'in',name:'輸入',type:'input'},
+ {id:'c1',name:'Conv1',type:'conv',F:11,S:4,P:0,K:96},
+ {id:'p1',name:'Pool1',type:'pool',F:3,S:2,P:0},
+ {id:'c2',name:'Conv2',type:'conv',F:5,S:1,P:2,K:256},
+ {id:'p2',name:'Pool2',type:'pool',F:3,S:2,P:0},
+ {id:'c3',name:'Conv3',type:'conv',F:3,S:1,P:1,K:384},
+ {id:'c4',name:'Conv4',type:'conv',F:3,S:1,P:1,K:384},
+ {id:'c5',name:'Conv5',type:'conv',F:3,S:1,P:1,K:256},
+ {id:'p3',name:'Pool3',type:'pool',F:3,S:2,P:0},
+ {id:'fl',name:'Flatten',type:'flat'},
+ {id:'f6',name:'FC6',type:'fc',K:4096},
+ {id:'f7',name:'FC7',type:'fc',K:4096},
+ {id:'f8',name:'FC8',type:'fc',K:1}];
+var EXP={
+ in:'一張彩色照片，縮放、裁切成 <b>227×227</b>，有紅、綠、藍 3 個通道，所以是 227×227×3 的張量（原論文寫 224，但以 227 計算尺寸才會剛好整除）。',
+ c1:'<b>96 個 11×11×3 的濾波器</b>，步長 4 大步掃過影像，偵測邊緣、顏色變化等低階特徵。之後接 ReLU，原論文還接了 LRN（局部響應正規化）。',
+ p1:'<b>3×3 最大池化、步長 2</b>：每個 3×3 視窗只留最大值，尺寸約減半。視窗大於步長，所以相鄰視窗會重疊（overlapping pooling），這是 AlexNet 的設計之一。',
+ c2:'<b>256 個 5×5 濾波器</b>，padding = 2 讓尺寸維持 27×27。把上一層的邊緣組合成紋理、角落等中階特徵。',
+ p2:'再做一次 3×3、步長 2 的最大池化：27 → 13。',
+ c3:'<b>384 個 3×3 濾波器</b>，padding = 1 維持 13×13。從這裡開始連續三層卷積，中間不池化。',
+ c4:'<b>384 個 3×3 濾波器</b>。越深的層，特徵越抽象，例如「眼睛」「耳朵」「毛的紋路」。',
+ c5:'<b>256 個 3×3 濾波器</b>，最後一層卷積。',
+ p3:'最後一次池化：13 → 6，得到 <b>6×6×256</b> 的特徵圖。',
+ fl:'把 6×6×256 的立方體「拉平」成一條 <b>9,216</b> 個數字的向量，準備送進全連接層。沒有參數。',
+ f6:'9,216 → <b>4,096</b> 全連接＋ReLU＋Dropout(0.5)。這一層就有約 3,775 萬個參數，<b>佔全部參數的六成以上</b>！',
+ f7:'4,096 → <b>4,096</b> 全連接＋ReLU＋Dropout(0.5)。',
+ f8:''};
+function computeL(){
+  var h=227,w=227,c=3;
+  L.forEach(function(l){l.inS=[h,w,c];
+    if(l.type==='input'){l.out=[227,227,3];l.params=0;l.macs=0}
+    else if(l.type==='conv'||l.type==='pool'){var o=Math.floor((h-l.F+2*l.P)/l.S)+1;var k=l.type==='conv'?l.K:c;
+      l.params=l.type==='conv'?(l.F*l.F*c+1)*l.K:0;l.macs=l.type==='conv'?o*o*l.F*l.F*c*l.K:0;l.out=[o,o,k]}
+    else if(l.type==='flat'){l.out=[h*w*c];l.params=0;l.macs=0}
+    else{var n=l.id==='f8'?NOUT:l.K;var nin=h*w*c;l.params=(nin+1)*n;l.macs=nin*n;l.out=[n]}
+    if(l.out.length===3){h=l.out[0];w=l.out[1];c=l.out[2]}else{h=1;w=1;c=l.out[0]}});
+  EXP.f8=NOUT===1?'4,096 → <b>1</b> 個輸出，接 <b>sigmoid</b>，得到「是狗的機率」（cats=0、dogs=1）。損失函數用 binary cross-entropy。原本 ImageNet 版這裡是 1000 個輸出＋softmax。'
+                :'4,096 → <b>1,000</b> 個輸出，接 <b>softmax</b>，得到 ImageNet 1000 個類別的機率。光這一層就有約 410 萬個參數。';
+}
+function shp(a){return a.length===3?a[0]+'×'+a[1]+'×'+a[2]:fmt(a[0])}
+var AR={i:1,timer:null};
+var TYPECOL={input:'--mute',conv:'--blue',pool:'--ok',flat:'--mute',fc:'--orange'};
+function drawArch(){
+  var svg=$('arch'),x=14,out='',dk=0;
+  L.forEach(function(l,i){
+    var H,D,W;
+    if(l.out.length===3){H=Math.max(26,Math.sqrt(l.out[0])*13);D=Math.max(8,Math.log2(l.out[2])*5.4);W=Math.max(6,Math.log2(l.out[2])*2.4)}
+    else{H=l.type==='flat'?190:(l.out[0]>=4096?170:l.out[0]>=1000?110:40);W=12;D=6}
+    var y0=150-H/2,col=css(TYPECOL[l.type]),on=i===AR.i;
+    var g='<g class="blk'+(on?' on':'')+'" data-i="'+i+'">';
+    g+='<polygon points="'+x+','+y0+' '+(x+D)+','+(y0-D*0.7)+' '+(x+D+W)+','+(y0-D*0.7)+' '+(x+W)+','+y0+'" fill="'+col+'" opacity=".55"/>';
+    g+='<polygon points="'+(x+W)+','+y0+' '+(x+W+D)+','+(y0-D*0.7)+' '+(x+W+D)+','+(y0+H-D*0.7)+' '+(x+W)+','+(y0+H)+'" fill="'+col+'" opacity=".38"/>';
+    g+='<rect class="fr" x="'+x+'" y="'+y0+'" width="'+W+'" height="'+H+'" fill="'+col+'" opacity=".85" stroke="'+css('--ink')+'" stroke-width=".6"/>';
+    var cx=x+(W+D)/2;
+    g+='<text x="'+cx+'" y="268" text-anchor="middle" font-size="12" font-weight="'+(on?700:500)+'" fill="'+(on?css('--orange'):css('--ink'))+'">'+l.name+'</text>';
+    g+='<text x="'+cx+'" y="285" text-anchor="middle" font-size="10.5" fill="'+css('--mute')+'">'+shp(l.out)+'</text>';
+    g+='<rect x="'+(x-6)+'" y="20" width="'+(W+D+12)+'" height="270" fill="transparent"/></g>';
+    out+=g;var nx=x+W+D+(i<L.length-1?(l.type==='input'?40:30):0);
+    if(i<L.length-1)out+='<path d="M'+(x+W+D+4)+' 150 L'+(nx-6)+' 150" stroke="'+css('--mute')+'" stroke-width="1.3" marker-end="url(#ah)"/>';
+    x=nx;});
+  out='<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="'+css('--mute')+'"/></marker></defs>'+out;
+  out+='<text x="14" y="18" font-size="11" fill="'+css('--blue')+'">■ 卷積層</text><text x="90" y="18" font-size="11" fill="'+css('--ok')+'">■ 最大池化</text><text x="180" y="18" font-size="11" fill="'+css('--orange')+'">■ 全連接層</text><text x="270" y="18" font-size="11" fill="'+css('--mute')+'">（方塊高度∝空間大小、厚度∝通道數，皆非等比例）</text>';
+  svg.setAttribute('viewBox','0 0 '+Math.max(1040,x+20)+' 300');svg.innerHTML=out;
+  [].forEach.call(svg.querySelectorAll('.blk'),function(g){g.onclick=function(){stopAR();AR.i=+g.dataset.i;arR()}});
+}
+function arR(){
+  drawArch();var l=L[AR.i];$('arBar').style.width=((AR.i+1)/L.length*100)+'%';
+  $('dtTitle').textContent=(AR.i)+'. '+l.name+'（'+{input:'輸入層',conv:'卷積層 Convolution',pool:'最大池化 Max Pooling',flat:'攤平 Flatten',fc:'全連接層 Fully Connected'}[l.type]+'）';
+  $('dtExp').innerHTML=EXP[l.id];
+  var kv='<b>輸入尺寸</b><span>'+(l.type==='input'?'—':shp(l.inS))+'</span><b>輸出尺寸</b><span>'+shp(l.out)+'</span>';
+  if(l.type==='conv')kv+='<b>濾波器</b><span>'+l.K+' 個 '+l.F+'×'+l.F+'×'+l.inS[2]+'</span><b>步長 / padding</b><span>'+l.S+' / '+l.P+'</span><b>激活函數</b><span>ReLU</span>';
+  if(l.type==='pool')kv+='<b>視窗 / 步長</b><span>'+l.F+'×'+l.F+' / '+l.S+'</span>';
+  if(l.type==='fc')kv+='<b>激活函數</b><span>'+(l.id==='f8'?(NOUT===1?'sigmoid':'softmax'):'ReLU，後接 Dropout(0.5)')+'</span>';
+  kv+='<b>參數量</b><span>'+fmt(l.params)+'</span><b>乘加運算</b><span>'+(l.macs?fmt(l.macs):'—')+'</span>';
+  $('dtKV').innerHTML=kv;
+  var f='';
+  if(l.type==='conv'||l.type==='pool'){
+    f+='<div>輸出邊長公式：</div><div class="formula">O = ⌊ <span class="frac"><span>W − F + 2P</span><span>S</span></span> ⌋ + 1 = ⌊ <span class="frac"><span>'+l.inS[0]+' − '+l.F+' + 2×'+l.P+'</span><span>'+l.S+'</span></span> ⌋ + 1 = <b>'+l.out[0]+'</b></div>';
+    if(l.type==='conv'){f+='<div style="margin-top:8px">參數量（每個濾波器 F×F×C<sub>in</sub> 個權重 + 1 個偏差）：</div><div class="formula">('+l.F+'×'+l.F+'×'+l.inS[2]+' + 1) × '+l.K+' = <b>'+fmt(l.params)+'</b></div>';
+      f+='<div style="margin-top:8px">乘加運算（輸出每一點都要算一次 F×F×C<sub>in</sub> 的加權和）：</div><div class="formula">'+l.out[0]+'×'+l.out[1]+' × '+l.F+'×'+l.F+'×'+l.inS[2]+' × '+l.K+' ≈ <b>'+(l.macs/1e6).toFixed(1)+' 百萬</b></div>';}
+    else f+='<p>池化沒有任何要學的參數，深度（通道數）維持 '+l.out[2]+'。</p>';
+  }else if(l.type==='fc'){var nin=l.inS[0]*l.inS[1]*l.inS[2];
+    f+='<div>全連接層：每個輸出都和每個輸入相連，再加 1 個偏差：</div><div class="formula">('+fmt(nin)+' + 1) × '+fmt(l.out[0])+' = <b>'+fmt(l.params)+'</b></div>';
+  }else if(l.type==='flat')f+='<div class="formula">6 × 6 × 256 = <b>9,216</b></div><p>只是改變形狀，沒有參數。</p>';
+  else f+='<p>227 × 227 × 3 = '+fmt(227*227*3)+' 個像素數值。</p><p class="mute">從下一層開始，點「下一層 ▶」一路看到輸出。</p>';
+  $('dtF').innerHTML=f;
+  drawBars();
+}
+function totalP(){return L.reduce(function(s,l){return s+l.params},0)}
+function drawBars(){
+  var ls=L.filter(function(l){return l.params>0});
+  [['barP','params'],['barM','macs']].forEach(function(b){
+    var o=setupCanvas($(b[0]),250),c=o.c,w=o.w,h=o.h,mx=58,rh=(h-24)/ls.length,max=Math.max.apply(null,ls.map(function(l){return l[b[1]]})),tot=ls.reduce(function(s,l){return s+l[b[1]]},0);
+    c.clearRect(0,0,w,h);c.font='12px sans-serif';
+    ls.forEach(function(l,i){var y=8+i*rh,bw=(w-mx-120)*l[b[1]]/max,on=L[AR.i]===l;
+      c.fillStyle=on?css('--orange'):css(TYPECOL[l.type]);c.globalAlpha=on?1:.75;c.fillRect(mx,y+3,Math.max(bw,1.5),rh-7);c.globalAlpha=1;
+      c.fillStyle=css('--ink');c.textAlign='right';c.fillText(l.name,mx-6,y+rh/2+4);c.textAlign='left';
+      var v=l[b[1]];c.fillStyle=css('--mute');c.fillText((v>=1e6?(v/1e6).toFixed(v>=1e8?0:1)+' M':fmt(v))+'（'+(v/tot*100).toFixed(1)+'%）',mx+Math.max(bw,1.5)+6,y+rh/2+4)});
+  });
+  var conv=L.filter(function(l){return l.type==='conv'}),fc=L.filter(function(l){return l.type==='fc'});
+  var cp=conv.reduce(function(s,l){return s+l.params},0),fp=fc.reduce(function(s,l){return s+l.params},0),cm=conv.reduce(function(s,l){return s+l.macs},0),fm=fc.reduce(function(s,l){return s+l.macs},0);
+  $('arNote').innerHTML='總參數量：<b>'+fmt(totalP())+'</b>（'+(NOUT===1?'貓狗版':'ImageNet 1000 類版')+'）。<br>有趣的對比：<b>卷積層</b>只佔 '+(cp/(cp+fp)*100).toFixed(1)+'% 的參數，卻佔了 '+(cm/(cm+fm)*100).toFixed(1)+'% 的運算量；<b>全連接層</b>佔 '+(fp/(cp+fp)*100).toFixed(1)+'% 的參數，運算量卻只有 '+(fm/(cm+fm)*100).toFixed(1)+'%。卷積的濾波器在整張圖上「共用權重」，所以參數少、計算多。';
+}
+function stopAR(){clearInterval(AR.timer);AR.timer=null;$('arPlay').textContent='▶ 自動播放'}
+$('arNext').onclick=function(){stopAR();if(AR.i<L.length-1){AR.i++;arR()}};
+$('arPrev').onclick=function(){stopAR();if(AR.i>0){AR.i--;arR()}};
+$('arReset').onclick=function(){stopAR();AR.i=0;arR()};
+$('arPlay').onclick=function(){if(AR.timer){stopAR();return}this.textContent='⏸ 暫停';if(AR.i>=L.length-1)AR.i=0;arR();
+  AR.timer=setInterval(function(){if(AR.i<L.length-1){AR.i++;arR()}else stopAR()},1400)};
+[[1,'貓狗：1 個 sigmoid'],[1000,'ImageNet：1000 類 softmax']].forEach(function(o){var bt=document.createElement('button');bt.textContent=o[1];bt.dataset.n=o[0];bt.onclick=function(){NOUT=o[0];L[12].name='FC8';computeL();[].forEach.call($('arOut').children,function(x){x.classList.toggle('on',+x.dataset.n===NOUT)});arR()};$('arOut').appendChild(bt)});
+computeL();$('arOut').children[0].classList.add('on');arR();
+
+/* ---------- 3 卷積實作 ---------- */
+var KS={'垂直邊緣':[[-1,0,1],[-2,0,2],[-1,0,1]],'水平邊緣':[[-1,-2,-1],[0,0,0],[1,2,1]],'模糊':[[1,1,1],[1,1,1],[1,1,1]],'銳化':[[0,-1,0],[-1,5,-1],[0,-1,0]],'斜向':[[2,1,0],[1,0,-1],[0,-1,-2]]};
+var KD={'模糊':9};
+var CV={type:'cat',k:'垂直邊緣',img:null,conv:null,relu:null,pool:null,sel:null};
+function cvMake(){var t=document.createElement('canvas');t.width=96;t.height=96;var c=t.getContext('2d');drawAnimal(c,96,CV.type,false);
+  var d=c.getImageData(0,0,96,96).data,a=new Float32Array(96*96);for(var i=0;i<96*96;i++)a[i]=Math.round(d[i*4]);CV.img=a}
+function cvCompute(){var K=KS[CV.k],dv=KD[CV.k]||1,n=94,o=new Float32Array(n*n);
+  for(var y=0;y<n;y++)for(var x=0;x<n;x++){var s=0;for(var j=0;j<3;j++)for(var i=0;i<3;i++)s+=CV.img[(y+j)*96+x+i]*K[j][i];o[y*n+x]=s/dv}
+  CV.conv=o;CV.relu=o.map(function(v){return Math.max(0,v)});
+  var m=46,p=new Float32Array(m*m);for(y=0;y<m;y++)for(x=0;x<m;x++){var mx=-Infinity;for(j=0;j<3;j++)for(i=0;i<3;i++)mx=Math.max(mx,CV.relu[(y*2+j)*n+x*2+i]);p[y*m+x]=mx}CV.pool=p}
+function paint(cv,arr,n,mode){cv.width=n;cv.height=n;var c=cv.getContext('2d'),im=c.createImageData(n,n),mx=0;
+  for(var i=0;i<arr.length;i++)mx=Math.max(mx,Math.abs(arr[i]));mx=mx||1;
+  var dk=css('--bg')==='#15181f';
+  for(i=0;i<arr.length;i++){var v=arr[i],r,g,b;
+    if(mode==='gray'){r=g=b=v}
+    else if(mode==='signed'){var t=Math.min(1,Math.abs(v)/mx);if(v>=0){r=255;g=255-t*150;b=255-t*230}else{r=255-t*210;g=255-t*130;b=255}if(dk){r=r*0.85;g=g*0.85;b=b*0.85}}
+    else{var u=Math.min(1,v/mx);r=g=b=u*255}
+    im.data[i*4]=r;im.data[i*4+1]=g;im.data[i*4+2]=b;im.data[i*4+3]=255}
+  c.putImageData(im,0,0);return c}
+function cvRender(){
+  cvCompute();
+  var ci=paint($('cvIn'),CV.img,96,'gray');paint($('cvConv'),CV.conv,94,'signed');paint($('cvRelu'),CV.relu,94,'pos');paint($('cvPool'),CV.pool,46,'pos');
+  $('lbIn').innerHTML='輸入 <b>96×96</b>';$('lbConv').innerHTML='卷積 <b>94×94</b>';$('lbRelu').innerHTML='ReLU <b>94×94</b>';$('lbPool').innerHTML='池化 <b>46×46</b>';
+  var K=KS[CV.k];$('kGrid').innerHTML=K.map(function(r){return r.map(function(v){return '<span>'+v+'</span>'}).join('')}).join('')+(KD[CV.k]?'':'');
+  if(KD[CV.k])$('kGrid').insertAdjacentHTML('afterend','');
+  if(CV.sel)cvShow(CV.sel[0],CV.sel[1]);else $('kCalc').textContent='點卷積結果上的任一點……'+(KD[CV.k]?'\n（模糊濾波器最後要再 ÷9）':'');
+}
+function cvShow(x,y){CV.sel=[x,y];var K=KS[CV.k],dv=KD[CV.k]||1,s=0,lines=[];
+  for(var j=0;j<3;j++){var row=[];for(var i=0;i<3;i++){var p=CV.img[(y+j)*96+x+i];s+=p*K[j][i];row.push(String(p).padStart(3)+'×'+String(K[j][i]).padStart(2))}lines.push(row.join(' + '))}
+  var v=s/dv;
+  $('kCalc').textContent='輸出位置 ('+x+', '+y+')，對應輸入的 3×3 區塊：\n'+lines.join('\n')+'\n= '+s+(dv>1?' ÷ '+dv+' = '+v.toFixed(1):'')+'\nReLU → '+Math.max(0,v).toFixed(1)+(v<0?'（負值變 0）':'');
+  // mark
+  paint($('cvConv'),CV.conv,94,'signed');var c=$('cvConv').getContext('2d');c.strokeStyle=css('--ink');c.lineWidth=1;c.strokeRect(x-2.5,y-2.5,6,6);
+  var ci=paint($('cvIn'),CV.img,96,'gray');ci.strokeStyle='#ff9d57';ci.lineWidth=1;ci.strokeRect(x-.5,y-.5,4,4);
+}
+$('cvConv').addEventListener('click',function(e){var r=this.getBoundingClientRect();var x=Math.floor((e.clientX-r.left)/r.width*94),y=Math.floor((e.clientY-r.top)/r.height*94);cvShow(Math.max(0,Math.min(93,x)),Math.max(0,Math.min(93,y)))});
+Object.keys(KS).forEach(function(k){var bt=document.createElement('button');bt.textContent=k;bt.onclick=function(){CV.k=k;[].forEach.call($('kSel').children,function(x){x.classList.toggle('on',x===bt)});cvRender()};if(k===CV.k)bt.classList.add('on');$('kSel').appendChild(bt)});
+$('kAni').onclick=function(){CV.type=CV.type==='cat'?'dog':'cat';cvMake();cvRender()};
+cvMake();CV.sel=[30,40];cvRender();
+
+/* ---------- 4 ReLU / Dropout ---------- */
+function sig(x){return 1/(1+Math.exp(-x))}
+var ACT=[['sigmoid','--blue',sig,function(x){var s=sig(x);return s*(1-s)}],['tanh','--ok',Math.tanh,function(x){var t=Math.tanh(x);return 1-t*t}],['ReLU','--orange',function(x){return Math.max(0,x)},function(x){return x>0?1:0}]];
+function acR(){var X=+$('acX').value;$('acXv').textContent=X.toFixed(1);
+  var o=setupCanvas($('acC'),240),c=o.c,w=o.w,h=o.h,m=30;c.clearRect(0,0,w,h);
+  function P(x,y){return[m+(x+6)/12*(w-2*m),h-m-(y+1.2)/(4.4)*(h-2*m)]}
+  c.strokeStyle=css('--line');c.lineWidth=1;var a=P(-6,0),b=P(6,0);c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);a=P(0,-1.2);b=P(0,3.2);c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.stroke();
+  c.fillStyle=css('--mute');c.font='11px sans-serif';[-6,-3,3,6].forEach(function(v){var p=P(v,0);c.fillText(v,p[0]-4,p[1]+13)});[1,2,3].forEach(function(v){var p=P(0,v);c.fillText(v,p[0]+4,p[1]+4)});
+  c.save();var tl=P(-6,3.2),br=P(6,-1.2);c.beginPath();c.rect(tl[0],tl[1],br[0]-tl[0],br[1]-tl[1]);c.clip();
+  ACT.forEach(function(A){c.strokeStyle=css(A[1]);[[A[2],[]],[A[3],[5,4]]].forEach(function(F){c.setLineDash(F[1]);c.lineWidth=2;c.beginPath();for(var x=-6;x<=6.001;x+=0.05){var y=F[0](x);var p=P(x,y);if(x===-6)c.moveTo(p[0],p[1]);else c.lineTo(p[0],p[1])}c.stroke()});c.setLineDash([])});c.restore();
+  var px=P(X,0);c.strokeStyle=css('--ink');c.globalAlpha=.4;c.beginPath();c.moveTo(px[0],P(0,-1.2)[1]);c.lineTo(px[0],P(0,3.2)[1]);c.stroke();c.globalAlpha=1;
+  ACT.forEach(function(A){var v=A[2](X);if(v>3.2){var q=P(X,3.2);c.fillStyle=css(A[1]);c.font='11px sans-serif';c.fillText('↑ '+v.toFixed(1),q[0]+5,q[1]+10);return}var p=P(X,v);c.fillStyle=css(A[1]);c.beginPath();c.arc(p[0],p[1],4,0,7);c.fill()});
+  $('acT').textContent=ACT.map(function(A){return (A[0]+'      ').slice(0,8)+'f(x) = '+A[2](X).toFixed(4)+'   f′(x) = '+A[3](X).toFixed(4)}).join('\n');
+}
+$('acX').oninput=acR;
+var DP={train:true,seed:1};var DPL=[5,8,8,2];
+function dpR(){var r=rng(DP.seed*37),pos=[],masks=[],svg='',W=420,H=260;
+  DPL.forEach(function(n,li){var col=[],mk=[];for(var i=0;i<n;i++){col.push([40+li*(W-80)/3,22+(H-44)*(i+0.5)/n]);mk.push(DP.train&&(li===1||li===2)?r()<0.5:false)}pos.push(col);masks.push(mk)});
+  for(var li=0;li<3;li++)pos[li].forEach(function(a,i){pos[li+1].forEach(function(b,j){var off=masks[li][i]||masks[li+1][j];if(off)return;svg+='<line x1="'+a[0]+'" y1="'+a[1]+'" x2="'+b[0]+'" y2="'+b[1]+'" stroke="'+css('--blue')+'" stroke-opacity=".35" stroke-width="1"/>'})});
+  pos.forEach(function(col,li){col.forEach(function(p,i){var off=masks[li][i];svg+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="9" fill="'+(off?css('--soft'):li===3?css('--orange'):css('--blue'))+'" stroke="'+(off?css('--line'):css('--ink'))+'" stroke-width="1"/>';
+    if(off)svg+='<text x="'+p[0]+'" y="'+(p[1]+4)+'" text-anchor="middle" font-size="12" fill="'+css('--bad')+'">✕</text>'})});
+  ['輸入','FC6','FC7','輸出'].forEach(function(t,li){svg+='<text x="'+(40+li*(W-80)/3)+'" y="'+(H-2)+'" text-anchor="middle" font-size="11" fill="'+css('--mute')+'">'+t+'</text>'});
+  $('dpS').innerHTML=svg;
+  var off=masks[1].concat(masks[2]).filter(Boolean).length;
+  $('dpT').innerHTML=DP.train?'<b>訓練模式</b>：這一次隨機關掉了 '+off+' / 16 個隱藏神經元（每個神經元各自有 50% 機率被關掉）。每處理一個 batch 就重新抽一次，所以每次訓練的都是「不同的子網路」。'
+    :'<b>測試模式</b>：所有神經元都打開。AlexNet 論文把輸出乘以 0.5 來補償；Keras、PyTorch 則用 inverted dropout，在訓練時就把保留的輸出 ×2，測試時不用再調整。';
+  $('dpTrain').classList.toggle('on',DP.train);$('dpTest').classList.toggle('on',!DP.train)}
+$('dpTrain').onclick=function(){DP.train=true;DP.seed++;dpR()};$('dpTest').onclick=function(){DP.train=false;dpR()};
+
+/* ---------- 5 程式碼 ---------- */
+function S(t){return '<span class="st">\''+t+'\'</span>'}function N(t){return '<span class="nm">'+t+'</span>'}function K(t){return '<span class="kw">'+t+'</span>'}function C(t){return '<span class="cm">'+t+'</span>'}
+var CODE={torch:[C('# ===== AlexNet 貓狗分類：PyTorch + Oxford-IIIT Pet + SGD ====='),
+K('import')+' torch, torch.nn '+K('as')+' nn',
+K('from')+' torch.utils.data '+K('import')+' DataLoader',
+K('from')+' torchvision '+K('import')+' datasets, transforms','',
+'USE_BN = '+N('False')+'      '+C('# True：卷積後加 BatchNorm（從頭訓練比較穩定）'),
+'device = '+S('cuda')+' '+K('if')+' torch.cuda.is_available() '+K('else')+' '+S('cpu'),'',
+C('# 1. 資料：一行下載，binary-category → 0 = Cat、1 = Dog'),
+'mean, std = ['+N(0.485)+', '+N(0.456)+', '+N(0.406)+'], ['+N(0.229)+', '+N(0.224)+', '+N(0.225)+']',
+'train_tf = transforms.Compose([transforms.Resize(('+N(256)+', '+N(256)+')), transforms.RandomCrop('+N(227)+'),',
+'                               transforms.RandomHorizontalFlip(), transforms.ToTensor(),',
+'                               transforms.Normalize(mean, std)])',
+'test_tf = transforms.Compose([transforms.Resize(('+N(256)+', '+N(256)+')), transforms.CenterCrop('+N(227)+'),',
+'                              transforms.ToTensor(), transforms.Normalize(mean, std)])',
+'train_ds = datasets.OxfordIIITPet('+S('./data')+', split='+S('trainval')+', target_types='+S('binary-category')+',',
+'                                  transform=train_tf, download='+N('True')+')',
+'test_ds = datasets.OxfordIIITPet('+S('./data')+', split='+S('test')+', target_types='+S('binary-category')+',',
+'                                 transform=test_tf, download='+N('True')+')',
+K('print')+'(train_ds.bin_classes, len(train_ds), len(test_ds))',
+'train_loader = DataLoader(train_ds, batch_size='+N(64)+', shuffle='+N('True')+', num_workers='+N(2)+')',
+'test_loader = DataLoader(test_ds, batch_size='+N(64)+', shuffle='+N('False')+', num_workers='+N(2)+')','',
+C('# 2. AlexNet（單 GPU 版）'),
+K('def')+' conv(cin, cout, k, s='+N(1)+', p='+N(0)+'):',
+'    layers = [nn.Conv2d(cin, cout, k, stride=s, padding=p)]',
+'    '+K('if')+' USE_BN: layers.append(nn.BatchNorm2d(cout))',
+'    '+K('return')+' layers + [nn.ReLU(inplace='+N('True')+')]','',
+'model = nn.Sequential(',
+'    *conv('+N(3)+', '+N(96)+', '+N(11)+', s='+N(4)+'),    nn.MaxPool2d('+N(3)+', '+N(2)+'),   '+C('# 55×55×96 → 27×27×96'),
+'    *conv('+N(96)+', '+N(256)+', '+N(5)+', p='+N(2)+'),   nn.MaxPool2d('+N(3)+', '+N(2)+'),   '+C('# 27×27×256 → 13×13×256'),
+'    *conv('+N(256)+', '+N(384)+', '+N(3)+', p='+N(1)+'),',
+'    *conv('+N(384)+', '+N(384)+', '+N(3)+', p='+N(1)+'),',
+'    *conv('+N(384)+', '+N(256)+', '+N(3)+', p='+N(1)+'),  nn.MaxPool2d('+N(3)+', '+N(2)+'),   '+C('# 13×13×256 → 6×6×256'),
+'    nn.Flatten(),                                                '+C('# 9216'),
+'    nn.Linear('+N(9216)+', '+N(4096)+'), nn.ReLU(inplace='+N('True')+'), nn.Dropout('+N(0.5)+'),  '+C('# FC6'),
+'    nn.Linear('+N(4096)+', '+N(4096)+'), nn.ReLU(inplace='+N('True')+'), nn.Dropout('+N(0.5)+'),  '+C('# FC7'),
+'    nn.Linear('+N(4096)+', '+N(1)+'),                                         '+C('# FC8（logit）'),
+').to(device)',
+K('print')+'(f'+S('參數量: {sum(p.numel() for p in model.parameters()):,}')+')','',
+C('# 3. SGD 訓練（AlexNet 論文設定）'),
+'optimizer = torch.optim.SGD(model.parameters(), lr='+N(0.01)+', momentum='+N(0.9)+', weight_decay='+N('5e-4')+')',
+'criterion = nn.BCEWithLogitsLoss()      '+C('# 內含 sigmoid'),
+K('for')+' epoch '+K('in')+' range('+N(30)+'):',
+'    model.train(); correct = total = '+N(0),
+'    '+K('for')+' x, y '+K('in')+' train_loader:',
+'        x, y = x.to(device), y.float().unsqueeze('+N(1)+').to(device)',
+'        out = model(x)',
+'        loss = criterion(out, y)',
+'        optimizer.zero_grad()',
+'        loss.backward()',
+'        optimizer.step()',
+'        correct += ((out &gt; '+N(0)+').float() == y).sum().item(); total += len(y)',
+'    train_acc = correct / total',
+'    model.eval(); correct = '+N(0),
+'    '+K('with')+' torch.no_grad():',
+'        '+K('for')+' x, y '+K('in')+' test_loader:',
+'            pred = (model(x.to(device)) &gt; '+N(0)+').long().squeeze('+N(1)+').cpu()',
+'            correct += (pred == y).sum().item()',
+'    '+K('print')+'(f'+S('epoch {epoch+1:2d}: train acc {train_acc:.3f}, test acc {correct/len(test_ds):.3f}')+')']};
+var OUT={torch:'[\'Cat\', \'Dog\'] 3680 3669\n參數量: 58,285,441\nepoch  1: train acc …, test acc …\nepoch  2: train acc …, test acc …\n…\n'+
+ '<span class="cm"># 每個 epoch 更新 ⌈3680 ÷ 64⌉ = 58 次</span>\n<span class="cm"># USE_BN = True 時參數量是 58,288,193（多了 BatchNorm 的 2,752 個）</span>\n<span class="cm"># test acc 若一直停在 0.68 左右 = 只會全部猜狗</span>'};
+var CD='torch';
+[['torch','PyTorch + OxfordIIITPet + SGD']].forEach(function(t){var b=document.createElement('button');b.textContent=t[1];b.dataset.k=t[0];b.onclick=function(){CD=t[0];cdR()};$('cdT').appendChild(b)});
+function cdR(){[].forEach.call($('cdT').children,function(x){x.classList.toggle('on',x.dataset.k===CD)});
+  $('cdC').innerHTML=CODE[CD].map(function(l){return '<span class="ln">'+(l||' ')+'</span>'}).join('');$('cdO').innerHTML=OUT[CD];$('cdCopy').textContent='複製程式碼'}
+$('cdCopy').onclick=function(){var t=$('cdC').innerText.replace(/ /g,' ');var done=function(){$('cdCopy').textContent='✔ 已複製'};
+  try{navigator.clipboard.writeText(t).then(done,function(){fb()})}catch(e){fb()}
+  function fb(){var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done()}catch(e){}document.body.removeChild(ta)}};
+cdR();
+
+/* ---------- 6 小測驗 ---------- */
+var QZ=[
+ {q:'AlexNet 在哪一年的 ImageNet 競賽中大幅領先其他方法？',o:['2012 年','1998 年','2006 年','2017 年'],a:0,e:'2012 年 ILSVRC，top-5 錯誤率 15.3%，第二名 26.2%。',h:'就是深度學習開始爆紅的那一年。'},
+ {q:'輸入 227×227，Conv1 用 11×11 濾波器、步長 4、不補零，輸出邊長是多少？',o:['55','56','57','217'],a:0,e:'⌊(227 − 11 + 0) / 4⌋ + 1 = 54 + 1 = 55。',h:'套公式 O = ⌊(W − F + 2P)/S⌋ + 1。'},
+ {q:'AlexNet 大部分的「參數」集中在哪裡？',o:['全連接層（尤其是 FC6）','第一層卷積','池化層','輸入層'],a:0,e:'FC6 一層就有約 3,775 萬個參數；卷積層因為共用權重，參數相對少。',h:'回到第 2 節看參數量長條圖。'},
+ {q:'池化層有幾個需要學習的參數？',o:['0 個','每個視窗 9 個','和卷積層一樣多','每個通道 1 個'],a:0,e:'最大池化只是取最大值，沒有權重要學。',h:'池化只做「取最大值」這個動作。'},
+ {q:'AlexNet 用 ReLU 取代 tanh / sigmoid 的主要好處是？',o:['正區間的梯度固定為 1，不會飽和，訓練更快','輸出永遠介於 0 和 1','可以減少參數量','不需要反向傳播'],a:0,e:'sigmoid、tanh 在 |x| 大時梯度趨近 0；ReLU 在 x &gt; 0 時梯度是 1。',h:'第 4 節把 x 拉到 5 看看三個函數的導數。'},
+ {q:'Dropout 在「訓練時」做什麼？',o:['隨機把一部分神經元的輸出設為 0','刪除一部分訓練資料','把學習率減半','永久移除一半的權重'],a:0,e:'每個 batch 隨機關掉神經元，測試時全部打開，用來減少過擬合。',h:'第 4 節右邊的網路圖，打叉的是什麼？'},
+ {q:'OxfordIIITPet 設定 target_types=\'binary-category\' 後，標籤代表什麼？',o:['0 = Cat、1 = Dog 的二元標籤','37 個品種的編號','每張圖的切割遮罩','圖片的長寬'],a:0,e:'binary-category 把 37 個品種合併成貓、狗兩類；\'category\' 才是 37 個品種。',h:'看第 1 節最下面那一行。'},
+ {q:'只用約 3,700 張圖從頭訓練 5,800 萬個參數的 AlexNet，最需要擔心什麼？',o:['過擬合：訓練準確率高、驗證準確率低','GPU 一定放不下','參數太少學不會','驗證集比訓練集大'],a:0,e:'資料少、參數多就容易死背訓練資料，所以要用資料擴增、Dropout，或改用遷移學習。',h:'參數數量遠大於資料量時會發生什麼事？'}];
+var QS={ans:[],score:0,streak:0};
+var PRAISE=['Excellent！完全正確！','太好了，觀念很清楚！','答對了！你的神經元連得很好。','漂亮！','正確！繼續保持！'];
+function qBuild(){
+  QS={ans:new Array(QZ.length).fill(-1),score:0,streak:0};var box=$('quiz');box.innerHTML='';$('qScore').textContent='';$('qAgain').style.display='none';
+  QZ.forEach(function(z,qi){var d=document.createElement('div');d.className='q';d.innerHTML='<div class="qt">'+(qi+1)+'. '+z.q+'</div><div class="opts"></div><div class="ex"></div>';
+    var ord=z.o.map(function(_,i){return i});for(var i=ord.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=ord[i];ord[i]=ord[j];ord[j]=t}
+    ord.forEach(function(oi){var b=document.createElement('button');b.innerHTML=z.o[oi];b.dataset.oi=oi;b.onclick=function(){qAnswer(qi,oi,d)};d.querySelector('.opts').appendChild(b)});
+    box.appendChild(d)});
+}
+function qAnswer(qi,oi,d){
+  if(QS.ans[qi]>=0)return;QS.ans[qi]=oi;var z=QZ[qi],ok=oi===z.a;
+  [].forEach.call(d.querySelectorAll('.opts button'),function(b){var k=+b.dataset.oi;b.disabled=true;b.style.opacity=1;if(k===z.a)b.classList.add('right');if(k===oi&&!ok)b.classList.add('wrong')});
+  var ex=d.querySelector('.ex');ex.innerHTML=(ok?'<span class="ok">✔ 正確！</span>':'<span class="bad">✘ 不對喔。</span>')+z.e;ex.classList.add('show');
+  if(ok){QS.score++;QS.streak++;AV2.mood('smile',QS.streak>=3?'連續答對 '+QS.streak+' 題！你可以去參加 ImageNet 了！':PRAISE[Math.floor(Math.random()*PRAISE.length)])}
+  else{QS.streak=0;AV2.mood('frown',z.h)}
+  if(QS.ans.every(function(a){return a>=0})){$('qScore').textContent='得分：'+QS.score+' / '+QZ.length;$('qAgain').style.display='';
+    setTimeout(function(){var s=QS.score,n=QZ.length,t;
+      if(s===n)t='滿分！AlexNet 的架構你已經完全掌握了。Wonderful！';
+      else if(s>=n-2)t='很不錯！錯的題目看看解釋，再回去玩一下對應的那一節。';
+      else t='再加油！建議先回到第 2 節，一層一層把尺寸和參數算一遍。';
+      AV2.mood(s>=n-2?'smile':'frown',t,true)},3300)}
+}
+$('qAgain').onclick=function(){qBuild();AV2.mood('','新的一輪！選項順序已經打亂囉。')};
+qBuild();
+
+acR();dpR();
+function redrawAll(){$('augSrc').style.height=$('augSrc').clientWidth+'px';augR();arR();cvRender();acR();dpR()}
+var rT;window.addEventListener('resize',function(){clearTimeout(rT);rT=setTimeout(redrawAll,150)});
+if(window.matchMedia)window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redrawAll);
+</script>
+</body>
+</html>

@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VGG 互動教學</title>
+<style>
+:root{--bg:#f7f6f2;--card:#fff;--ink:#1d2330;--mute:#667085;--line:#e3e1da;--ok:#1f9d6b;--bad:#d6334f;
+  --blue:#2b6cb0;--orange:#dd6b20;--soft:#f1efe8;--hl:#fff1e3;
+  --s8:#d6334f;--s32:#e08a1e;--s128:#1f9d6b;--s512:#2b6cb0;--sgd:#7b4fc9;}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --blue:#6aa8ff;--orange:#ff9d57;--soft:#252a35;--hl:#3a2c1f;
+  --s8:#ff6f86;--s32:#ffb35c;--s128:#4fd19d;--s512:#6aa8ff;--sgd:#b493ff;}}
+:root[data-theme="dark"]{--bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --blue:#6aa8ff;--orange:#ff9d57;--soft:#252a35;--hl:#3a2c1f;
+  --s8:#ff6f86;--s32:#ffb35c;--s128:#4fd19d;--s512:#6aa8ff;--sgd:#b493ff;}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.65}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.9rem;line-height:1.3}
+header .sub{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 20px 22px;margin:18px 0}
+.card h2{margin:0 0 12px;font-size:1.35rem;display:flex;align-items:center;gap:10px}
+.num{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:var(--blue);color:#fff;font-size:1rem;flex:none}
+p{margin:.4em 0 .7em}
+.mute{color:var(--mute)}
+.note{background:var(--soft);border-left:4px solid var(--blue);border-radius:8px;padding:10px 14px;margin:12px 0}
+.note.warn{border-left-color:var(--orange)}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+.grid2>*{min-width:0}
+.panel{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--card);min-width:0}
+.panel h3{margin:0 0 8px;font-size:1.05rem}
+button{font:inherit;border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:10px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--blue)}
+button.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+button:disabled{opacity:.45;cursor:default}
+.ctrls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{padding:4px 10px;border-radius:999px;font-size:.92rem}
+label{cursor:pointer}
+input[type=range]{width:100%;accent-color:var(--blue)}
+canvas{display:block;width:100%}
+.big{font-size:1.9rem;font-weight:700;line-height:1.2}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0}
+.stat{background:var(--soft);border-radius:10px;padding:10px 12px;min-width:0}
+.stat .k{font-size:.85rem;color:var(--mute)}
+.stat .v{font-size:1.35rem;font-weight:700}
+.formula{font-family:"Cambria Math","Times New Roman",serif;font-size:1.15rem;background:var(--soft);border-radius:10px;padding:8px 14px;display:inline-block;margin:6px 0;max-width:100%;overflow-x:auto}
+/* cards (digit) */
+.deck{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.dc{position:relative;width:44px;height:44px;border-radius:6px;border:2px solid transparent;transition:opacity .3s,transform .3s,border-color .3s}
+.dc canvas{width:100%;height:100%;border-radius:4px;image-rendering:pixelated}
+.dc .tag{position:absolute;right:-6px;top:-8px;font-size:.7rem;color:#fff;border-radius:999px;padding:0 5px;line-height:1.4}
+.dc.used{opacity:.3}
+.dc.cur{transform:translateY(-4px)}
+.boxes{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;min-height:70px}
+.box{border:2px dashed var(--line);border-radius:10px;padding:6px 8px 8px;animation:pop .35s ease}
+.box .bt{font-size:.8rem;color:var(--mute);margin-bottom:4px}
+.box .row{display:flex;gap:4px;flex-wrap:wrap}
+.box .dc{width:32px;height:32px;border:none}
+@keyframes pop{from{transform:scale(.85);opacity:0}to{transform:none;opacity:1}}
+.msg{min-height:1.6em;font-weight:600}
+/* step animation */
+.stepbar{height:6px;background:var(--soft);border-radius:999px;overflow:hidden;margin:6px 0 10px}
+.stepbar>div{height:100%;background:var(--orange);transition:width .3s}
+.explain{background:var(--hl);border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-height:4.2em}
+.explain b{color:var(--orange)}
+.batchrow{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.bi{display:flex;flex-direction:column;align-items:center;width:58px;font-size:.78rem}
+.bi canvas{width:52px;height:52px;border-radius:6px;image-rendering:pixelated}
+.bi .pr{min-height:2.6em;text-align:center;line-height:1.3;opacity:0;transition:opacity .3s}
+.bi .pr.show{opacity:1}
+.ok{color:var(--ok)}.bad{color:var(--bad)}
+.tensor{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:6px 0;opacity:.15;transition:opacity .3s}
+.tensor.show{opacity:1}
+.stack{position:relative;width:86px;height:70px;flex:none}
+.stack span{position:absolute;width:52px;height:52px;border:2px solid var(--blue);background:var(--card);border-radius:4px}
+.code{border:1px solid #2e3441;background:#1b1f27;color:#d7dce5;border-radius:10px;padding:10px 0;font-family:Consolas,"Courier New",monospace;font-size:.88rem;overflow-x:auto;margin:0}
+.code .ln{display:block;padding:1px 14px;white-space:pre;border-left:4px solid transparent}
+.code .ln.hl{background:rgba(255,157,87,.18);border-left-color:#ff9d57}
+.code .cm{color:#8b95a7}.code .kw{color:#c792ea}.code .st{color:#c3e88d}.code .nm{color:#f78c6c}
+.out{background:#11141a;color:#b9f0c9;border-radius:10px;padding:10px 14px;font-family:Consolas,"Courier New",monospace;font-size:.86rem;white-space:pre;overflow-x:auto;min-height:3em;margin:8px 0 0}
+.out .cm{color:#8b95a7}
+.out .w{color:#ffcf6e}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.9rem;margin:6px 0}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:14px;height:4px;border-radius:2px}
+.tabs{display:flex;gap:6px;margin-bottom:8px}
+.frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;line-height:1.1;margin:0 2px}
+.frac>span:first-child{border-bottom:1.5px solid currentColor;padding:0 3px}
+/* quiz */
+.q{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:10px 0}
+.q .qt{font-weight:600;margin-bottom:6px}
+.q .opts{display:grid;gap:6px}
+.q .opts button{text-align:left;background:var(--card)}
+.q .opts button.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--card))}
+.q .opts button.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,var(--card))}
+.q .ex{margin-top:8px;font-size:.93rem;display:none}
+.q .ex.show{display:block}
+.score{font-size:1.2rem;font-weight:700;margin:10px 0}
+footer{text-align:center;color:var(--mute);font-size:.9rem;margin-top:30px}
+/* avatar */
+.avwrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.av{width:100%;max-width:220px;cursor:pointer;user-select:none}
+.av svg{width:100%;display:block;overflow:visible;background:none}
+.av .bodyg{animation:bob 3.2s ease-in-out infinite;transform-origin:100px 200px}
+.av .eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+.av .hairL{animation:sway 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:top center}
+.av .hairR{animation:sway 3.2s ease-in-out infinite reverse;transform-box:fill-box;transform-origin:top center}
+.av .brow{transition:transform .3s;transform-box:fill-box}
+.av .browL{transform-origin:right center}.av .browR{transform-origin:left center}
+.av .mo{opacity:0;transition:opacity .25s}.av .mo.n{opacity:1}
+.av .blush,.av .sweat,.av .spark{opacity:0;transition:opacity .3s}
+.av.smile .mo.n,.av.frown .mo.n{opacity:0}
+.av.smile .mo.s{opacity:1}.av.frown .mo.f{opacity:1}
+.av.smile .blush{opacity:.55}.av.smile .spark{opacity:1}.av.frown .sweat{opacity:.9}
+.av.smile .brow{transform:translateY(-3px)}
+.av.frown .browL{transform:rotate(14deg) translateY(2px)}.av.frown .browR{transform:rotate(-14deg) translateY(2px)}
+.av.hop svg{animation:hop .7s ease}
+.av.shake svg{animation:shake .55s ease}
+.av .spark{animation:twinkle 1s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}
+@keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+@keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.bubble{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.95rem;margin-bottom:10px;min-height:2.6em;max-width:260px;text-align:center;transition:border-color .3s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--line);border-bottom:0}
+.bubble.good{border-color:var(--ok)}.bubble.good::after{border-top-color:var(--ok)}
+.bubble.bad{border-color:var(--bad)}.bubble.bad::after{border-top-color:var(--bad)}
+.intro{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:center}
+.intro>*,.qgrid>*{min-width:0}
+.intro .avwrap{flex-direction:row;gap:10px}.intro .bubble{flex:1;margin:0}.intro .bubble::after{display:none}.intro .av{width:125px;flex:none}
+.qgrid{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:18px;align-items:start}
+.qgrid .avwrap{position:sticky;top:12px}
+/* badge (text only) */
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink)}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute)}
+@media (max-width:860px){.grid2{grid-template-columns:minmax(0,1fr)}
+  .intro,.qgrid{grid-template-columns:minmax(0,1fr)}.intro .avwrap{flex-direction:column}.intro .bubble{margin-bottom:10px}.intro .bubble::after{display:block}.intro .av,.qgrid .av{width:auto;max-width:140px}.qgrid .avwrap{position:static;order:-1}}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}header h1{font-size:1.5rem}}
+</style>
+<style>
+.tree{font-family:Consolas,"Courier New",monospace;font-size:.95rem;line-height:1.9;background:var(--soft);border-radius:10px;padding:10px 14px;overflow-x:auto;white-space:pre}
+.tree .nd{cursor:pointer;border-radius:6px;padding:1px 6px}
+.tree .nd:hover,.tree .nd.on{background:var(--hl);outline:1px solid var(--orange)}
+.tree .ct{color:var(--mute)}
+.archwrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--card);padding:6px 0}
+.archwrap svg{display:block;min-width:1040px;width:100%;height:auto}
+.blk{cursor:pointer}
+.blk:hover .fr{stroke:var(--orange);stroke-width:2.2}
+.blk.on .fr{stroke:var(--orange);stroke-width:3}
+.detail{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;margin-top:12px}
+.detail>*{min-width:0}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;font-size:.95rem}
+.kv b{color:var(--mute);font-weight:500}
+.cv4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.cv4>div{min-width:0;text-align:center;font-size:.88rem}
+.cv4 canvas{width:100%;image-rendering:pixelated;border-radius:6px;border:1px solid var(--line);cursor:crosshair}
+.kgrid{display:inline-grid;grid-template-columns:repeat(3,38px);gap:3px;margin:4px 0}
+.kgrid span{background:var(--soft);border-radius:5px;text-align:center;font-family:Consolas,monospace;padding:4px 0;font-size:.9rem}
+.calc{font-family:Consolas,"Courier New",monospace;font-size:.84rem;background:var(--soft);border-radius:10px;padding:8px 12px;overflow-x:auto;white-space:pre;min-height:3em}
+.aug{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.aug canvas{width:100%;border-radius:8px;border:1px solid var(--line)}
+.copy{position:absolute;top:6px;right:8px;z-index:2;font-size:.8rem;padding:2px 10px;background:#2a303c;color:#d7dce5;border-color:#3a4150}
+.codewrap{position:relative}
+.codewrap .code{max-height:560px}
+@media (max-width:860px){.detail{grid-template-columns:minmax(0,1fr)}.cv4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+<style>
+.archwrap svg{min-width:1320px}
+.rf{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:16px}
+.rf>*{min-width:0}
+.blocks{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.blocks div{flex:1 1 90px;min-width:0;border-radius:10px;padding:8px 10px;font-size:.85rem;border:2px solid var(--line);text-align:center;transition:all .3s}
+.blocks div b{display:block;font-size:.95rem}
+.blocks div.tr{background:color-mix(in srgb,var(--orange) 18%,var(--card));border-color:var(--orange)}
+.blocks div.fz{background:var(--soft);color:var(--mute)}
+table.cmp{border-collapse:collapse;width:100%;min-width:560px;font-size:.95rem}
+table.cmp th,table.cmp td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left}
+table.cmp th{background:var(--soft)}
+.tw{overflow-x:auto}
+@media (max-width:860px){.rf{grid-template-columns:minmax(0,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="pu-hd">
+  <div class="pu-hd-main">
+    <h1>VGG：只用 3×3 卷積，把網路疊得又深又整齊</h1>
+    <p class="sub">工程數學 ・ 互動教學：VGG16 / VGG19 架構，以 Oxford-IIIT Pet 貓狗分類為例</p>
+  </div>
+  <div class="pu-badge"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</header>
+
+<!-- 0 -->
+<section class="card">
+  <h2><span class="num">0</span>一句話直覺</h2>
+  <div class="intro">
+    <div>
+      <p><b>VGG</b> 是 2014 年英國牛津大學 <b>Visual Geometry Group</b> 的 Karen Simonyan 與 Andrew Zisserman 提出的卷積神經網路。它在 ILSVRC 2014 拿下定位（localization）第一、分類第二。</p>
+      <p>VGG 的設計哲學只有一句話：<b>「全部用 3×3 卷積，一個區塊一個區塊往下疊；每池化一次，尺寸減半、通道加倍。」</b>規則簡單到幾乎可以背出整個網路。</p>
+      <div class="stats">
+        <div class="stat"><div class="k">輸入</div><div class="v">224×224×3</div></div>
+        <div class="stat"><div class="k">卷積核</div><div class="v">全部 3×3</div></div>
+        <div class="stat"><div class="k">VGG16 的 16</div><div class="v">13 卷積 + 3 全連接</div></div>
+        <div class="stat"><div class="k">參數量（ImageNet 版）</div><div class="v">1.38 億</div></div>
+      </div>
+      <p class="mute">本頁用 PyTorch 內建的 <code>torchvision.datasets.OxfordIIITPet</code>（巧的是，它也是牛津 VGG 團隊整理的），設定 <code>target_types='binary-category'</code> 做貓狗二元分類。因為訓練圖只有約 3,700 張，實務上會用 VGG16 做「遷移學習」，第 4、5 節會說明。</p>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub1">Hello！我是 Simonyan 老師，VGG 是我和指導教授 Zisserman 一起設計的。點我聽故事！</div><div class="av" id="av1" title="點我聽故事"></div></div>
+  </div>
+</section>
+
+<!-- 1 -->
+<section class="card">
+  <h2><span class="num">1</span>資料集：Oxford-IIIT Pet（torchvision 內建）</h2>
+  <div class="grid2">
+    <div class="panel">
+      <h3>一行下載，點下面的項目看說明</h3>
+      <pre class="code" style="margin-bottom:8px"><span class="ln">ds = datasets.OxfordIIITPet(<span class="st">'./data'</span>, split=<span class="st">'trainval'</span>,</span><span class="ln">        target_types=<span class="st">'binary-category'</span>, download=<span class="nm">True</span>)</span></pre>
+<div class="tree" id="tree"><span class="nd" data-k="root">📦 data/oxford-iiit-pet/</span>
+ ├─ <span class="nd" data-k="img">📁 images/</span>              <span class="ct">7,349 張（37 個品種）</span>
+ └─ <span class="nd" data-k="ann">📁 annotations/</span>
+     ├─ <span class="nd" data-k="tv">📄 trainval.txt</span>     <span class="ct">3,680 張</span>
+     └─ <span class="nd" data-k="te">📄 test.txt</span>         <span class="ct">3,669 張</span>
+ <span class="nd" data-k="bin">🏷️ target_types='binary-category'</span>  <span class="ct">→ 0 = Cat、1 = Dog</span></div>
+      <div class="note" id="treeNote"></div>
+      <div class="ctrls"><span class="mute">batch size：</span><div class="chips" id="dsB"></div></div>
+      <div class="stats">
+        <div class="stat"><div class="k">訓練 3,680 張：每個 epoch 更新次數</div><div class="v" id="dsTr"></div></div>
+        <div class="stat"><div class="k">測試 3,669 張：批次數</div><div class="v" id="dsVa"></div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>資料擴增（data augmentation）：從 AlexNet 沿用的技巧</h3>
+      <p>每張圖先縮放成 256×256，訓練時<b>隨機裁切</b>出一塊區域，並<b>隨機左右翻轉</b>。同一張貓，每個 epoch 看到的都不太一樣，等於免費多出很多訓練資料。</p>
+      <div class="ctrls"><button id="augBtn">🎲 再產生 6 個隨機版本</button><button id="augAni">🐱 / 🐶 切換</button></div>
+      <div class="ctrls"><span class="mute">裁切大小：</span><div class="chips" id="augSz"></div></div>
+      <div class="grid2" style="gap:10px">
+        <div><canvas id="augSrc" style="width:100%;border-radius:8px;border:1px solid var(--line)"></canvas><div class="mute" style="font-size:.85rem;text-align:center" id="augCap">原圖 256×256（編號框＝6 個裁切位置）</div></div>
+        <div class="aug" id="augOut"></div>
+      </div>
+      <p style="font-size:.92rem;margin-top:8px">看翻轉：原圖的動物<b>向右歪 30°</b>、太陽在<b>左上角</b>；有標「翻轉」的版本會變成向左歪、太陽跑到右邊。看裁切：每個版本只保留框內的部分，有時切掉耳朵、有時切掉下巴。</p>
+      <p class="mute" style="font-size:.88rem">註：本頁的貓狗都是程式畫的示意圖，實際資料集是真實照片（大小不一，讀取時會統一縮放）。</p>
+    </div>
+  </div>
+</section>
+
+
+
+<!-- 2 -->
+<section class="card">
+  <h2><span class="num">2</span>VGG 的核心想法：為什麼只用 3×3？</h2>
+  <p>AlexNet 第一層用 11×11 的大濾波器。VGG 發現：<b>把幾層 3×3 疊起來，能「看到」一樣大的範圍（感受野，receptive field），參數卻更少、非線性更多</b>。</p>
+  <div class="ctrls"><span class="mute">疊幾層 3×3：</span><div class="chips" id="rfN"></div><span class="mute" style="margin-left:12px">通道數 C：</span><div class="chips" id="rfC"></div></div>
+  <div class="rf">
+    <div class="panel"><svg id="rfS" viewBox="0 0 520 300" style="width:100%;height:auto;display:block"></svg>
+      <p class="mute" style="font-size:.88rem;margin:4px 0 0">由上往下看：最上面 1 個輸出點，每往下一層，要看的範圍左右各多 1 格。</p></div>
+    <div class="panel">
+      <div class="stats">
+        <div class="stat"><div class="k">感受野</div><div class="v" id="rfR"></div></div>
+        <div class="stat"><div class="k">ReLU（非線性）次數</div><div class="v" id="rfRelu"></div></div>
+      </div>
+      <div id="rfP"></div>
+      <div class="note" id="rfNote"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="card">
+  <h2><span class="num">3</span>VGG 架構總覽：點任一層看細節</h2>
+  <div class="ctrls">
+    <span class="mute">版本：</span><div class="chips" id="arV"></div>
+    <span class="mute" style="margin-left:10px">最後一層：</span><div class="chips" id="arOut"></div>
+  </div>
+  <div class="ctrls">
+    <button id="arReset">⟲ 重來</button><button id="arPrev">◀ 上一層</button><button id="arNext">下一層 ▶</button><button id="arBlk">跳到下一個區塊 ⏭</button><button id="arPlay">▶ 自動播放</button>
+  </div>
+  <div class="stepbar"><div id="arBar"></div></div>
+  <div class="archwrap"><svg id="arch" viewBox="0 0 1320 352"></svg></div>
+  <div class="detail">
+    <div class="panel">
+      <h3 id="dtTitle"></h3>
+      <div class="explain" id="dtExp"></div>
+      <div class="kv" id="dtKV" style="margin-top:10px"></div>
+    </div>
+    <div class="panel">
+      <h3>輸出尺寸與參數怎麼算？</h3>
+      <div id="dtF"></div>
+    </div>
+  </div>
+  <div class="grid2" style="margin-top:14px">
+    <div class="panel"><h3>每個區塊的參數量</h3><canvas id="barP" style="height:250px"></canvas></div>
+    <div class="panel"><h3>每個區塊的乘加運算次數（每張圖）</h3><canvas id="barM" style="height:250px"></canvas></div>
+  </div>
+  <div class="note" id="arNote"></div>
+</section>
+
+<!-- 4 -->
+<section class="card">
+  <h2><span class="num">4</span>只有約 3,700 張圖怎麼辦？遷移學習（transfer learning）</h2>
+  <div class="grid2">
+    <div class="panel">
+      <p>從頭訓練 1.3 億個參數，約 3,700 張圖遠遠不夠。好消息是：VGG16 已經在 ImageNet 的 120 多萬張圖上訓練過，前面的卷積區塊早就學會辨識邊緣、紋理、眼睛、毛髮這些<b>通用特徵</b>。我們只要把它當成「特徵擷取器」，換上新的貓狗分類頭就好。</p>
+      <div class="ctrls"><span class="mute">訓練方式：</span><div class="chips" id="tlM"></div></div>
+      <div class="blocks" id="tlB"></div>
+      <div class="stats">
+        <div class="stat"><div class="k">要訓練的參數</div><div class="v" id="tlT"></div></div>
+        <div class="stat"><div class="k">凍結（不更新）的參數</div><div class="v" id="tlF"></div></div>
+      </div>
+      <div class="explain" id="tlE"></div>
+    </div>
+    <div class="panel tw">
+      <h3>VGG16 與 AlexNet 比一比</h3>
+      <table class="cmp">
+        <tr><th></th><th>AlexNet</th><th>VGG16</th></tr>
+        <tr><td>提出年份</td><td>2012</td><td>2014</td></tr>
+        <tr><td>有權重的層數</td><td>8（5 卷積 + 3 全連接）</td><td>16（13 卷積 + 3 全連接）</td></tr>
+        <tr><td>卷積核大小</td><td>11×11、5×5、3×3 混用</td><td>全部 3×3</td></tr>
+        <tr><td>池化</td><td>3×3、步長 2（重疊）</td><td>2×2、步長 2</td></tr>
+        <tr><td>輸入尺寸</td><td>227×227×3</td><td>224×224×3</td></tr>
+        <tr><td>參數量（1000 類）</td><td>約 6,238 萬</td><td id="cmpP"></td></tr>
+        <tr><td>乘加運算（每張圖）</td><td>約 11.4 億</td><td id="cmpM"></td></tr>
+        <tr><td>ImageNet top-5 錯誤率</td><td>15.3%（2012 競賽）</td><td>7.3%（2014 競賽）</td></tr>
+      </table>
+      <p style="font-size:.93rem;margin-top:10px">VGG 更深、更準，但參數是 AlexNet 的兩倍多、運算量是十幾倍。它結構規則、特徵好用，到今天仍常被拿來當遷移學習的骨幹或教學範例。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="card">
+  <h2><span class="num">5</span>動手做：用 Oxford-IIIT Pet 訓練 VGG16（PyTorch，Colab 可直接執行）</h2>
+  <div class="tabs" id="cdT" style="flex-wrap:wrap"></div>
+  <div class="grid2">
+    <div class="codewrap"><button class="copy" id="cdCopy">複製程式碼</button><pre class="code" id="cdC"></pre></div>
+    <div>
+      <div class="mute">執行時你會看到（參數量已實測，與第 3、4 節一致）：</div>
+      <div class="out" id="cdO" style="max-height:560px"></div>
+      <div class="note" id="cdN"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 6 -->
+<section class="card">
+  <h2><span class="num">6</span>觀念小測驗</h2>
+  <div class="qgrid">
+    <div><div id="quiz"></div><div class="score" id="qScore"></div><button id="qAgain" style="display:none">再做一次</button></div>
+    <div class="avwrap"><div class="bubble" id="bub2">來考考你！答對我會笑，答錯我會皺眉喔。</div><div class="av" id="av2"></div></div>
+  </div>
+</section>
+
+<footer>VGG 互動教學 ・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+
+<script>
+var $=function(id){return document.getElementById(id)};
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
+function rng(seed){var a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function fmt(n){return Math.round(n).toLocaleString('en-US')}
+function setupCanvas(cv,h){var dpr=window.devicePixelRatio||1;var w=cv.clientWidth||300;h=h||cv.clientHeight;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);var c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);return {c:c,w:w,h:h}}
+function wan(n){return n>=1e8?(n/1e8).toFixed(2)+' 億':n>=1e4?(n/1e4).toFixed(n>=1e6?0:1)+' 萬':fmt(n)}
+
+var SIMONYAN_SVG='<svg viewBox="0 0 200 230" aria-label="Simonyan老師動畫"><g class="bodyg">'+
+'<path d="M14 232 Q20 166 100 156 Q180 166 186 232 Z" fill="#3b3e44"/>'+
+'<path d="M80 158 L100 200 L120 158 Z" fill="#e4def3"/>'+
+'<path d="M86 162 L100 192 M92 160 L101 180 M114 162 L100 192 M108 160 L99 180" stroke="#b9afdc" stroke-width="1.4"/>'+
+'<path d="M79 152 L99 172 L91 184 L72 162 Z" fill="#efeaf8" stroke="#cfc6e6" stroke-width="1"/>'+
+'<path d="M121 152 L101 172 L109 184 L128 162 Z" fill="#efeaf8" stroke="#cfc6e6" stroke-width="1"/>'+
+'<path d="M74 164 L100 212 L126 164" stroke="#2c2f34" stroke-width="5" fill="none"/>'+
+'<path d="M80 160 Q84 200 92 232 M120 160 Q116 200 108 232" stroke="#d3d6db" stroke-width="2.4" fill="none"/>'+
+'<rect x="84" y="130" width="32" height="32" rx="10" fill="#e2b89c"/>'+
+'<ellipse cx="66" cy="104" rx="6" ry="10.5" fill="#e2b89c"/><ellipse cx="134" cy="104" rx="6" ry="10.5" fill="#e2b89c"/>'+
+'<path d="M67 98 Q66 58 100 58 Q134 58 133 98 Q132 128 117 140 Q100 149 83 140 Q68 128 67 98 Z" fill="#f0c8ad"/>'+
+'<path d="M72 116 Q76 134 90 142 Q100 146 110 142 Q124 134 128 116 Q120 132 100 134 Q80 132 72 116 Z" fill="#7a7480" opacity=".16"/>'+
+'<ellipse class="blush" cx="80" cy="117" rx="7" ry="4.5" fill="#f08080"/><ellipse class="blush" cx="120" cy="117" rx="7" ry="4.5" fill="#f08080"/>'+
+'<path d="M66 94 Q61 60 80 48 Q99 38 121 46 Q140 55 134 94 Q131 76 123 70 Q113 64 100 65 Q86 65 77 71 Q69 78 66 94 Z" fill="#221f1e"/>'+
+'<path d="M80 52 Q98 43 118 50" stroke="#3d3936" stroke-width="2" fill="none" stroke-linecap="round"/>'+
+'<g class="hairL"><path d="M66 96 Q63 86 67 78 L71 82 Q69 88 70 96 Z" fill="#221f1e"/></g>'+
+'<g class="hairR"><path d="M134 96 Q137 86 133 78 L129 82 Q131 88 130 96 Z" fill="#221f1e"/></g>'+
+'<path class="brow browL" d="M75 86 Q84 81 94 85" stroke="#1e1b1a" stroke-width="3.8" fill="none" stroke-linecap="round"/>'+
+'<path class="brow browR" d="M106 85 Q116 81 125 86" stroke="#1e1b1a" stroke-width="3.8" fill="none" stroke-linecap="round"/>'+
+'<g class="eyes"><ellipse cx="85" cy="96" rx="4.6" ry="3" fill="#fff"/><ellipse cx="115" cy="96" rx="4.6" ry="3" fill="#fff"/>'+
+'<circle cx="85.5" cy="96" r="2.5" fill="#4a3426"/><circle cx="115.5" cy="96" r="2.5" fill="#4a3426"/>'+
+'<circle cx="86.3" cy="95.2" r=".8" fill="#fff"/><circle cx="116.3" cy="95.2" r=".8" fill="#fff"/></g>'+
+'<path d="M79.5 92.5 Q85 90 90.5 92.5 M109.5 92.5 Q115 90 120.5 92.5" stroke="#b9866c" stroke-width="1.1" fill="none"/>'+
+'<path d="M100 97 Q96 113 98 119 Q103 123 108 119" stroke="#c39073" stroke-width="2.3" fill="none" stroke-linecap="round"/>'+
+'<path class="mo n" d="M90 129 Q100 131 110 128" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>'+
+'<path class="mo s" d="M87 125 Q100 140 113 125 Q100 130 87 125 Z" fill="#9b3a2c" stroke="#8a4a3a" stroke-width="1.5" stroke-linejoin="round"/>'+
+'<path class="mo f" d="M89 133 Q100 125 111 133" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>'+
+'<path class="sweat" d="M138 72 Q143 82 138 86 Q133 82 138 72 Z" fill="#7cc3f0"/>'+
+'<text class="spark" x="30" y="44" font-size="18" fill="#f0b400">✦</text><text class="spark" x="160" y="40" font-size="14" fill="#f0b400">✦</text><text class="spark" x="170" y="96" font-size="11" fill="#f0b400">✦</text>'+
+'</g></svg>';
+function makeAvatar(el,bubble){
+  el.innerHTML=SIMONYAN_SVG;var tm=null;
+  function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
+  return {mood:function(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
+    if(m==='smile'){el.classList.add('smile');restart('hop');}
+    if(m==='frown'){el.classList.add('frown');restart('shake');}
+    if(text!==undefined){bubble.innerHTML=text;bubble.className='bubble'+(m==='smile'?' good':m==='frown'?' bad':'');}
+    if(!hold) tm=setTimeout(function(){el.classList.remove('smile','frown');bubble.className='bubble';},3200);}};
+}
+
+var AV1=makeAvatar($('av1'),$('bub1')), AV2=makeAvatar($('av2'),$('bub2'));
+var QUOTES=[
+ 'VGG 這個名字來自我們實驗室：牛津大學的 Visual Geometry Group。論文標題是〈Very Deep Convolutional Networks for Large-Scale Image Recognition〉，2014 年放上 arXiv，2015 年發表在 ICLR。',
+ 'ILSVRC 2014 我們拿到定位第一、分類第二。那年分類冠軍是 Google 的 GoogLeNet，我們的 top-5 錯誤率在競賽時大約是 7.3%。',
+ '我們當時想回答一個問題：在其他條件都固定的情況下，網路「深度」到底有多重要？所以我們統一用 3×3 卷積，只改變層數，從 11 層一路試到 19 層。',
+ '2014 年我和 Zisserman 也提出「雙流卷積網路」（two-stream ConvNet）做影片動作辨識：一路看畫面、一路看光流（物體怎麼移動）。',
+ '我們還寫過一篇論文，教大家怎麼把 CNN「看到什麼」視覺化，也就是顯著圖（saliency map），讓人知道模型是根據圖片的哪些地方做判斷。',
+ '後來我加入 DeepMind；2022 年和 Mustafa Suleyman 等人共同創辦了 Inflection AI。'
+];
+var qi=0;$('av1').addEventListener('click',function(){AV1.mood('smile',QUOTES[qi++%QUOTES.length]);});
+
+/* ---------- 程式畫的貓與狗 ---------- */
+function drawAnimal(c,S,type,color,skipBg){
+  var k=S/100;c.save();c.scale(k,k);
+  var C=color?{bg:'#cfe3ef',fur:type==='cat'?'#e9a35a':'#b98a5e',fur2:type==='cat'?'#f6d6ae':'#e8d2b5',ear:'#f2a5a5',eye:'#2f3a2a',nose:'#d0586a',dark:'#5a3b2a'}
+                :{bg:'#6e6e6e',fur:'#b4b4b4',fur2:'#e6e6e6',ear:'#9a9a9a',eye:'#1a1a1a',nose:'#3a3a3a',dark:'#2a2a2a'};
+  if(!skipBg){c.fillStyle=C.bg;c.fillRect(0,0,100,100);
+  if(color){c.fillStyle='#a9cf8a';c.fillRect(0,78,100,22)}}
+  if(type==='cat'){
+    c.fillStyle=C.fur;c.beginPath();c.moveTo(24,40);c.lineTo(30,12);c.lineTo(46,30);c.fill();c.beginPath();c.moveTo(76,40);c.lineTo(70,12);c.lineTo(54,30);c.fill();
+    c.fillStyle=C.ear;c.beginPath();c.moveTo(29,32);c.lineTo(31,19);c.lineTo(40,29);c.fill();c.beginPath();c.moveTo(71,32);c.lineTo(69,19);c.lineTo(60,29);c.fill();
+    c.fillStyle=C.fur;c.beginPath();c.ellipse(50,52,30,26,0,0,7);c.fill();
+    c.fillStyle=C.fur2;c.beginPath();c.ellipse(50,63,15,11,0,0,7);c.fill();
+    c.fillStyle=color?'#9fd36b':'#f0f0f0';c.beginPath();c.ellipse(38,48,6,7,0,0,7);c.ellipse(62,48,6,7,0,0,7);c.fill();
+    c.fillStyle=C.eye;c.beginPath();c.ellipse(38,49,2.2,5.5,0,0,7);c.ellipse(62,49,2.2,5.5,0,0,7);c.fill();
+    c.fillStyle=C.nose;c.beginPath();c.moveTo(46,58);c.lineTo(54,58);c.lineTo(50,63);c.fill();
+    c.strokeStyle=C.dark;c.lineWidth=1.3;c.beginPath();c.moveTo(50,63);c.quadraticCurveTo(46,69,42,66);c.moveTo(50,63);c.quadraticCurveTo(54,69,58,66);
+    [[-1,60],[0,63],[1,66]].forEach(function(p){c.moveTo(36,p[1]);c.lineTo(14,p[1]+p[0]*5);c.moveTo(64,p[1]);c.lineTo(86,p[1]+p[0]*5)});c.stroke();
+    if(color){c.strokeStyle='#c97b35';c.lineWidth=2.5;c.beginPath();c.moveTo(50,27);c.lineTo(50,36);c.moveTo(43,29);c.lineTo(45,36);c.moveTo(57,29);c.lineTo(55,36);c.stroke()}
+  }else{
+    c.fillStyle=C.fur;c.beginPath();c.ellipse(50,48,27,28,0,0,7);c.fill();
+    c.fillStyle=C.dark;c.beginPath();c.ellipse(24,50,10,22,0.25,0,7);c.fill();c.beginPath();c.ellipse(76,50,10,22,-0.25,0,7);c.fill();
+    c.fillStyle=C.fur2;c.beginPath();c.ellipse(50,64,17,14,0,0,7);c.fill();
+    c.fillStyle=C.eye;c.beginPath();c.arc(39,44,4,0,7);c.arc(61,44,4,0,7);c.fill();
+    c.fillStyle='#fff';c.beginPath();c.arc(40.2,42.8,1.2,0,7);c.arc(62.2,42.8,1.2,0,7);c.fill();
+    c.fillStyle=C.eye;c.beginPath();c.ellipse(50,57,7,5,0,0,7);c.fill();
+    c.strokeStyle=C.eye;c.lineWidth=1.5;c.beginPath();c.moveTo(50,62);c.lineTo(50,67);c.moveTo(50,67);c.quadraticCurveTo(44,72,40,68);c.moveTo(50,67);c.quadraticCurveTo(56,72,60,68);c.stroke();
+    c.fillStyle=color?'#e86b7d':'#4a4a4a';c.beginPath();c.ellipse(50,73,4.5,6,0,0,7);c.fill();
+  }
+  c.restore();
+}
+
+
+/* ---------- 1 資料集 ---------- */
+var TREE={root:'牛津大學 Visual Geometry Group（就是提出 VGG 的團隊）2012 年整理的寵物資料集。torchvision 會從牛津的網站下載並解壓到這裡，約 800 MB。',
+ img:'7,349 張貓狗照片，共 <b>37 個品種</b>：<b>12 種貓、25 種狗</b>。照片大小不一，讀取時統一縮放；檔名就是品種名稱，例如 Abyssinian_1.jpg、beagle_1.jpg。',
+ ann:'標註資料夾：記錄每張圖屬於哪個品種、是貓還是狗，還有切割遮罩（segmentation）。',
+ tv:'<b>split=\'trainval\'</b>：3,680 張（約 1/3 是貓、2/3 是狗）。訓練時常再切一部分當驗證集，用來挑最好的 epoch。',
+ te:'<b>split=\'test\'</b>：3,669 張，訓練時完全不看，最後拿來算準確率、畫混淆矩陣。',
+ bin:'<b>target_types</b> 決定標籤：<code>\'category\'</code> 是 37 個品種（0～36），<code>\'binary-category\'</code> 是貓狗二元標籤（<b>0 = Cat、1 = Dog</b>，類別名稱在 <code>ds.bin_classes</code>）。注意資料「狗多貓少」，全部猜狗就有約 68% 準確率！'};
+[].forEach.call(document.querySelectorAll('#tree .nd'),function(n){n.onclick=function(){[].forEach.call(document.querySelectorAll('#tree .nd'),function(x){x.classList.toggle('on',x===n)});$('treeNote').innerHTML=TREE[n.dataset.k]}});
+document.querySelector('#tree .nd[data-k="bin"]').click();
+var DSB=32;[16,32,64,128].forEach(function(b){var bt=document.createElement('button');bt.textContent=b;bt.dataset.b=b;bt.onclick=function(){DSB=b;dsR()};$('dsB').appendChild(bt)});
+function dsR(){[].forEach.call($('dsB').children,function(x){x.classList.toggle('on',+x.dataset.b===DSB)});
+  $('dsTr').textContent='⌈3680/'+DSB+'⌉ = '+Math.ceil(3680/DSB);$('dsVa').textContent='⌈3669/'+DSB+'⌉ = '+Math.ceil(3669/DSB)}
+dsR();
+var AUG={type:'cat',seed:1,cs:150};
+var AUGCOL=['#dd6b20','#2b6cb0','#1f9d6b','#7b4fc9','#d6334f','#0f8b8d'];
+function augSource(){var src=document.createElement('canvas');src.width=256;src.height=256;var c=src.getContext('2d'),k=256/100;
+  c.fillStyle='#cfe3ef';c.fillRect(0,0,256,256);c.fillStyle='#a9cf8a';c.fillRect(0,200,256,56);
+  c.fillStyle='#f6c945';c.beginPath();c.arc(34,34,20,0,7);c.fill();c.strokeStyle='#f6c945';c.lineWidth=4;
+  for(var a=0;a<8;a++){var t=a*Math.PI/4;c.beginPath();c.moveTo(34+Math.cos(t)*26,34+Math.sin(t)*26);c.lineTo(34+Math.cos(t)*34,34+Math.sin(t)*34);c.stroke()}
+  c.save();c.translate(132,136);c.rotate(30*Math.PI/180);c.scale(0.8,0.8);c.translate(-128,-128);drawAnimal(c,256,AUG.type,true,true);c.restore();
+  return src}
+function augR(){
+  var src=augSource(),cs=AUG.cs,o=setupCanvas($('augSrc'),$('augSrc').clientWidth||200),c=o.c,s=o.w/256;c.drawImage(src,0,0,o.w,o.w);
+  var r=rng(AUG.seed*101+cs),box=$('augOut');box.innerHTML='';
+  var flips=[true,true,true,false,false,false];for(var i=5;i>0;i--){var j=Math.floor(r()*(i+1));var t=flips[i];flips[i]=flips[j];flips[j]=t}
+  for(i=0;i<6;i++){var x=Math.floor(r()*(257-cs)),y=Math.floor(r()*(257-cs)),fl=flips[i],cv=document.createElement('canvas');cv.width=cs;cv.height=cs;var cc=cv.getContext('2d');
+    if(fl){cc.translate(cs,0);cc.scale(-1,1)}cc.drawImage(src,x,y,cs,cs,0,0,cs,cs);
+    var d=document.createElement('div');cv.style.borderColor=AUGCOL[i];cv.style.borderWidth='2px';d.appendChild(cv);
+    var lb=document.createElement('div');lb.style.fontSize='.75rem';lb.style.textAlign='center';
+    lb.innerHTML='<b style="color:'+AUGCOL[i]+'">'+(i+1)+'</b> '+(fl?'<b>翻轉</b>':'未翻轉');d.appendChild(lb);box.appendChild(d);
+    c.strokeStyle=AUGCOL[i];c.lineWidth=2;c.setLineDash(i?[5,3]:[]);c.strokeRect(x*s,y*s,cs*s,cs*s);c.setLineDash([]);
+    c.fillStyle=AUGCOL[i];c.font='bold 13px sans-serif';c.fillText(i+1,x*s+4,y*s+14)}
+  $('augCap').textContent='原圖 256×256（編號框＝6 個 '+cs+'×'+cs+' 裁切位置）';
+}
+[[150,'誇張示意 150×150'],[224,'VGG 實際 224×224']].forEach(function(o){var bt=document.createElement('button');bt.textContent=o[1];bt.dataset.c=o[0];
+  bt.onclick=function(){AUG.cs=o[0];[].forEach.call($('augSz').children,function(x){x.classList.toggle('on',+x.dataset.c===AUG.cs)});augR()};if(o[0]===150)bt.classList.add('on');$('augSz').appendChild(bt)});
+$('augBtn').onclick=function(){AUG.seed++;augR()};$('augAni').onclick=function(){AUG.type=AUG.type==='cat'?'dog':'cat';augR()};
+$('augSrc').style.height=$('augSrc').clientWidth+'px';augR();
+
+
+
+/* ---------- 2 感受野 ---------- */
+var RF={N:2,C:256};
+[1,2,3].forEach(function(n){var b=document.createElement('button');b.textContent=n+' 層';b.dataset.n=n;b.onclick=function(){RF.N=n;rfR()};$('rfN').appendChild(b)});
+[64,128,256,512].forEach(function(c){var b=document.createElement('button');b.textContent=c;b.dataset.c=c;b.onclick=function(){RF.C=c;rfR()};$('rfC').appendChild(b)});
+function rfR(){var N=RF.N,C=RF.C,M=13,cx=6,W=520,H=300,svg='',rows=N+1;
+  [].forEach.call($('rfN').children,function(x){x.classList.toggle('on',+x.dataset.n===N)});[].forEach.call($('rfC').children,function(x){x.classList.toggle('on',+x.dataset.c===C)});
+  var colors=[css('--orange'),css('--ok'),css('--sgd')||'#7b4fc9',css('--blue')];
+  function X(i){return 110+i*(W-140)/(M-1)}function Y(r){return 30+r*(H-60)/(Math.max(rows-1,1))}
+  for(var r=0;r<rows-1;r++){var hi0=cx-r,hi1=cx+r;for(var i=hi0;i<=hi1;i++)for(var d=-1;d<=1;d++)svg+='<line x1="'+X(i)+'" y1="'+Y(r)+'" x2="'+X(i+d)+'" y2="'+Y(r+1)+'" stroke="'+colors[r]+'" stroke-opacity=".6" stroke-width="1.6"/>'}
+  for(r=0;r<rows;r++){var lab=r===0?(N===0?'輸入':'第 '+N+' 層輸出'):(r===rows-1?'輸入':'第 '+(N-r)+' 層輸出');
+    svg+='<text x="8" y="'+(Y(r)+4)+'" font-size="12" fill="'+css('--ink')+'">'+lab+'</text>';
+    for(i=0;i<M;i++){var on=Math.abs(i-cx)<=r;svg+='<circle cx="'+X(i)+'" cy="'+Y(r)+'" r="8" fill="'+(on?colors[Math.min(r,3)]:css('--soft'))+'" stroke="'+(on?css('--ink'):css('--line'))+'" stroke-width="1"/>'}
+    if(r>0)svg+='<text x="'+(X(cx+r)+14)+'" y="'+(Y(r)+4)+'" font-size="11" fill="'+css('--mute')+'">'+(2*r+1)+' 格</text>'}
+  $('rfS').innerHTML=svg;
+  var R=2*N+1,stack=N*(9*C*C+C),single=R*R*C*C+C;
+  $('rfR').textContent=R+'×'+R;$('rfRelu').textContent=N+' 次 vs 1 次';
+  $('rfP').innerHTML='<div>同樣看到 '+R+'×'+R+' 的範圍，輸入、輸出都是 C = '+C+' 個通道：</div>'+
+    '<div class="formula">'+N+' 層 3×3：'+N+' × (3×3×'+C+'×'+C+' + '+C+') = <b>'+fmt(stack)+'</b></div>'+
+    '<div class="formula">1 層 '+R+'×'+R+'：'+R+'×'+R+'×'+C+'×'+C+' + '+C+' = <b>'+fmt(single)+'</b></div>';
+  $('rfNote').innerHTML=N===1?'只疊 1 層時兩邊一樣，都是 3×3。點「2 層」或「3 層」比較看看！'
+    :'疊 '+N+' 層 3×3 的參數只有一層 '+R+'×'+R+' 的 <b>'+(stack/single*100).toFixed(0)+'%</b>（約 '+N*9+'C² 對 '+R*R+'C²），而且中間多了 '+(N-1)+' 次 ReLU，讓網路能學更複雜的形狀。'+(N===3?'這正是 VGG 論文的例子：3 層 3×3 取代 1 層 7×7。':'');
+}
+rfR();
+
+/* ---------- 3 架構 ---------- */
+var VER=16,NOUT=1,L=[];
+var CFG={16:[2,2,3,3,3],19:[2,2,4,4,4]},CH=[64,128,256,512,512];
+function buildL(){L=[{id:'in',name:'輸入',type:'input',blk:0}];
+  CFG[VER].forEach(function(n,b){for(var k=1;k<=n;k++)L.push({id:'c'+(b+1)+'_'+k,name:'conv'+(b+1)+'_'+k,type:'conv',F:3,S:1,P:1,K:CH[b],blk:b+1});L.push({id:'p'+(b+1),name:'pool'+(b+1),type:'pool',F:2,S:2,P:0,blk:b+1})});
+  L.push({id:'fl',name:'flatten',type:'flat',blk:6},{id:'f6',name:'fc6',type:'fc',K:4096,blk:6},{id:'f7',name:'fc7',type:'fc',K:4096,blk:7},{id:'f8',name:'fc8',type:'fc',K:NOUT,blk:8});
+  var h=224,c=3;
+  L.forEach(function(l){l.inS=[h,h,c];
+    if(l.type==='input'){l.out=[224,224,3];l.params=0;l.macs=0}
+    else if(l.type==='conv'||l.type==='pool'){var o=Math.floor((h-l.F+2*l.P)/l.S)+1,k=l.type==='conv'?l.K:c;l.params=l.type==='conv'?(9*c+1)*l.K:0;l.macs=l.type==='conv'?o*o*9*c*l.K:0;l.out=[o,o,k]}
+    else if(l.type==='flat'){l.out=[h*h*c];l.params=0;l.macs=0}
+    else{var nin=l.inS[0]*l.inS[1]*l.inS[2];l.params=(nin+1)*l.K;l.macs=nin*l.K;l.out=[l.K]}
+    if(l.out.length===3){h=l.out[0];c=l.out[2]}else{h=1;c=l.out[0]}});
+}
+function shp(a){return a.length===3?a[0]+'×'+a[1]+'×'+a[2]:fmt(a[0])}
+function totalP(){return L.reduce(function(s,l){return s+l.params},0)}
+function totalM(){return L.reduce(function(s,l){return s+l.macs},0)}
+function expOf(l){
+  if(l.type==='input')return '一張彩色照片縮放、裁切成 <b>224×224</b>，紅綠藍 3 個通道。';
+  if(l.type==='conv'){var first=l.name.slice(-2)==='_1';return '<b>Block '+l.blk+'</b> 的第 '+l.name.slice(-1)+' 層卷積：'+l.K+' 個 3×3 濾波器、步長 1、padding 1，<b>尺寸不變</b>（'+l.inS[0]+'×'+l.inS[0]+'），接 ReLU。'+(first&&l.blk>1?'這是區塊的第一層，通道數從 '+l.inS[2]+' <b>加倍</b>成 '+l.K+'。':'')+(l.blk===1&&first?'第一層把 3 個顏色通道變成 64 個特徵圖。':'')}
+  if(l.type==='pool')return '<b>2×2 最大池化、步長 2</b>：每 2×2 只留最大值，尺寸<b>減半</b>（'+l.inS[0]+' → '+l.out[0]+'），通道數不變。Block '+l.blk+' 結束。';
+  if(l.type==='flat')return '把 7×7×512 拉平成 <b>25,088</b> 個數字的向量。';
+  if(l.id==='f6')return '25,088 → <b>4,096</b> 全連接＋ReLU＋Dropout(0.5)。這一層就有約 <b>1.03 億</b>個參數，佔全部參數的七成以上！';
+  if(l.id==='f7')return '4,096 → <b>4,096</b> 全連接＋ReLU＋Dropout(0.5)。';
+  return NOUT===1?'4,096 → <b>1</b> 個輸出接 <b>sigmoid</b>，得到「是狗的機率」（cats=0、dogs=1）。原本 ImageNet 版是 1000 個輸出＋softmax。':'4,096 → <b>1,000</b> 個輸出接 <b>softmax</b>，得到 ImageNet 1000 類的機率。';
+}
+var AR={i:1,timer:null};
+var TYPECOL={input:'--mute',conv:'--blue',pool:'--ok',flat:'--mute',fc:'--orange'};
+function drawArch(){
+  var svg=$('arch'),x=34,out='',bx={};
+  L.forEach(function(l,i){var H,D,W;
+    if(l.out.length===3){H=Math.max(24,Math.sqrt(l.out[0])*12.5);D=Math.max(6,Math.log2(l.out[2])*3.6);W=Math.max(4,Math.log2(l.out[2])*1.3)}
+    else{H=l.type==='flat'?200:(l.out[0]>=4096?170:l.out[0]>=1000?110:40);W=10;D=5}
+    var y0=165-H/2,col=css(TYPECOL[l.type]),on=i===AR.i;
+    var g='<g class="blk'+(on?' on':'')+'" data-i="'+i+'">';
+    g+='<polygon points="'+x+','+y0+' '+(x+D)+','+(y0-D*0.7)+' '+(x+D+W)+','+(y0-D*0.7)+' '+(x+W)+','+y0+'" fill="'+col+'" opacity=".55"/>';
+    g+='<polygon points="'+(x+W)+','+y0+' '+(x+W+D)+','+(y0-D*0.7)+' '+(x+W+D)+','+(y0+H-D*0.7)+' '+(x+W)+','+(y0+H)+'" fill="'+col+'" opacity=".38"/>';
+    g+='<rect class="fr" x="'+x+'" y="'+y0+'" width="'+W+'" height="'+H+'" fill="'+col+'" opacity=".85" stroke="'+css('--ink')+'" stroke-width=".6"/>';
+    var cx=x+(W+D)/2;
+    g+='<text transform="translate('+(cx+3)+',282) rotate(-50)" text-anchor="end" font-size="10.5" font-weight="'+(on?700:500)+'" fill="'+(on?css('--orange'):css('--ink'))+'">'+l.name+'</text>';
+    if(l.type==='pool'||l.type==='input'||l.type==='fc'||l.type==='flat')g+='<text x="'+cx+'" y="'+(y0+H+16)+'" text-anchor="middle" font-size="9.5" fill="'+css('--mute')+'">'+shp(l.out)+'</text>';
+    g+='<rect x="'+(x-3)+'" y="30" width="'+(W+D+6)+'" height="285" fill="transparent"/></g>';
+    out+=g;if(l.blk>=1&&l.blk<=5){if(!bx[l.blk])bx[l.blk]=[x,x];bx[l.blk][1]=x+W+D}
+    x+=W+D+(l.type==='pool'?20:l.type==='input'?22:(l.type==='fc'||l.type==='flat')?22:9);});
+  Object.keys(bx).forEach(function(b){var a=bx[b];out+='<path d="M'+a[0]+' 36 L'+a[0]+' 30 L'+a[1]+' 30 L'+a[1]+' 36" stroke="'+css('--mute')+'" fill="none"/><text x="'+((a[0]+a[1])/2)+'" y="24" text-anchor="middle" font-size="11.5" font-weight="600" fill="'+css('--ink')+'">Block '+b+'（'+CH[b-1]+'）</text>'});
+  out+='<text x="12" y="344" font-size="11" fill="'+css('--blue')+'">■ 卷積 3×3</text><text x="90" y="344" font-size="11" fill="'+css('--ok')+'">■ 最大池化 2×2</text><text x="190" y="344" font-size="11" fill="'+css('--orange')+'">■ 全連接</text><text x="260" y="344" font-size="11" fill="'+css('--mute')+'">（方塊高度∝空間大小、厚度∝通道數，非等比例）</text>';
+  svg.setAttribute('viewBox','0 0 '+Math.max(1320,x+10)+' 352');svg.innerHTML=out;
+  [].forEach.call(svg.querySelectorAll('.blk'),function(g){g.onclick=function(){stopAR();AR.i=+g.dataset.i;arR()}});
+}
+function arR(){
+  drawArch();var l=L[AR.i];$('arBar').style.width=((AR.i+1)/L.length*100)+'%';
+  $('dtTitle').textContent=AR.i+'. '+l.name+'（'+{input:'輸入層',conv:'卷積層 Convolution',pool:'最大池化 Max Pooling',flat:'攤平 Flatten',fc:'全連接層 Fully Connected'}[l.type]+'）';
+  $('dtExp').innerHTML=expOf(l);
+  var kv='<b>輸入尺寸</b><span>'+(l.type==='input'?'—':shp(l.inS))+'</span><b>輸出尺寸</b><span>'+shp(l.out)+'</span>';
+  if(l.type==='conv')kv+='<b>濾波器</b><span>'+l.K+' 個 3×3×'+l.inS[2]+'</span><b>步長 / padding</b><span>1 / 1</span><b>激活函數</b><span>ReLU</span>';
+  if(l.type==='pool')kv+='<b>視窗 / 步長</b><span>2×2 / 2</span>';
+  if(l.type==='fc')kv+='<b>激活函數</b><span>'+(l.id==='f8'?(NOUT===1?'sigmoid':'softmax'):'ReLU，後接 Dropout(0.5)')+'</span>';
+  kv+='<b>參數量</b><span>'+fmt(l.params)+'</span><b>乘加運算</b><span>'+(l.macs?fmt(l.macs):'—')+'</span>';
+  $('dtKV').innerHTML=kv;
+  var f='';
+  if(l.type==='conv'||l.type==='pool'){
+    f+='<div>輸出邊長公式：</div><div class="formula">O = ⌊ <span class="frac"><span>W − F + 2P</span><span>S</span></span> ⌋ + 1 = ⌊ <span class="frac"><span>'+l.inS[0]+' − '+l.F+' + 2×'+l.P+'</span><span>'+l.S+'</span></span> ⌋ + 1 = <b>'+l.out[0]+'</b></div>';
+    if(l.type==='conv'){f+='<p class="mute" style="font-size:.9rem">3×3、步長 1、padding 1 的卷積永遠「尺寸不變」，所以 VGG 只靠池化來縮小尺寸。</p>';
+      f+='<div>參數量：</div><div class="formula">(3×3×'+l.inS[2]+' + 1) × '+l.K+' = <b>'+fmt(l.params)+'</b></div>';
+      f+='<div style="margin-top:8px">乘加運算：</div><div class="formula">'+l.out[0]+'×'+l.out[1]+' × 3×3×'+l.inS[2]+' × '+l.K+' ≈ <b>'+(l.macs/1e6).toFixed(1)+' 百萬</b></div>';}
+    else f+='<p>池化沒有任何要學的參數。</p>';
+  }else if(l.type==='fc'){var nin=l.inS[0]*l.inS[1]*l.inS[2];f+='<div>全連接層：</div><div class="formula">('+fmt(nin)+' + 1) × '+fmt(l.out[0])+' = <b>'+fmt(l.params)+'</b></div>'}
+  else if(l.type==='flat')f+='<div class="formula">7 × 7 × 512 = <b>25,088</b></div><p>只是改變形狀，沒有參數。</p>';
+  else f+='<p>224 × 224 × 3 = '+fmt(224*224*3)+' 個像素數值。</p><p class="mute">尺寸變化規律：224 → 112 → 56 → 28 → 14 → 7（每個區塊結束減半），通道 64 → 128 → 256 → 512 → 512。</p>';
+  $('dtF').innerHTML=f;drawBars();
+}
+function drawBars(){
+  var groups=['Block 1','Block 2','Block 3','Block 4','Block 5','FC6','FC7','FC8'],P=[0,0,0,0,0,0,0,0],Mc=[0,0,0,0,0,0,0,0];
+  L.forEach(function(l){if(l.blk>=1){P[l.blk-1]+=l.params;Mc[l.blk-1]+=l.macs}});
+  var cur=L[AR.i].blk-1;
+  [['barP',P],['barM',Mc]].forEach(function(b){var o=setupCanvas($(b[0]),250),c=o.c,w=o.w,h=o.h,mx=62,rh=(h-16)/8,arr=b[1],max=Math.max.apply(null,arr),tot=arr.reduce(function(s,v){return s+v},0);
+    c.clearRect(0,0,w,h);c.font='12px sans-serif';
+    arr.forEach(function(v,i){var y=6+i*rh,bw=(w-mx-124)*v/max,on=i===cur;c.fillStyle=on?css('--orange'):(i<5?css('--blue'):css('--orange'));c.globalAlpha=on?1:.7;c.fillRect(mx,y+3,Math.max(bw,1.5),rh-7);c.globalAlpha=1;
+      c.fillStyle=css('--ink');c.textAlign='right';c.fillText(groups[i],mx-6,y+rh/2+4);c.textAlign='left';c.fillStyle=css('--mute');
+      c.fillText((v>=1e9?(v/1e9).toFixed(2)+' G':v>=1e6?(v/1e6).toFixed(1)+' M':fmt(v))+'（'+(v/tot*100).toFixed(1)+'%）',mx+Math.max(bw,1.5)+6,y+rh/2+4)})});
+  var cp=P.slice(0,5).reduce(function(s,v){return s+v},0),cm=Mc.slice(0,5).reduce(function(s,v){return s+v},0),tp=totalP(),tm=totalM();
+  $('arNote').innerHTML='VGG'+VER+'（'+(NOUT===1?'貓狗版':'ImageNet 1000 類版')+'）總參數量：<b>'+fmt(tp)+'</b>，每張圖約 <b>'+(tm/1e9).toFixed(1)+' G</b> 次乘加。<br>卷積區塊只佔 '+(cp/tp*100).toFixed(1)+'% 的參數，卻佔 '+(cm/tm*100).toFixed(1)+'% 的運算；全連接層剛好相反。遷移學習時常把全連接層整個丟掉，換成小小的分類頭，參數立刻少掉一大半。';
+}
+function stopAR(){clearInterval(AR.timer);AR.timer=null;$('arPlay').textContent='▶ 自動播放'}
+$('arNext').onclick=function(){stopAR();if(AR.i<L.length-1){AR.i++;arR()}};
+$('arPrev').onclick=function(){stopAR();if(AR.i>0){AR.i--;arR()}};
+$('arReset').onclick=function(){stopAR();AR.i=0;arR()};
+$('arBlk').onclick=function(){stopAR();var b=L[AR.i].blk;for(var i=AR.i+1;i<L.length;i++){if(L[i].blk!==b&&(L[i].type!=='pool')){AR.i=i;break}}if(i>=L.length)AR.i=0;arR()};
+$('arPlay').onclick=function(){if(AR.timer){stopAR();return}this.textContent='⏸ 暫停';if(AR.i>=L.length-1)AR.i=0;arR();AR.timer=setInterval(function(){if(AR.i<L.length-1){AR.i++;arR()}else stopAR()},1000)};
+[[16,'VGG16'],[19,'VGG19']].forEach(function(o){var b=document.createElement('button');b.textContent=o[1];b.dataset.v=o[0];b.onclick=function(){VER=o[0];buildL();AR.i=Math.min(AR.i,L.length-1);[].forEach.call($('arV').children,function(x){x.classList.toggle('on',+x.dataset.v===VER)});arR();cmpR()};$('arV').appendChild(b)});
+[[1,'貓狗：1 個 sigmoid'],[1000,'ImageNet：1000 類 softmax']].forEach(function(o){var b=document.createElement('button');b.textContent=o[1];b.dataset.n=o[0];b.onclick=function(){NOUT=o[0];buildL();[].forEach.call($('arOut').children,function(x){x.classList.toggle('on',+x.dataset.n===NOUT)});arR()};$('arOut').appendChild(b)});
+buildL();$('arV').children[0].classList.add('on');$('arOut').children[0].classList.add('on');arR();
+function cmpR(){var v=VER,n=NOUT;VER=16;NOUT=1000;buildL();$('cmpP').textContent='約 '+wan(totalP()).replace(' 萬','')+(totalP()>=1e8?'':' 萬')+'（'+fmt(totalP())+'）';$('cmpM').textContent='約 '+(totalM()/1e8).toFixed(0)+' 億';VER=v;NOUT=n;buildL()}
+cmpR();
+
+/* ---------- 4 遷移學習 ---------- */
+var TL='freeze';
+function blockParams(){VER===16;var v=VER,n=NOUT;VER=16;NOUT=1;buildL();var P=[0,0,0,0,0,0,0,0];L.forEach(function(l){if(l.blk>=1)P[l.blk-1]+=l.params});VER=v;NOUT=n;buildL();return P}
+var BP=blockParams();
+var TLM={scratch:['從頭訓練全部',[1,1,1,1,1,1],'所有參數（含原本的 3 個全連接層）都從隨機值開始學。<b>1.34 億個參數只用約 3,700 張圖</b>，極容易過擬合，訓練也很久。'],
+ freeze:['凍結卷積層，只訓練新分類頭',[0,0,0,0,0,1],'VGG16 的 5 個卷積區塊<b>全部凍結</b>（載入 ImageNet 權重、不更新），把全連接層換成全域平均池化（GlobalAveragePooling）＋ 1 個輸出的 Linear。只要學 <b>513</b> 個參數，幾分鐘就能訓練好，是小資料集最常用的做法。'],
+ ft:['微調 Block 5',[0,0,0,0,1,1],'先用「只訓練分類頭」訓練到穩定，再把 <b>Block 5</b> 解凍，用很小的學習率（如 1e-5）一起微調，讓最抽象的特徵更貼近貓狗。前面的區塊學的是通用的邊緣、紋理，不需要改。']};
+Object.keys(TLM).forEach(function(k){var b=document.createElement('button');b.textContent=TLM[k][0];b.dataset.k=k;b.onclick=function(){TL=k;tlR()};$('tlM').appendChild(b)});
+function tlR(){[].forEach.call($('tlM').children,function(x){x.classList.toggle('on',x.dataset.k===TL)});
+  var m=TLM[TL],names=['Block 1','Block 2','Block 3','Block 4','Block 5',TL==='scratch'?'FC6～FC8':'新分類頭'],
+      pr=BP.slice(0,5).concat([TL==='scratch'?BP[5]+BP[6]+BP[7]:513]),tr=0,fz=0;
+  $('tlB').innerHTML=names.map(function(n,i){var t=m[1][i];if(t)tr+=pr[i];else fz+=pr[i];return '<div class="'+(t?'tr':'fz')+'"><b>'+(t?'🔥 ':'🔒 ')+n+'</b>'+wan(pr[i])+'</div>'}).join('');
+  $('tlT').textContent=fmt(tr);$('tlF').textContent=fmt(fz);$('tlE').innerHTML=m[2];}
+tlR();
+
+/* ---------- 5 程式碼 ---------- */
+function S(t){return '<span class="st">\''+t+'\'</span>'}function N(t){return '<span class="nm">'+t+'</span>'}function K(t){return '<span class="kw">'+t+'</span>'}function C(t){return '<span class="cm">'+t+'</span>'}
+var HEAD=[K('import')+' torch, torch.nn '+K('as')+' nn',K('from')+' torch.utils.data '+K('import')+' DataLoader',K('from')+' torchvision '+K('import')+' datasets, transforms, models','',
+'device = '+S('cuda')+' '+K('if')+' torch.cuda.is_available() '+K('else')+' '+S('cpu'),'',
+C('# 1. 資料：一行下載，binary-category → 0 = Cat、1 = Dog（用 ImageNet 的平均值與標準差正規化）'),
+'mean, std = ['+N(0.485)+', '+N(0.456)+', '+N(0.406)+'], ['+N(0.229)+', '+N(0.224)+', '+N(0.225)+']',
+'train_tf = transforms.Compose([transforms.Resize(('+N(256)+', '+N(256)+')), transforms.RandomCrop('+N(224)+'),',
+'                               transforms.RandomHorizontalFlip(), transforms.ToTensor(),',
+'                               transforms.Normalize(mean, std)])',
+'test_tf = transforms.Compose([transforms.Resize(('+N(256)+', '+N(256)+')), transforms.CenterCrop('+N(224)+'),',
+'                              transforms.ToTensor(), transforms.Normalize(mean, std)])',
+'train_ds = datasets.OxfordIIITPet('+S('./data')+', split='+S('trainval')+', target_types='+S('binary-category')+',',
+'                                  transform=train_tf, download='+N('True')+')',
+'test_ds = datasets.OxfordIIITPet('+S('./data')+', split='+S('test')+', target_types='+S('binary-category')+',',
+'                                 transform=test_tf, download='+N('True')+')',
+K('print')+'(train_ds.bin_classes, len(train_ds), len(test_ds))',
+'train_loader = DataLoader(train_ds, batch_size='+N(32)+', shuffle='+N('True')+', num_workers='+N(2)+')',
+'test_loader = DataLoader(test_ds, batch_size='+N(64)+', shuffle='+N('False')+', num_workers='+N(2)+')','',
+C('# 2. 訓練與測試函式'),
+K('def')+' count(model):',
+'    '+K('return')+' (sum(p.numel() '+K('for')+' p '+K('in')+' model.parameters()),',
+'            sum(p.numel() '+K('for')+' p '+K('in')+' model.parameters() '+K('if')+' p.requires_grad))','',
+K('def')+' fit(model, optimizer, epochs):',
+'    criterion = nn.BCEWithLogitsLoss()      '+C('# 內含 sigmoid'),
+'    '+K('for')+' epoch '+K('in')+' range(epochs):',
+'        model.train()',
+'        '+K('for')+' x, y '+K('in')+' train_loader:',
+'            x, y = x.to(device), y.float().unsqueeze('+N(1)+').to(device)',
+'            loss = criterion(model(x), y)',
+'            optimizer.zero_grad()',
+'            loss.backward()',
+'            optimizer.step()',
+'        model.eval(); correct = '+N(0),
+'        '+K('with')+' torch.no_grad():',
+'            '+K('for')+' x, y '+K('in')+' test_loader:',
+'                pred = (model(x.to(device)) &gt; '+N(0)+').long().squeeze('+N(1)+').cpu()',
+'                correct += (pred == y).sum().item()',
+'        '+K('print')+'(f'+S('epoch {epoch+1}: loss {loss.item():.4f}, test acc {correct/len(test_ds):.3f}')+')',''];
+var CODE={
+ptl:[C('# ===== VGG16 遷移學習：PyTorch + Oxford-IIIT Pet ====='),].concat(HEAD,[
+C('# 3. 載入 ImageNet 預訓練的 VGG16，凍結 13 層卷積'),
+'model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)',
+K('for')+' p '+K('in')+' model.features.parameters():',
+'    p.requires_grad = '+N('False'),
+C('# 4. 換上新的貓狗分類頭：全域平均池化 7×7×512 → 512 → 1'),
+'model.avgpool = nn.AdaptiveAvgPool2d('+N(1)+')',
+'model.classifier = nn.Sequential(nn.Flatten(), nn.Dropout('+N(0.5)+'), nn.Linear('+N(512)+', '+N(1)+'))',
+'model = model.to(device)',
+K('print')+'('+S('參數量 / 可訓練:')+', count(model))','',
+'params = [p '+K('for')+' p '+K('in')+' model.parameters() '+K('if')+' p.requires_grad]',
+'fit(model, torch.optim.SGD(params, lr='+N('1e-3')+', momentum='+N(0.9)+'), epochs='+N(5)+')','',
+C('# 5.（選做）解凍 Block 5（features[24:] = conv5_1～conv5_3），用更小的學習率微調'),
+K('for')+' p '+K('in')+' model.features['+N(24)+':].parameters():',
+'    p.requires_grad = '+N('True'),
+K('print')+'('+S('微調時 參數量 / 可訓練:')+', count(model))',
+'params = [p '+K('for')+' p '+K('in')+' model.parameters() '+K('if')+' p.requires_grad]',
+'fit(model, torch.optim.SGD(params, lr='+N('1e-4')+', momentum='+N(0.9)+'), epochs='+N(3)+')']),
+psc:[C('# ===== 從頭訓練 VGG16：PyTorch + Oxford-IIIT Pet ====='),].concat(HEAD,[
+C('# 3. VGG16 結構（不載入預訓練權重），最後一層 1000 類 → 1 個輸出'),
+'model = models.vgg16(weights='+N('None')+')',
+'model.classifier['+N(6)+'] = nn.Linear('+N(4096)+', '+N(1)+')',
+'model = model.to(device)',
+K('print')+'(model)                                  '+C('# features：13 層卷積＋5 次池化；classifier：3 層全連接'),
+K('print')+'('+S('參數量 / 可訓練:')+', count(model))','',
+C('# 4. SGD 訓練（論文設定：lr=0.01, momentum=0.9, weight decay=5e-4）'),
+'fit(model, torch.optim.SGD(model.parameters(), lr='+N(0.01)+', momentum='+N(0.9)+', weight_decay='+N('5e-4')+'), epochs='+N(30)+')'])};
+var OUT={
+ ptl:'[\'Cat\', \'Dog\'] 3680 3669\n參數量 / 可訓練: (14715201, 513)\nepoch 1: loss …, test acc …\n…\nepoch 5: loss …, test acc …\n微調時 參數量 / 可訓練: (14715201, 7079937)\nepoch 1: loss …, test acc …\n…\n<span class="cm"># 513 與 7,079,937 正好是第 4 節「只訓練分類頭」與「微調 Block 5」的數字</span>',
+ psc:'[\'Cat\', \'Dog\'] 3680 3669\nVGG(\n  (features): Sequential( … 13 個 Conv2d、5 個 MaxPool2d … )\n  (avgpool): AdaptiveAvgPool2d(output_size=(7, 7))\n  (classifier): Sequential( … 3 個 Linear … )\n)\n參數量 / 可訓練: (134264641, 134264641)\nepoch 1: loss …, test acc …\n…\n<span class="cm"># 134,264,641 = 第 3 節 VGG16 貓狗版的總參數量</span>'};
+var NOTE={ptl:'<b>建議先跑這個版本。</b>卷積區塊已經在 ImageNet 學過，只要訓練 513 個參數，T4 GPU 上幾個 epoch 就能看到明顯高於「全部猜狗（約 68%）」的準確率。第一次執行會下載約 800 MB 的資料集與約 528 MB 的 VGG16 權重。',
+ psc:'從頭訓練 1.34 億個參數：記憶體需求大、每個 epoch 很慢，而且資料少，<b>很容易過擬合，或卡在 0.68（只會全部猜狗）</b>。適合拿來和遷移學習版比較，體會預訓練權重的威力；卡住時可把學習率降到 0.001。'};
+var CD='ptl';
+[['ptl','PyTorch 遷移學習（建議）'],['psc','PyTorch 從頭訓練 VGG16']].forEach(function(t){var b=document.createElement('button');b.textContent=t[1];b.dataset.k=t[0];b.onclick=function(){CD=t[0];cdR()};$('cdT').appendChild(b)});
+function cdR(){[].forEach.call($('cdT').children,function(x){x.classList.toggle('on',x.dataset.k===CD)});
+  $('cdC').innerHTML=CODE[CD].map(function(l){return '<span class="ln">'+(l||' ')+'</span>'}).join('');$('cdO').innerHTML=OUT[CD];$('cdN').innerHTML=NOTE[CD];$('cdCopy').textContent='複製程式碼'}
+$('cdCopy').onclick=function(){var t=$('cdC').innerText.replace(/ /g,' ');var done=function(){$('cdCopy').textContent='✔ 已複製'};
+  try{navigator.clipboard.writeText(t).then(done,function(){fb()})}catch(e){fb()}
+  function fb(){var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done()}catch(e){}document.body.removeChild(ta)}};
+cdR();
+
+/* ---------- 6 小測驗 ---------- */
+var QZ=[
+ {q:'「VGG」這個名稱來自哪裡？',o:['牛津大學的 Visual Geometry Group（研究團隊名稱）','Very Good Gradient 的縮寫','作者姓氏的縮寫','一種卷積運算的名稱'],a:0,e:'VGG 是牛津大學 Visual Geometry Group 的縮寫，也就是 Simonyan 與 Zisserman 所在的實驗室。',h:'看第 0 節的介紹。'},
+ {q:'VGG 的卷積層用的濾波器大小是？',o:['全部都是 3×3','11×11 和 5×5','1×1','每層都不一樣'],a:0,e:'VGG 全部使用 3×3、步長 1、padding 1 的卷積，結構非常規則。',h:'第 2 節的標題就是答案。'},
+ {q:'兩層 3×3 卷積疊在一起，最上層一個點的感受野是多大？',o:['5×5','6×6','9×9','3×3'],a:0,e:'每多一層 3×3，左右各多看 1 格：3 → 5 → 7。',h:'第 2 節選「2 層」看看最下面亮了幾格。'},
+ {q:'通道數都是 C 時，三層 3×3 與一層 7×7 哪個參數比較少？',o:['三層 3×3（約 27C² 對 49C²）','一層 7×7','一樣多','無法比較'],a:0,e:'3 × 3×3×C×C = 27C²，7×7×C×C = 49C²，而且三層還多了兩次 ReLU。',h:'第 2 節選「3 層」看下面的參數比較。'},
+ {q:'VGG16 的「16」代表什麼？',o:['有 16 層帶權重的層（13 層卷積 + 3 層全連接）','有 16 個濾波器','輸入是 16×16','訓練了 16 天'],a:0,e:'池化層沒有權重，不算在內：13 + 3 = 16。VGG19 則是 16 + 3。',h:'數數第 3 節圖上藍色和橘色的方塊。'},
+ {q:'VGG 每經過一次池化，特徵圖會怎麼變？',o:['尺寸減半，接下來的卷積把通道數加倍（最多到 512）','尺寸加倍、通道減半','尺寸與通道都不變','尺寸減半、通道也減半'],a:0,e:'224 → 112 → 56 → 28 → 14 → 7；通道 64 → 128 → 256 → 512 → 512。',h:'在第 3 節按「跳到下一個區塊」觀察輸出尺寸。'},
+ {q:'VGG16 的參數主要集中在哪裡？',o:['第一個全連接層 FC6（約 1.03 億）','Block 1 的卷積','池化層','輸入層'],a:0,e:'25,088 × 4,096 ≈ 1.03 億，佔全部參數的七成以上。',h:'看第 3 節左下的參數長條圖。'},
+ {q:'Oxford-IIIT Pet 只有約 3,700 張訓練圖，用 VGG16 最實際的做法是？',o:['遷移學習：凍結預訓練的卷積區塊，只訓練新的分類頭','從頭訓練全部 1.3 億個參數','把圖片縮小到 32×32','拿掉所有卷積層'],a:0,e:'預訓練的卷積區塊已經會擷取通用特徵，只要訓練 513 個參數的分類頭就能有不錯的效果。',h:'回到第 4 節比較三種訓練方式要訓練的參數量。'}];
+var QS={ans:[],score:0,streak:0};
+var PRAISE=['Excellent！完全正確！','太好了，觀念很清楚！','答對了！你的感受野很寬廣。','漂亮！','正確！繼續保持！'];
+function qBuild(){
+  QS={ans:new Array(QZ.length).fill(-1),score:0,streak:0};var box=$('quiz');box.innerHTML='';$('qScore').textContent='';$('qAgain').style.display='none';
+  QZ.forEach(function(z,qi){var d=document.createElement('div');d.className='q';d.innerHTML='<div class="qt">'+(qi+1)+'. '+z.q+'</div><div class="opts"></div><div class="ex"></div>';
+    var ord=z.o.map(function(_,i){return i});for(var i=ord.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=ord[i];ord[i]=ord[j];ord[j]=t}
+    ord.forEach(function(oi){var b=document.createElement('button');b.innerHTML=z.o[oi];b.dataset.oi=oi;b.onclick=function(){qAnswer(qi,oi,d)};d.querySelector('.opts').appendChild(b)});
+    box.appendChild(d)});
+}
+function qAnswer(qi,oi,d){
+  if(QS.ans[qi]>=0)return;QS.ans[qi]=oi;var z=QZ[qi],ok=oi===z.a;
+  [].forEach.call(d.querySelectorAll('.opts button'),function(b){var k=+b.dataset.oi;b.disabled=true;b.style.opacity=1;if(k===z.a)b.classList.add('right');if(k===oi&&!ok)b.classList.add('wrong')});
+  var ex=d.querySelector('.ex');ex.innerHTML=(ok?'<span class="ok">✔ 正確！</span>':'<span class="bad">✘ 不對喔。</span>')+z.e;ex.classList.add('show');
+  if(ok){QS.score++;QS.streak++;AV2.mood('smile',QS.streak>=3?'連續答對 '+QS.streak+' 題！你已經疊到 VGG19 的深度了！':PRAISE[Math.floor(Math.random()*PRAISE.length)])}
+  else{QS.streak=0;AV2.mood('frown',z.h)}
+  if(QS.ans.every(function(a){return a>=0})){$('qScore').textContent='得分：'+QS.score+' / '+QZ.length;$('qAgain').style.display='';
+    setTimeout(function(){var s=QS.score,n=QZ.length,t;
+      if(s===n)t='滿分！VGG 的設計哲學你完全掌握了。Wonderful！';
+      else if(s>=n-2)t='很不錯！錯的題目看看解釋，再回去玩一下對應的那一節。';
+      else t='再加油！建議先回到第 2、3 節，把 3×3 堆疊和尺寸變化弄清楚。';
+      AV2.mood(s>=n-2?'smile':'frown',t,true)},3300)}
+}
+$('qAgain').onclick=function(){qBuild();AV2.mood('','新的一輪！選項順序已經打亂囉。')};
+qBuild();
+
+function redrawAll(){$('augSrc').style.height=$('augSrc').clientWidth+'px';augR();rfR();arR()}
+var rT;window.addEventListener('resize',function(){clearTimeout(rT);rT=setTimeout(redrawAll,150)});
+if(window.matchMedia)window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redrawAll);
+</script>
+</body>
+</html>

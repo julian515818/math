@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SGD 與梯度下降</title>
+<style>
+:root{--bg:#f7f6f2;--card:#fff;--ink:#1d2330;--mute:#667085;--line:#e3e1da;--ok:#1f9d6b;--bad:#d6334f;
+  --blue:#2b6cb0;--orange:#dd6b20;--soft:#f1efe8;--hl:#fff1e3;
+  --s8:#d6334f;--s32:#e08a1e;--s128:#1f9d6b;--s512:#2b6cb0;--sgd:#7b4fc9;}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --blue:#6aa8ff;--orange:#ff9d57;--soft:#252a35;--hl:#3a2c1f;
+  --s8:#ff6f86;--s32:#ffb35c;--s128:#4fd19d;--s512:#6aa8ff;--sgd:#b493ff;}}
+:root[data-theme="dark"]{--bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --blue:#6aa8ff;--orange:#ff9d57;--soft:#252a35;--hl:#3a2c1f;
+  --s8:#ff6f86;--s32:#ffb35c;--s128:#4fd19d;--s512:#6aa8ff;--sgd:#b493ff;}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.65}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.9rem;line-height:1.3}
+header .sub{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 20px 22px;margin:18px 0}
+.card h2{margin:0 0 12px;font-size:1.35rem;display:flex;align-items:center;gap:10px}
+.num{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:var(--blue);color:#fff;font-size:1rem;flex:none}
+p{margin:.4em 0 .7em}
+.mute{color:var(--mute)}
+.note{background:var(--soft);border-left:4px solid var(--blue);border-radius:8px;padding:10px 14px;margin:12px 0}
+.note.warn{border-left-color:var(--orange)}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+.grid2>*{min-width:0}
+.panel{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--card);min-width:0}
+.panel h3{margin:0 0 8px;font-size:1.05rem}
+button{font:inherit;border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:10px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--blue)}
+button.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+button:disabled{opacity:.45;cursor:default}
+.ctrls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{padding:4px 10px;border-radius:999px;font-size:.92rem}
+label{cursor:pointer}
+input[type=range]{width:100%;accent-color:var(--blue)}
+canvas{display:block;width:100%}
+.big{font-size:1.9rem;font-weight:700;line-height:1.2}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0}
+.stat{background:var(--soft);border-radius:10px;padding:10px 12px;min-width:0}
+.stat .k{font-size:.85rem;color:var(--mute)}
+.stat .v{font-size:1.35rem;font-weight:700}
+.formula{font-family:"Cambria Math","Times New Roman",serif;font-size:1.15rem;background:var(--soft);border-radius:10px;padding:8px 14px;display:inline-block;margin:6px 0;max-width:100%;overflow-x:auto}
+/* cards (digit) */
+.deck{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.dc{position:relative;width:44px;height:44px;border-radius:6px;border:2px solid transparent;transition:opacity .3s,transform .3s,border-color .3s}
+.dc canvas{width:100%;height:100%;border-radius:4px;image-rendering:pixelated}
+.dc .tag{position:absolute;right:-6px;top:-8px;font-size:.7rem;color:#fff;border-radius:999px;padding:0 5px;line-height:1.4}
+.dc.used{opacity:.3}
+.dc.cur{transform:translateY(-4px)}
+.boxes{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;min-height:70px}
+.box{border:2px dashed var(--line);border-radius:10px;padding:6px 8px 8px;animation:pop .35s ease}
+.box .bt{font-size:.8rem;color:var(--mute);margin-bottom:4px}
+.box .row{display:flex;gap:4px;flex-wrap:wrap}
+.box .dc{width:32px;height:32px;border:none}
+@keyframes pop{from{transform:scale(.85);opacity:0}to{transform:none;opacity:1}}
+.msg{min-height:1.6em;font-weight:600}
+/* step animation */
+.stepbar{height:6px;background:var(--soft);border-radius:999px;overflow:hidden;margin:6px 0 10px}
+.stepbar>div{height:100%;background:var(--orange);transition:width .3s}
+.explain{background:var(--hl);border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-height:4.2em}
+.explain b{color:var(--orange)}
+.batchrow{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.bi{display:flex;flex-direction:column;align-items:center;width:58px;font-size:.78rem}
+.bi canvas{width:52px;height:52px;border-radius:6px;image-rendering:pixelated}
+.bi .pr{min-height:2.6em;text-align:center;line-height:1.3;opacity:0;transition:opacity .3s}
+.bi .pr.show{opacity:1}
+.ok{color:var(--ok)}.bad{color:var(--bad)}
+.tensor{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:6px 0;opacity:.15;transition:opacity .3s}
+.tensor.show{opacity:1}
+.stack{position:relative;width:86px;height:70px;flex:none}
+.stack span{position:absolute;width:52px;height:52px;border:2px solid var(--blue);background:var(--card);border-radius:4px}
+.code{border:1px solid #2e3441;background:#1b1f27;color:#d7dce5;border-radius:10px;padding:10px 0;font-family:Consolas,"Courier New",monospace;font-size:.88rem;overflow-x:auto;margin:0}
+.code .ln{display:block;padding:1px 14px;white-space:pre;border-left:4px solid transparent}
+.code .ln.hl{background:rgba(255,157,87,.18);border-left-color:#ff9d57}
+.code .cm{color:#8b95a7}.code .kw{color:#c792ea}.code .st{color:#c3e88d}.code .nm{color:#f78c6c}
+.out{background:#11141a;color:#b9f0c9;border-radius:10px;padding:10px 14px;font-family:Consolas,"Courier New",monospace;font-size:.86rem;white-space:pre;overflow-x:auto;min-height:3em;margin:8px 0 0}
+.out .cm{color:#8b95a7}
+.out .w{color:#ffcf6e}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.9rem;margin:6px 0}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:14px;height:4px;border-radius:2px}
+.tabs{display:flex;gap:6px;margin-bottom:8px}
+.frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;line-height:1.1;margin:0 2px}
+.frac>span:first-child{border-bottom:1.5px solid currentColor;padding:0 3px}
+/* quiz */
+.q{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:10px 0}
+.q .qt{font-weight:600;margin-bottom:6px}
+.q .opts{display:grid;gap:6px}
+.q .opts button{text-align:left;background:var(--card)}
+.q .opts button.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--card))}
+.q .opts button.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,var(--card))}
+.q .ex{margin-top:8px;font-size:.93rem;display:none}
+.q .ex.show{display:block}
+.score{font-size:1.2rem;font-weight:700;margin:10px 0}
+footer{text-align:center;color:var(--mute);font-size:.9rem;margin-top:30px}
+/* avatar */
+.avwrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.av{width:100%;max-width:220px;cursor:pointer;user-select:none}
+.av svg{width:100%;display:block;overflow:visible;background:none}
+.av .bodyg{animation:bob 3.2s ease-in-out infinite;transform-origin:100px 200px}
+.av .eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+.av .hairL{animation:sway 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:top center}
+.av .hairR{animation:sway 3.2s ease-in-out infinite reverse;transform-box:fill-box;transform-origin:top center}
+.av .brow{transition:transform .3s;transform-box:fill-box}
+.av .browL{transform-origin:right center}.av .browR{transform-origin:left center}
+.av .mo{opacity:0;transition:opacity .25s}.av .mo.n{opacity:1}
+.av .blush,.av .sweat,.av .spark{opacity:0;transition:opacity .3s}
+.av.smile .mo.n,.av.frown .mo.n{opacity:0}
+.av.smile .mo.s{opacity:1}.av.frown .mo.f{opacity:1}
+.av.smile .blush{opacity:.55}.av.smile .spark{opacity:1}.av.frown .sweat{opacity:.9}
+.av.smile .brow{transform:translateY(-3px)}
+.av.frown .browL{transform:rotate(14deg) translateY(2px)}.av.frown .browR{transform:rotate(-14deg) translateY(2px)}
+.av.hop svg{animation:hop .7s ease}
+.av.shake svg{animation:shake .55s ease}
+.av .spark{animation:twinkle 1s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}
+@keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+@keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.bubble{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.95rem;margin-bottom:10px;min-height:2.6em;max-width:260px;text-align:center;transition:border-color .3s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--line);border-bottom:0}
+.bubble.good{border-color:var(--ok)}.bubble.good::after{border-top-color:var(--ok)}
+.bubble.bad{border-color:var(--bad)}.bubble.bad::after{border-top-color:var(--bad)}
+.intro{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:center}
+.intro>*,.qgrid>*{min-width:0}
+.intro .avwrap{flex-direction:row;gap:10px}.intro .bubble{flex:1;margin:0}.intro .bubble::after{display:none}.intro .av{width:125px;flex:none}
+.qgrid{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:18px;align-items:start}
+.qgrid .avwrap{position:sticky;top:12px}
+/* badge (text only) */
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink)}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute)}
+@media (max-width:860px){.grid2{grid-template-columns:minmax(0,1fr)}
+  .intro,.qgrid{grid-template-columns:minmax(0,1fr)}.intro .avwrap{flex-direction:column}.intro .bubble{margin-bottom:10px}.intro .bubble::after{display:block}.intro .av,.qgrid .av{width:auto;max-width:140px}.qgrid .avwrap{position:static;order:-1}}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}header h1{font-size:1.5rem}}
+</style>
+<style>
+.vs{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:12px;margin:10px 0}
+.vs>div{background:var(--soft);border-radius:12px;padding:12px 14px;min-width:0;border-top:4px solid var(--blue)}
+.vs>div.sg{border-top-color:var(--orange)}.vs>div.mb{border-top-color:var(--ok)}
+.vs h4{margin:0 0 6px;font-size:1.02rem}
+.vs .formula{display:block;font-size:1.02rem;background:var(--card)}
+.tag2{display:inline-block;font-size:.78rem;padding:1px 8px;border-radius:999px;color:#fff;margin-right:4px}
+.cnt{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0}
+.cnt .stat .v{font-size:1.1rem}
+table.cmp{border-collapse:collapse;width:100%;min-width:620px;font-size:.95rem}
+table.cmp th,table.cmp td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+table.cmp th{background:var(--soft)}
+.tw{overflow-x:auto}
+.c-gd{color:var(--blue);font-weight:700}.c-sgd{color:var(--orange);font-weight:700}.c-mb{color:var(--ok);font-weight:700}
+@media (max-width:860px){.vs{grid-template-columns:minmax(0,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="pu-hd">
+  <div class="pu-hd-main">
+    <h1>SGD 與一般梯度下降，差在哪裡？</h1>
+    <p class="sub">工程數學 ・ 互動教學：梯度下降（GD）、隨機梯度下降（SGD）與 mini-batch SGD</p>
+  </div>
+  <div class="pu-badge"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</header>
+
+<!-- 0 -->
+<section class="card">
+  <h2><span class="num">0</span>一句話直覺</h2>
+  <div class="intro">
+    <div>
+      <p>想像你在濃霧中下山，要決定往哪裡走：</p>
+      <p>・<b class="c-gd">梯度下降（GD）</b>：每走一步之前，先<b>問遍全部 N 個嚮導</b>，把大家的意見平均，再走一步。方向很準，但問一次很久。<br>
+         ・<b class="c-sgd">隨機梯度下降（SGD）</b>：<b>隨便問一個嚮導</b>就馬上走一步。方向有點亂，但走得超快。<br>
+         ・<b class="c-mb">mini-batch SGD</b>：每次<b>問一小群（B 個）</b>，折衷兩者，是深度學習的標準做法。</p>
+      <div class="vs">
+        <div><h4 class="c-gd">GD（全批次）</h4><div class="formula">θ ← θ − η · <span class="frac"><span>1</span><span>N</span></span> Σ<sub>i=1..N</sub> ∇ℓ<sub>i</sub>(θ)</div><span class="mute">每步用全部 N 筆</span></div>
+        <div class="sg"><h4 class="c-sgd">SGD（純隨機）</h4><div class="formula">θ ← θ − η · ∇ℓ<sub>i</sub>(θ)，i 隨機</div><span class="mute">每步只用 1 筆</span></div>
+        <div class="mb"><h4 class="c-mb">mini-batch SGD</h4><div class="formula">θ ← θ − η · <span class="frac"><span>1</span><span>B</span></span> Σ<sub>i∈batch</sub> ∇ℓ<sub>i</sub>(θ)</div><span class="mute">每步用 B 筆</span></div>
+      </div>
+      <p class="mute">三者的更新公式完全一樣是「θ − η × 梯度」，<b>唯一的差別是：梯度用多少筆資料來算</b>。</p>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub1">Hello！我是 Robbins 老師。1951 年我和 Monro 提出的「隨機逼近法」，就是 SGD 的源頭。點我聽故事！</div><div class="av" id="av1" title="點我聽故事"></div></div>
+  </div>
+</section>
+
+<!-- 1 -->
+<section class="card">
+  <h2><span class="num">1</span>並排比賽：同一份 10 筆資料，GD vs SGD</h2>
+  <p>用直線 ŷ = w·x + b 擬合 10 個點。左邊每一步用<b>全部 10 筆</b>算梯度；右邊每一步只用<b>隨機 1 筆</b>（被選中的點會亮起來）。</p>
+  <div class="ctrls">
+    <button id="r1Step">兩邊各走 1 步 ▶</button>
+    <button id="r1Equal">相同計算量：GD 走 1 步、SGD 走 10 步 ⏩</button>
+    <button id="r1Play">▶ 自動播放</button>
+    <button id="r1Reset">⟲ 重來</button>
+  </div>
+  <div class="grid2">
+    <div class="panel"><h3 class="c-gd">GD：每步看全部 10 筆</h3><canvas id="r1A" style="height:250px"></canvas>
+      <div class="cnt"><div class="stat"><div class="k">更新次數</div><div class="v" id="r1As"></div></div><div class="stat"><div class="k">梯度計算次數</div><div class="v" id="r1Ac"></div></div><div class="stat"><div class="k">全體損失 L</div><div class="v" id="r1Al"></div></div></div>
+      <pre class="code" id="r1CA"></pre></div>
+    <div class="panel"><h3 class="c-sgd">SGD：每步只看隨機 1 筆</h3><canvas id="r1B" style="height:250px"></canvas>
+      <div class="cnt"><div class="stat"><div class="k">更新次數</div><div class="v" id="r1Bs"></div></div><div class="stat"><div class="k">梯度計算次數</div><div class="v" id="r1Bc"></div></div><div class="stat"><div class="k">全體損失 L</div><div class="v" id="r1Bl"></div></div></div>
+      <pre class="code" id="r1CB"></pre></div>
+  </div>
+  <div class="panel" style="margin-top:14px"><h3>損失 vs「梯度計算次數」（＝實際花的計算量）</h3>
+    <div class="legend"><span><i style="background:var(--blue)"></i>GD</span><span><i style="background:var(--orange)"></i>SGD</span></div>
+    <canvas id="r1L" style="height:220px"></canvas></div>
+  <div class="note" id="r1Note">按「相同計算量」幾次看看：花一樣多的計算，SGD 已經走了 10 步，GD 才走 1 步。</div>
+</section>
+
+<!-- 2 -->
+<section class="card">
+  <h2><span class="num">2</span>在損失地形上的路徑：平滑 vs 歪歪扭扭</h2>
+  <p>資料改成 1,000 筆，參數 (w, b) 在損失函數的等高線上移動。注意 SGD 的路徑雖然亂，大方向還是往谷底走；但<b>到了谷底附近</b>，固定學習率的 SGD 停不下來。</p>
+  <div class="ctrls">
+    <span class="mute">學習率 η = <b id="r2Ev">0.05</b></span><input type="range" id="r2E" min="1" max="15" value="5" style="width:150px">
+    <span class="mute">更新次數 = <b id="r2Tv">1000</b></span><input type="range" id="r2T" min="100" max="2000" step="100" value="1000" style="width:150px">
+    <label><input type="checkbox" id="r2D"> SGD 學習率逐步遞減 η<sub>t</sub> = η / (1 + t/300)</label>
+    <button id="r2Play">▶ 重新播放</button>
+  </div>
+  <div class="legend"><span><i style="background:var(--blue)"></i>GD（每步 1000 筆）</span><span><i style="background:var(--orange)"></i>SGD（每步 1 筆）</span><span><i style="background:var(--ok)"></i>mini-batch SGD（每步 32 筆）</span></div>
+  <div class="grid2">
+    <div class="panel"><canvas id="r2C" style="height:380px"></canvas></div>
+    <div class="panel"><canvas id="r2L" style="height:380px"></canvas></div>
+  </div>
+  <div class="note" id="r2Note"></div>
+</section>
+
+<!-- 3 -->
+<section class="card">
+  <h2><span class="num">3</span>雜訊不一定是壞事：跳出局部極小值</h2>
+  <p>真實神經網路的損失地形坑坑洞洞。下面這個函數有一個<b>淺的局部極小值</b>（右邊）和一個<b>更深的全域極小值</b>（左邊）。從右側出發放 30 顆球：</p>
+  <div class="ctrls">
+    <span class="mute">SGD 雜訊強度 σ = <b id="r3Sv">7</b>（batch 越小，雜訊越大）</span><input type="range" id="r3S" min="0" max="12" value="7" style="width:170px">
+    <button id="r3Play">▶ 放球</button>
+  </div>
+  <div class="grid2">
+    <div class="panel"><canvas id="r3C" style="height:330px"></canvas></div>
+    <div class="panel">
+      <div class="stats">
+        <div class="stat"><div class="k">GD（黑球）停在</div><div class="v" id="r3G">—</div></div>
+        <div class="stat"><div class="k">SGD 球到達全域極小值</div><div class="v" id="r3P">—</div></div>
+      </div>
+      <p>GD 每一步都沿著真實梯度走，從右邊出發就<b>一定</b>滑進右邊的小坑，永遠出不來。</p>
+      <p>SGD 的梯度帶有雜訊，球會被「抖」一下，有機會翻過中間的小山丘。學習率逐步遞減後，抖動變小，球最後會安定在某個谷底。</p>
+      <div class="avwrap" style="margin:6px 0 10px"><div class="bubble" id="bub3">按「放球」，看看雜訊能幫幾顆球翻過山丘！</div><div class="av" id="av3" style="max-width:130px"></div></div>
+      <p class="mute" style="font-size:.92rem">註：這裡用「真實梯度 + 隨機雜訊 σ·ε」來模擬 SGD 的梯度估計；學習率 η<sub>t</sub> = 0.05 / (1 + t/120)。把 σ 調成 0 就等於 GD。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="card">
+  <h2><span class="num">4</span>計算成本：資料越多，GD 越吃虧</h2>
+  <div>
+    <div class="panel">
+      <div class="ctrls"><span class="mute">訓練資料筆數 N = <b id="r4Nv"></b></span></div>
+      <input type="range" id="r4N" min="2" max="7" step="0.1" value="4.778">
+      <div class="ctrls"><span class="mute">mini-batch 大小 B = <b id="r4Bv"></b></span></div>
+      <input type="range" id="r4B" min="0" max="9" step="1" value="5">
+      <p class="mute" style="font-size:.92rem">假設電腦每秒能算 100 萬個「單筆樣本的梯度」：</p>
+      <div class="stats">
+        <div class="stat"><div class="k c-gd">GD 每秒更新</div><div class="v" id="r4G"></div></div>
+        <div class="stat"><div class="k c-mb">mini-batch 每秒更新</div><div class="v" id="r4M"></div></div>
+        <div class="stat"><div class="k c-sgd">SGD 每秒更新</div><div class="v" id="r4S"></div></div>
+      </div>
+      <div class="note" id="r4Note"></div>
+    </div>
+    <div class="panel tw" style="margin-top:14px">
+      <table class="cmp">
+        <tr><th></th><th class="c-gd">GD</th><th class="c-sgd">SGD</th><th class="c-mb">mini-batch SGD</th></tr>
+        <tr><td>每步用幾筆</td><td>全部 N</td><td>1</td><td>B（如 32～256）</td></tr>
+        <tr><td>一個 epoch 更新幾次</td><td>1</td><td>N</td><td>⌈N / B⌉</td></tr>
+        <tr><td>梯度方向</td><td>精確</td><td>雜訊很大</td><td>雜訊中等</td></tr>
+        <tr><td>損失曲線</td><td>平滑下降</td><td>劇烈抖動</td><td>小幅抖動</td></tr>
+        <tr><td>記憶體需求</td><td>大（全部資料）</td><td>極小</td><td>可控制</td></tr>
+        <tr><td>GPU 平行運算</td><td>能用，但太大放不下</td><td>幾乎用不到</td><td>剛好發揮</td></tr>
+        <tr><td>接近最低點</td><td>穩定收斂</td><td>在附近打轉，需遞減 η</td><td>小幅打轉，需遞減 η</td></tr>
+        <tr><td>跳出局部極小 / 鞍點</td><td>困難</td><td>容易</td><td>有機會</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="card">
+  <h2><span class="num">5</span>程式碼對照：只差在「梯度用哪些資料算」</h2>
+  <div class="grid2">
+    <div>
+      <div class="tabs" id="cdT"></div>
+      <pre class="code" id="cdC"></pre>
+    </div>
+    <div>
+      <div class="note"><b>一個常被誤會的地方</b>：Keras 的 <code>optimizers.SGD</code> 和 PyTorch 的 <code>torch.optim.SGD</code>，本身只做 θ ← θ − η·g 這一步。<b>「隨機」來自資料一次給幾筆</b>：</div>
+      <div class="out" id="cdO"></div>
+      <p class="mute" style="font-size:.92rem">所以「用 SGD 優化器」不等於「每次只用 1 筆」，batch size 才決定它是 GD、純 SGD 還是 mini-batch SGD。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 6 -->
+<section class="card">
+  <h2><span class="num">6</span>觀念小測驗</h2>
+  <div class="qgrid">
+    <div><div id="quiz"></div><div class="score" id="qScore"></div><button id="qAgain" style="display:none">再做一次</button></div>
+    <div class="avwrap"><div class="bubble" id="bub2">來考考你！答對我會笑，答錯我會皺眉喔。</div><div class="av" id="av2"></div></div>
+  </div>
+</section>
+
+<footer>SGD 與梯度下降互動教學 ・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+
+<script>
+var $=function(id){return document.getElementById(id)};
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
+function rng(seed){var a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){var u=1-r(),v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function fmt(n){return Math.round(n).toLocaleString('en-US')}
+function setupCanvas(cv,h){var dpr=window.devicePixelRatio||1;var w=cv.clientWidth||300;h=h||cv.clientHeight;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);var c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);return {c:c,w:w,h:h}}
+function isDark(){return css('--bg')==='#15181f'}
+
+var ROBBINS_SVG='<svg viewBox="0 0 200 230" aria-label="Robbins老師動畫"><g class="bodyg">'+
+'<path d="M14 232 Q20 172 100 162 Q180 172 186 232 Z" fill="#2a2b30"/>'+
+'<path d="M81 164 L100 202 L119 164 Z" fill="#f1f1ee"/>'+
+'<path d="M81 164 L93 186 L86 193 L74 168 Z" fill="#e2e2de"/><path d="M119 164 L107 186 L114 193 L126 168 Z" fill="#e2e2de"/>'+
+'<path d="M95.5 176 L104.5 176 L108 214 L100 226 L92 214 Z" fill="#141416"/><path d="M95 168 L105 168 L104.5 177 L95.5 177 Z" fill="#232326"/>'+
+'<path d="M74 168 L97 216 L76 232 L50 232 Z" fill="#1f2024"/><path d="M126 168 L103 216 L124 232 L150 232 Z" fill="#1f2024"/>'+
+'<rect x="83" y="133" width="34" height="35" rx="10" fill="#e0b394"/>'+
+'<ellipse cx="64" cy="104" rx="7.5" ry="12.5" fill="#e0b394"/><ellipse cx="136" cy="104" rx="7.5" ry="12.5" fill="#e0b394"/>'+
+'<path d="M65.5 98 Q64 53 100 53 Q136 53 134.5 98 Q134 128 118 140 Q100 150 82 140 Q66 128 65.5 98 Z" fill="#eec3a6"/>'+
+'<ellipse class="blush" cx="79" cy="117" rx="7" ry="4.5" fill="#f08080"/><ellipse class="blush" cx="121" cy="117" rx="7" ry="4.5" fill="#f08080"/>'+
+'<path d="M67 80 Q62 56 79 46 Q92 39 105 41 Q123 43 132 55 Q138 67 133 80 Q129 67 121 61 Q113 58 106 60 Q100 56.5 94 59 Q86 57 79 61 Q71 67 67 80 Z" fill="#bfc2c5"/>'+
+'<path d="M76 54 Q86 45 100 45 Q114 45 124 52 M79 59 Q92 51 104 52 Q116 53 127 60" stroke="#e2e4e6" stroke-width="2.2" fill="none" stroke-linecap="round"/>'+
+'<path d="M86 49 Q98 43 112 46 M72 66 Q80 57 92 56" stroke="#8e9296" stroke-width="1.5" fill="none" stroke-linecap="round"/>'+
+'<g class="hairL"><path d="M66.5 96 Q63.5 85 67 75 L71 79 Q69.5 88 70 95 Z" fill="#a9acb0"/></g>'+
+'<g class="hairR"><path d="M133.5 96 Q136.5 85 133 75 L129 79 Q130.5 88 130 95 Z" fill="#a9acb0"/></g>'+
+'<path d="M86 70 Q100 66.5 114 70" stroke="#d9a98b" stroke-width="1.3" fill="none" stroke-linecap="round"/>'+
+'<path d="M87 76 Q100 73 113 76" stroke="#d9a98b" stroke-width="1.1" fill="none" stroke-linecap="round"/>'+
+'<path d="M79.5 93 Q85 90 90.5 93 M109.5 93 Q115 90 120.5 93" stroke="#b98468" stroke-width="1.3" fill="none" stroke-linecap="round"/>'+
+'<path class="brow browL" d="M74 87 Q84 82 94 86" stroke="#4b4846" stroke-width="3.6" fill="none" stroke-linecap="round"/>'+
+'<path class="brow browR" d="M106 86 Q116 82 126 87" stroke="#4b4846" stroke-width="3.6" fill="none" stroke-linecap="round"/>'+
+'<g class="eyes"><ellipse cx="85" cy="96" rx="3.8" ry="2.6" fill="#33302c"/><ellipse cx="115" cy="96" rx="3.8" ry="2.6" fill="#33302c"/>'+
+'<circle cx="86.2" cy="95.1" r="0.9" fill="#fff"/><circle cx="116.2" cy="95.1" r="0.9" fill="#fff"/></g>'+
+'<path d="M78 100 Q85 103 91 100 M109 100 Q115 103 122 100" stroke="#d29c80" stroke-width="1.1" fill="none"/>'+
+'<path d="M101 98 Q94 116 97 122 Q104 127 111 121" stroke="#c39073" stroke-width="2.6" fill="none" stroke-linecap="round"/>'+
+'<path d="M84 113 Q81 122 86 130 M116 113 Q119 122 114 130" stroke="#d6a284" stroke-width="1.3" fill="none" stroke-linecap="round"/>'+
+'<path class="mo n" d="M89 129 Q100 133 111 128" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>'+
+'<path class="mo s" d="M87 126 Q100 141 113 126 Q100 131 87 126 Z" fill="#9b3a2c" stroke="#8a4a3a" stroke-width="1.5" stroke-linejoin="round"/>'+
+'<path class="mo f" d="M89 133 Q100 125 111 133" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>'+
+'<path class="sweat" d="M138 70 Q143 80 138 84 Q133 80 138 70 Z" fill="#7cc3f0"/>'+
+'<text class="spark" x="30" y="44" font-size="18" fill="#f0b400">✦</text><text class="spark" x="160" y="40" font-size="14" fill="#f0b400">✦</text><text class="spark" x="170" y="96" font-size="11" fill="#f0b400">✦</text>'+
+'</g></svg>';
+function makeAvatar(el,bubble){
+  el.innerHTML=ROBBINS_SVG;var tm=null;
+  function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
+  return {mood:function(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
+    if(m==='smile'){el.classList.add('smile');restart('hop');}
+    if(m==='frown'){el.classList.add('frown');restart('shake');}
+    if(text!==undefined){bubble.innerHTML=text;bubble.className='bubble'+(m==='smile'?' good':m==='frown'?' bad':'');}
+    if(!hold) tm=setTimeout(function(){el.classList.remove('smile','frown');bubble.className='bubble';},3200);}};
+}
+
+var AV1=makeAvatar($('av1'),$('bub1')), AV2=makeAvatar($('av2'),$('bub2')), AV3=makeAvatar($('av3'),$('bub3'));
+
+var QUOTES=[
+ '1951 年我和 Sutton Monro 發表〈A Stochastic Approximation Method〉：就算每次只拿到帶雜訊的測量值，一步步修正，也能逼近真正的答案。',
+ '我們要求步長 aₙ 滿足兩個條件：Σaₙ = ∞（走得夠遠）、Σaₙ² &lt; ∞（雜訊會被壓下來），例如 aₙ = 1/n。這就是「學習率要逐步遞減」的理論根據！',
+ '梯度下降最早由柯西在 1847 年提出；我們的隨機逼近把它帶進「有雜訊」的世界。半世紀後，深度學習用的 SGD 就是它的後代。',
+ '我和 Richard Courant 合寫過一本經典科普書《What Is Mathematics?》（1941 年），後來還出了新版，很多數學系學生都讀過。',
+ '1950 年代我提出「經驗貝氏」（empirical Bayes）方法，讓大量資料自己幫忙決定先驗分布。',
+ '1952 年我研究「每次該拉哪一台吃角子老虎機」的問題，後來被稱為多臂吃角子老虎機（multi-armed bandit），是強化學習的重要基礎。'
+];
+var qi=0;$('av1').addEventListener('click',function(){AV1.mood('smile',QUOTES[qi++%QUOTES.length]);});
+
+function arrowHead(c,x0,y0,x1,y1){var a=Math.atan2(y1-y0,x1-x0);c.beginPath();c.moveTo(x1,y1);c.lineTo(x1-8*Math.cos(a-.4),y1-8*Math.sin(a-.4));c.lineTo(x1-8*Math.cos(a+.4),y1-8*Math.sin(a+.4));c.closePath();c.fill()}
+
+/* ---------- 1 並排比賽 ---------- */
+var D1={x:[0.05,0.15,0.22,0.35,0.42,0.55,0.63,0.74,0.86,0.95],y:[]};
+(function(){var r=rng(3);D1.x.forEach(function(x){D1.y.push(1.5*x+0.5+0.18*gauss(r))})})();
+var ETA1=0.8,TH1=[-0.5,2.0];
+var R1;
+function loss1(w,b){var s=0;for(var i=0;i<10;i++){var e=w*D1.x[i]+b-D1.y[i];s+=e*e}return s/20}
+function r1Init(){R1={A:{w:TH1[0],b:TH1[1],s:0,c:0,hi:[],hist:[[0,loss1(TH1[0],TH1[1])]]},
+  B:{w:TH1[0],b:TH1[1],s:0,c:0,hi:[],hist:[[0,loss1(TH1[0],TH1[1])]],perm:[],pos:10,ep:0,r:rng(17)},timer:null};r1Draw()}
+function gdStep(){var A=R1.A,gw=0,gb=0;for(var i=0;i<10;i++){var e=A.w*D1.x[i]+A.b-D1.y[i];gw+=e*D1.x[i];gb+=e}A.w-=ETA1*gw/10;A.b-=ETA1*gb/10;A.s++;A.c+=10;A.hi=[0,1,2,3,4,5,6,7,8,9];A.hist.push([A.c,loss1(A.w,A.b)])}
+function sgdStep(){var B=R1.B;if(B.pos>=10){var p=[0,1,2,3,4,5,6,7,8,9];for(var i=9;i>0;i--){var j=Math.floor(B.r()*(i+1));var t=p[i];p[i]=p[j];p[j]=t}B.perm=p;B.pos=0;B.ep++}
+  var k=B.perm[B.pos++],e=B.w*D1.x[k]+B.b-D1.y[k];B.w-=ETA1*e*D1.x[k];B.b-=ETA1*e;B.s++;B.c+=1;B.hi=[k];B.hist.push([B.c,loss1(B.w,B.b)])}
+function r1Code(gd){
+  var L=gd?[['<span class="kw">for</span> step <span class="kw">in</span> range(T):',0],['    grad = mean(∇ℓ(θ; xᵢ, yᵢ) <span class="kw">for</span> i <span class="kw">in</span> 全部 N 筆)',1],['    θ = θ - η * grad',0]]
+          :[['<span class="kw">for</span> step <span class="kw">in</span> range(T):',0],['    i = 隨機挑 1 筆（每個 epoch 洗牌後依序取）',1],['    grad = ∇ℓ(θ; xᵢ, yᵢ)',1],['    θ = θ - η * grad',0]];
+  return L.map(function(l){return '<span class="ln'+(l[1]?' hl':'')+'">'+l[0]+'</span>'}).join('')}
+$('r1CA').innerHTML=r1Code(true);$('r1CB').innerHTML=r1Code(false);
+function r1Panel(cv,S,col){
+  var o=setupCanvas(cv,250),c=o.c,w=o.w,h=o.h,m=28;c.clearRect(0,0,w,h);
+  function P(x,y){return[m+x*(w-2*m),h-m-(y+0.2)/2.8*(h-2*m)]}
+  c.strokeStyle=css('--line');c.strokeRect(m,m,w-2*m,h-2*m);
+  c.fillStyle=css('--mute');c.font='11px sans-serif';c.fillText('x',w-m+4,h-m+4);c.fillText('y',m-12,m-6);
+  var p0=P(0,S.b),p1=P(1,S.w+S.b);c.strokeStyle=col;c.lineWidth=2.5;c.beginPath();c.moveTo(p0[0],p0[1]);c.lineTo(p1[0],p1[1]);c.stroke();
+  for(var i=0;i<10;i++){var p=P(D1.x[i],D1.y[i]),on=S.hi.indexOf(i)>=0;
+    if(on){c.strokeStyle=col;c.globalAlpha=.6;c.setLineDash([3,3]);c.lineWidth=1.2;var q=P(D1.x[i],S.w*D1.x[i]+S.b);c.beginPath();c.moveTo(p[0],p[1]);c.lineTo(q[0],q[1]);c.stroke();c.setLineDash([]);c.globalAlpha=1}
+    c.beginPath();c.arc(p[0],p[1],on?7:5,0,7);c.fillStyle=on?col:css('--mute');c.fill();if(on){c.strokeStyle=css('--ink');c.lineWidth=1.5;c.stroke()}}
+  c.fillStyle=css('--ink');c.font='12px sans-serif';c.fillText('ŷ = '+S.w.toFixed(2)+'x + '+S.b.toFixed(2),m+6,m+16);
+}
+function r1Draw(){
+  r1Panel($('r1A'),R1.A,css('--blue'));r1Panel($('r1B'),R1.B,css('--orange'));
+  $('r1As').textContent=R1.A.s;$('r1Ac').textContent=R1.A.c;$('r1Al').textContent=loss1(R1.A.w,R1.A.b).toFixed(4);
+  $('r1Bs').textContent=R1.B.s;$('r1Bc').textContent=R1.B.c;$('r1Bl').textContent=loss1(R1.B.w,R1.B.b).toFixed(4);
+  var o=setupCanvas($('r1L'),220),c=o.c,w=o.w,h=o.h,mx=46,my=14,pw=w-mx-12,ph=h-my-30;c.clearRect(0,0,w,h);
+  var xmax=Math.max(30,R1.A.c,R1.B.c),ymin=Math.log10(0.008),ymax=Math.log10(2);
+  function PX(x){return mx+x/xmax*pw}function PY(L){return my+(ymax-Math.log10(Math.max(Math.min(L,2),0.008)))/(ymax-ymin)*ph}
+  c.strokeStyle=css('--line');c.fillStyle=css('--mute');c.font='11px sans-serif';c.textAlign='right';
+  [0.01,0.03,0.1,0.3,1].forEach(function(v){var y=PY(v);c.beginPath();c.moveTo(mx,y);c.lineTo(mx+pw,y);c.stroke();c.fillText(v,mx-5,y+4)});
+  c.textAlign='center';var st=xmax>200?50:xmax>80?20:10;for(var t=0;t<=xmax;t+=st){var x=PX(t);c.beginPath();c.moveTo(x,my);c.lineTo(x,my+ph);c.stroke();c.fillText(t,x,my+ph+14)}
+  c.fillText('梯度計算次數（算了幾筆樣本的梯度）',mx+pw/2,h-2);
+  var Lmin=(function(){var mx_=0,my_=0,sxx=0,sxy=0;for(var i=0;i<10;i++){mx_+=D1.x[i]/10;my_+=D1.y[i]/10}for(i=0;i<10;i++){sxx+=(D1.x[i]-mx_)*(D1.x[i]-mx_);sxy+=(D1.x[i]-mx_)*(D1.y[i]-my_)}var w_=sxy/sxx;return loss1(w_,my_-w_*mx_)})();
+  c.setLineDash([5,4]);var yl=PY(Lmin);c.beginPath();c.moveTo(mx,yl);c.lineTo(mx+pw,yl);c.stroke();c.setLineDash([]);c.textAlign='left';c.fillText('最小可能損失',mx+4,yl-4);
+  [[R1.A,css('--blue')],[R1.B,css('--orange')]].forEach(function(s){c.strokeStyle=s[1];c.fillStyle=s[1];c.lineWidth=2;c.beginPath();
+    s[0].hist.forEach(function(p,i){var x=PX(p[0]),y=PY(p[1]);if(i)c.lineTo(x,y);else c.moveTo(x,y)});c.stroke();
+    s[0].hist.forEach(function(p){c.beginPath();c.arc(PX(p[0]),PY(p[1]),2.5,0,7);c.fill()})});
+  var n='';if(R1.B.s>0){n=R1.B.c>=R1.A.c&&R1.A.s>0?'花一樣多的計算（'+R1.A.c+' 次梯度），GD 更新了 '+R1.A.s+' 次，SGD 更新了 '+R1.B.s+' 次。':'';
+    n+=' SGD 每一步只看 1 個點，直線會被那個點「拉」過去，所以有時候損失反而上升（曲線會抖）；但整體下降得比 GD 快。'}
+  $('r1Note').textContent=n||'按「相同計算量」幾次看看：花一樣多的計算，SGD 已經走了 10 步，GD 才走 1 步。';
+}
+function stopR1(){clearInterval(R1.timer);R1.timer=null;$('r1Play').textContent='▶ 自動播放'}
+$('r1Step').onclick=function(){stopR1();gdStep();sgdStep();r1Draw()};
+$('r1Equal').onclick=function(){stopR1();gdStep();for(var k=0;k<10;k++)sgdStep();r1Draw()};
+$('r1Reset').onclick=function(){stopR1();r1Init()};
+$('r1Play').onclick=function(){if(R1.timer){stopR1();return}this.textContent='⏸ 暫停';var k=0;
+  R1.timer=setInterval(function(){sgdStep();if(R1.B.c%10===0)gdStep();r1Draw();if(R1.B.c>=200)stopR1()},180)};
+r1Init();
+
+/* ---------- 2 等高線路徑 ---------- */
+var N2=1000,X2=new Float64Array(N2),Y2=new Float64Array(N2);
+(function(){var r=rng(99);for(var i=0;i<N2;i++){var x;do{x=1.5+gauss(r)}while(x<-1||x>4);X2[i]=x;Y2[i]=2*x+1+0.5*gauss(r)}})();
+var M2=(function(){var o={sx:0,sy:0,sxx:0,sxy:0,syy:0};for(var i=0;i<N2;i++){o.sx+=X2[i];o.sy+=Y2[i];o.sxx+=X2[i]*X2[i];o.sxy+=X2[i]*Y2[i];o.syy+=Y2[i]*Y2[i]}for(var k in o)o[k]/=N2;return o})();
+function L2(w,b){return 0.5*(w*w*M2.sxx+2*w*b*M2.sx+b*b-2*w*M2.sxy-2*b*M2.sy+M2.syy)}
+var W2=(function(){var d=M2.sxx-M2.sx*M2.sx,w=(M2.sxy-M2.sx*M2.sy)/d;return[w,M2.sy-w*M2.sx]})(),L2min=L2(W2[0],W2[1]);
+var R2={paths:[],prog:1,anim:null},TH2=[-1,-2.5],CW2={w0:-1.6,w1:3.6,b0:-3.6,b1:3.2};
+function run2(B,eta,T,decay,seed){
+  var r=rng(seed),w=TH2[0],b=TH2[1],pts=[[w,b,L2(w,b)]],perm=new Int32Array(N2),pos=N2;for(var i=0;i<N2;i++)perm[i]=i;
+  for(var t=0;t<T;t++){var gw=0,gb=0,n=0;
+    if(B>=N2){gw=w*M2.sxx+b*M2.sx-M2.sxy;gb=w*M2.sx+b-M2.sy}
+    else{for(var k=0;k<B;k++){if(pos>=N2){for(i=N2-1;i>0;i--){var j=Math.floor(r()*(i+1));var tt=perm[i];perm[i]=perm[j];perm[j]=tt}pos=0}
+      var id=perm[pos++],e=w*X2[id]+b-Y2[id];gw+=e*X2[id];gb+=e;n++}gw/=n;gb/=n}
+    var et=(decay&&B<N2)?eta/(1+t/300):eta;w-=et*gw;b-=et*gb;pts.push([w,b,L2(w,b)])}
+  return pts}
+function r2Compute(){var eta=+$('r2E').value/100,T=+$('r2T').value,dec=$('r2D').checked;
+  $('r2Ev').textContent=eta.toFixed(2);$('r2Tv').textContent=T;
+  R2.paths=[{p:run2(N2,eta,T,dec,1),c:'--blue',lw:2.6},{p:run2(32,eta,T,dec,7),c:'--ok',lw:1.6},{p:run2(1,eta,T,dec,5),c:'--orange',lw:1.2}];
+  var tail=function(p){var s=0,k=Math.max(1,Math.floor(p.length/5));for(var i=p.length-k;i<p.length;i++)s+=p[i][2]-L2min;return s/k};
+  var g=tail(R2.paths[0].p),m=tail(R2.paths[1].p),sg=tail(R2.paths[2].p);
+  var t='最後 20% 步數的平均「多出來的損失」（L − L<sub>min</sub>）：<span class="c-gd">GD '+g.toExponential(1)+'</span>、<span class="c-mb">mini-batch '+m.toExponential(1)+'</span>、<span class="c-sgd">SGD '+sg.toExponential(1)+'</span>。';
+  t+=dec?'<br>✔ 學習率遞減後，SGD 與 mini-batch 的抖動越來越小，更貼近谷底（和不勾選時比比看數字）。這就是實務上要搭配 learning rate schedule 的原因。<br>📐 Robbins–Monro 條件：步長要滿足 Σηₜ = ∞ 且 Σηₜ² &lt; ∞。這裡的 ηₜ = η/(1+t/300) 大約和 1/t 成正比，剛好兩個條件都成立。':'<br>固定學習率時，SGD 走到谷底附近就停不下來，一直在周圍打轉。勾選「學習率逐步遞減」看看差別。';
+  t+='<br><span class="mute">提醒：右圖橫軸是「更新次數」，以每一步來比，GD 當然最準；但 GD 每一步要算 1,000 筆，SGD 只算 1 筆。若以計算量來比，SGD 走 1,000 步才等於 GD 走 1 步。</span>';
+  $('r2Note').innerHTML=t}
+function r2Draw(){
+  var o=setupCanvas($('r2C'),380),c=o.c,w=o.w,h=o.h;
+  var img=c.createImageData(Math.round(w),Math.round(h)),W=img.width,H=img.height,lv=new Float32Array(W*H),dk=isDark();
+  var bg=dk?[29,33,43]:[255,255,255],ln=dk?[90,100,120]:[200,198,190],fl=dk?[36,42,56]:[246,244,238];
+  for(var yy=0;yy<H;yy++)for(var xx=0;xx<W;xx++){var pw_=CW2.w0+xx/W*(CW2.w1-CW2.w0),pb=CW2.b1-yy/H*(CW2.b1-CW2.b0);lv[yy*W+xx]=Math.floor(Math.log(L2(pw_,pb)-L2min+0.02)*2.2)}
+  for(yy=0;yy<H;yy++)for(xx=0;xx<W;xx++){var id=yy*W+xx,v=lv[id],edge=(xx<W-1&&lv[id+1]!==v)||(yy<H-1&&lv[id+W]!==v),col=edge?ln:(v%2?fl:bg);img.data[id*4]=col[0];img.data[id*4+1]=col[1];img.data[id*4+2]=col[2];img.data[id*4+3]=255}
+  var dpr=window.devicePixelRatio||1,tmp=document.createElement('canvas');tmp.width=W;tmp.height=H;tmp.getContext('2d').putImageData(img,0,0);c.save();c.setTransform(1,0,0,1,0,0);c.drawImage(tmp,0,0,W*dpr,H*dpr);c.restore();
+  function P(a,b){return[(a-CW2.w0)/(CW2.w1-CW2.w0)*w,h-(b-CW2.b0)/(CW2.b1-CW2.b0)*h]}
+  var nShow=Math.max(1,Math.round(R2.prog*(R2.paths[0].p.length-1)));
+  R2.paths.slice().reverse().forEach(function(s){c.strokeStyle=css(s.c);c.lineWidth=s.lw;c.globalAlpha=.9;c.beginPath();
+    for(var i=0;i<=nShow;i++){var q=P(s.p[i][0],s.p[i][1]);if(i)c.lineTo(q[0],q[1]);else c.moveTo(q[0],q[1])}c.stroke();
+    var q=P(s.p[nShow][0],s.p[nShow][1]);c.globalAlpha=1;c.fillStyle=css(s.c);c.beginPath();c.arc(q[0],q[1],5,0,7);c.fill()});
+  var st=P(TH2[0],TH2[1]),op=P(W2[0],W2[1]);c.fillStyle=css('--ink');c.beginPath();c.arc(st[0],st[1],5,0,7);c.fill();c.font='13px sans-serif';c.textAlign='left';c.fillText('起點',st[0]+8,st[1]+4);
+  c.font='18px sans-serif';c.textAlign='center';c.fillText('★',op[0],op[1]+6);c.font='12px sans-serif';c.fillText('最低點',op[0],op[1]-10);
+  c.textAlign='left';c.fillStyle=css('--mute');c.fillText('w →',w-34,h-8);c.fillText('b ↑',6,14);
+  // loss chart
+  var o2=setupCanvas($('r2L'),380),d=o2.c,w2=o2.w,h2=o2.h,mx=50,my=16,pw=w2-mx-12,ph=h2-my-34;d.clearRect(0,0,w2,h2);
+  var T=R2.paths[0].p.length-1,ymin=-4,ymax=Math.log10(50);
+  function PX(t){return mx+t/T*pw}function PY(v){return my+(ymax-Math.log10(Math.max(v,1e-4)))/(ymax-ymin)*ph}
+  d.strokeStyle=css('--line');d.fillStyle=css('--mute');d.font='11px sans-serif';d.textAlign='right';
+  [1e-4,1e-3,1e-2,0.1,1,10].forEach(function(v){var y=PY(v);d.beginPath();d.moveTo(mx,y);d.lineTo(mx+pw,y);d.stroke();d.fillText(v>=1?v:v.toExponential(0),mx-5,y+4)});
+  d.textAlign='center';var stp=T>500?200:T>200?100:50;for(var t=0;t<=T;t+=stp){var x=PX(t);d.beginPath();d.moveTo(x,my);d.lineTo(x,my+ph);d.stroke();d.fillText(t,x,my+ph+14)}
+  d.fillText('更新次數',mx+pw/2,h2-4);d.save();d.translate(12,my+ph/2);d.rotate(-Math.PI/2);d.fillText('多出來的損失 L − L_min（對數軸）',0,0);d.restore();
+  R2.paths.forEach(function(s){d.strokeStyle=css(s.c);d.lineWidth=s.lw;d.beginPath();for(var i=0;i<=nShow;i++){var x=PX(i),y=PY(s.p[i][2]-L2min);if(i)d.lineTo(x,y);else d.moveTo(x,y)}d.stroke()});
+}
+function r2Play(){cancelAnimationFrame(R2.anim);var t0=performance.now();(function f(now){R2.prog=Math.min(1,(now-t0)/2500);r2Draw();if(R2.prog<1)R2.anim=requestAnimationFrame(f)})(t0)}
+$('r2E').oninput=$('r2T').oninput=function(){r2Compute();R2.prog=1;r2Draw()};
+$('r2D').onchange=function(){r2Compute();r2Play()};$('r2Play').onclick=r2Play;
+r2Compute();R2.prog=1;r2Draw();
+
+/* ---------- 3 局部極小 ---------- */
+function f3(x){return 0.05*x*x*x*x-0.6*x*x+0.5*x}
+function d3(x){return 0.2*x*x*x-1.2*x+0.5}
+var R3={balls:[],gd:2.8,t:0,anim:null,done:false};
+function r3Reset(){R3.balls=[];for(var i=0;i<30;i++)R3.balls.push(2.8);R3.gd=2.8;R3.t=0;R3.done=false;R3.r=rng(Date.now()%100000)}
+function r3Step(){var sig=+$('r3S').value,eta=0.05/(1+R3.t/120);
+  R3.gd-=eta*d3(R3.gd);
+  for(var i=0;i<R3.balls.length;i++){var x=R3.balls[i]-eta*(d3(R3.balls[i])+sig*gauss(R3.r));R3.balls[i]=Math.max(-4.2,Math.min(4.2,x))}
+  R3.t++}
+function r3Draw(){
+  var o=setupCanvas($('r3C'),330),c=o.c,w=o.w,h=o.h,m=30;c.clearRect(0,0,w,h);
+  function P(x,y){return[m+(x+4.3)/8.6*(w-2*m),h-m-(y+3.6)/(5.4)*(h-2*m)]}
+  c.strokeStyle=css('--ink');c.lineWidth=2;c.beginPath();for(var x=-4.3;x<=4.3;x+=0.02){var p=P(x,f3(x));if(x===-4.3)c.moveTo(p[0],p[1]);else c.lineTo(p[0],p[1])}c.stroke();
+  c.fillStyle=css('--mute');c.font='12px sans-serif';c.textAlign='center';
+  var g=P(-2.636,f3(-2.636)),l=P(2.206,f3(2.206)),pk=P(0.43,f3(0.43));
+  c.fillText('全域極小值',g[0],g[1]+20);c.fillText('局部極小值',l[0],l[1]+20);c.fillText('山丘',pk[0],pk[1]-12);
+  var st=P(2.8,f3(2.8));c.fillText('起點',st[0]+16,st[1]-10);
+  var oc=css('--orange');R3.balls.forEach(function(x,i){var p=P(x,f3(x));c.globalAlpha=.75;c.fillStyle=oc;c.beginPath();c.arc(p[0]+((i%5)-2)*2,p[1]-6-(i%3)*3,5,0,7);c.fill()});
+  c.globalAlpha=1;var q=P(R3.gd,f3(R3.gd));c.fillStyle=css('--ink');c.beginPath();c.arc(q[0],q[1]-7,7,0,7);c.fill();
+  c.textAlign='right';c.fillStyle=css('--mute');c.fillText('步數 t = '+R3.t,w-8,h-8);
+  var left=R3.balls.filter(function(x){return x<0.43}).length;
+  $('r3P').textContent=left+' / 30 顆';$('r3G').textContent=R3.gd<0.43?'全域極小值':(R3.t?'局部極小值':'—');
+}
+function r3Play(){cancelAnimationFrame(R3.anim);r3Reset();$('r3Sv').textContent=$('r3S').value;
+  (function f(){for(var k=0;k<3;k++)if(R3.t<600)r3Step();r3Draw();if(R3.t<600)R3.anim=requestAnimationFrame(f);
+    else{var left=R3.balls.filter(function(x){return x<0.43}).length,s=+$('r3S').value;
+      if(s===0)AV3.mood('frown','σ = 0 就是 GD：30 顆球全部卡在局部極小值！',true);
+      else if(left>=8)AV3.mood('smile','雜訊幫了 '+left+' 顆球翻過山丘！而且學習率逐步遞減，球最後都安定下來了。',true);
+      else AV3.mood('frown','只有 '+left+' 顆翻過去。雜訊太小就跟 GD 差不多，把 σ 調大試試！',true);}})()}
+$('r3S').oninput=function(){$('r3Sv').textContent=this.value};
+$('r3Play').onclick=r3Play;r3Reset();r3Draw();
+
+/* ---------- 4 成本 ---------- */
+var R4B=[1,8,16,32,64,128,256,512,1024,4096];
+function r4(){var N=Math.round(Math.pow(10,+$('r4N').value)),B=Math.min(R4B[+$('r4B').value],N),R=1e6;
+  $('r4Nv').textContent=fmt(N);$('r4Bv').textContent=fmt(B);
+  $('r4G').textContent=R/N>=1?fmt(R/N)+' 次':(R/N).toFixed(2)+' 次';$('r4M').textContent=fmt(R/B)+' 次';$('r4S').textContent=fmt(R)+' 次';
+  $('r4Note').innerHTML='GD 要把 '+fmt(N)+' 筆全部算完才能走 1 步；同樣的時間，mini-batch 可以走 '+fmt(N/B)+' 步，SGD 可以走 '+fmt(N)+' 步。<br>實務上單筆 SGD 無法發揮 GPU 平行運算，真正速度比上面的估算慢很多，所以最常用 mini-batch。'}
+$('r4N').oninput=$('r4B').oninput=r4;r4();
+
+/* ---------- 5 程式碼 ---------- */
+var CODES={
+ gd:{n:'GD',c:[['<span class="kw">def</span> gradient(theta, X, y):','<span class="cm"># 線性迴歸 MSE 的梯度（取平均）</span>',0],['    err = X @ theta - y','',0],['    <span class="kw">return</span> X.T @ err / len(y)','',0],['','',0],
+   ['<span class="kw">for</span> epoch <span class="kw">in</span> range(EPOCHS):','',0],['    grad = gradient(theta, X, y)','<span class="cm"># ← 用全部 N 筆</span>',1],['    theta = theta - lr * grad','<span class="cm"># 每個 epoch 只更新 1 次</span>',0]]},
+ sgd:{n:'SGD',c:[['<span class="kw">def</span> gradient(theta, X, y):','<span class="cm"># 同一個函式</span>',0],['    err = X @ theta - y','',0],['    <span class="kw">return</span> X.T @ err / len(y)','',0],['','',0],
+   ['<span class="kw">for</span> epoch <span class="kw">in</span> range(EPOCHS):','',0],['    idx = np.random.permutation(N)','<span class="cm"># ← 每個 epoch 洗牌</span>',1],['    <span class="kw">for</span> i <span class="kw">in</span> idx:','<span class="cm"># ← 逐筆</span>',1],['        grad = gradient(theta, X[i:i+1], y[i:i+1])','<span class="cm"># ← 只用 1 筆</span>',1],['        theta = theta - lr * grad','<span class="cm"># 每個 epoch 更新 N 次</span>',0]]},
+ mb:{n:'mini-batch SGD',c:[['<span class="kw">def</span> gradient(theta, X, y):','<span class="cm"># 同一個函式</span>',0],['    err = X @ theta - y','',0],['    <span class="kw">return</span> X.T @ err / len(y)','',0],['','',0],
+   ['<span class="kw">for</span> epoch <span class="kw">in</span> range(EPOCHS):','',0],['    idx = np.random.permutation(N)','<span class="cm"># ← 每個 epoch 洗牌</span>',1],['    <span class="kw">for</span> s <span class="kw">in</span> range(0, N, B):','<span class="cm"># ← 每次取 B 筆</span>',1],['        b = idx[s:s+B]','',1],['        grad = gradient(theta, X[b], y[b])','<span class="cm"># ← 用 B 筆</span>',1],['        theta = theta - lr * grad','<span class="cm"># 每個 epoch 更新 ⌈N/B⌉ 次</span>',0]]}};
+var OUTS={
+ gd:'<span class="cm"># Keras：batch_size = 全部資料 → GD</span>\nmodel.compile(optimizer=<span class="w">\'sgd\'</span>, ...)\nmodel.fit(x, y, batch_size=<span class="w">len(x)</span>)\n\n<span class="cm"># PyTorch</span>\nDataLoader(ds, batch_size=<span class="w">len(ds)</span>)\ntorch.optim.SGD(model.parameters(), lr=0.1)',
+ sgd:'<span class="cm"># Keras：batch_size = 1 → 純 SGD</span>\nmodel.compile(optimizer=<span class="w">\'sgd\'</span>, ...)\nmodel.fit(x, y, batch_size=<span class="w">1</span>, shuffle=True)\n\n<span class="cm"># PyTorch</span>\nDataLoader(ds, batch_size=<span class="w">1</span>, shuffle=True)\ntorch.optim.SGD(model.parameters(), lr=0.01)',
+ mb:'<span class="cm"># Keras：batch_size = B → mini-batch SGD（最常用）</span>\nmodel.compile(optimizer=<span class="w">\'sgd\'</span>, ...)\nmodel.fit(x, y, batch_size=<span class="w">32</span>, shuffle=True)\n\n<span class="cm"># PyTorch</span>\nDataLoader(ds, batch_size=<span class="w">32</span>, shuffle=True)\ntorch.optim.SGD(model.parameters(), lr=0.01)'};
+var CD='gd';
+Object.keys(CODES).forEach(function(k){var b=document.createElement('button');b.textContent=CODES[k].n;b.dataset.k=k;b.onclick=function(){CD=k;cd()};$('cdT').appendChild(b)});
+function cd(){[].forEach.call($('cdT').children,function(x){x.classList.toggle('on',x.dataset.k===CD)});
+  $('cdC').innerHTML=CODES[CD].c.map(function(l){return '<span class="ln'+(l[2]?' hl':'')+'">'+(l[0]||' ')+(l[1]?'   '+l[1]:'')+'</span>'}).join('');
+  $('cdO').innerHTML=OUTS[CD]}
+cd();
+
+/* ---------- 6 小測驗 ---------- */
+var QZ=[
+ {q:'一般梯度下降（GD）每更新一次參數，要用多少筆資料計算梯度？',o:['全部 N 筆','隨機 1 筆','固定 32 筆','只用上一次的梯度'],a:0,e:'GD 每一步都把全部資料的梯度平均起來，方向精確但很花時間。',h:'GD 又叫「全批次」梯度下降。'},
+ {q:'純 SGD 每更新一次參數，用多少筆資料？',o:['隨機 1 筆','全部 N 筆','一半的資料','不需要資料'],a:0,e:'純 SGD 每次只隨機挑 1 筆算梯度就更新。',h:'想想第 1 節右邊，每步亮起幾個點？'},
+ {q:'花同樣的計算量（算 N 筆樣本的梯度），GD 更新 1 次，純 SGD 可以更新幾次？',o:['N 次','1 次','√N 次','N² 次'],a:0,e:'SGD 每次只算 1 筆，算 N 筆就能更新 N 次。',h:'第 1 節按「相同計算量」看看兩邊的更新次數。'},
+ {q:'SGD 的損失曲線為什麼會上下抖動？',o:['每步的梯度只是估計值，帶有雜訊','學習率太小','電腦計算誤差','資料被刪除了'],a:0,e:'只用 1 筆（或一小批）估計梯度，方向會偏，有時損失反而上升。',h:'SGD 每一步只看到一部分的資料。'},
+ {q:'學習率固定的 SGD 走到最低點附近時，通常會怎樣？',o:['在最低點附近打轉，需要讓學習率逐步遞減','立刻精準停在最低點','一定發散','速度比 GD 更穩定'],a:0,e:'雜訊不會消失，固定步長就會一直在谷底附近晃；遞減學習率可以讓它安定下來。',h:'回到第 2 節，比較勾選「學習率遞減」前後的路徑。'},
+ {q:'SGD 的梯度雜訊可能帶來什麼好處？',o:['有機會跳出局部極小值或鞍點','保證找到全域最小值','讓每一步都更精確','不需要學習率'],a:0,e:'雜訊讓參數被「抖」動，有機會翻過小山丘；但不保證一定找到全域最小。',h:'第 3 節的橘色球和黑色球結果有什麼不同？'},
+ {q:'PyTorch 用 torch.optim.SGD，但 DataLoader 設 batch_size = 全部資料筆數，實際上是哪一種演算法？',o:['全批次梯度下降（GD）','純 SGD','mini-batch SGD','Adam'],a:0,e:'優化器只負責 θ − η·g；每次餵全部資料，算出的就是真實梯度，等於 GD。',h:'決定「隨機」的是優化器，還是 batch size？'}];
+var QS={ans:[],score:0,streak:0};
+var PRAISE=['Excellent！完全正確！','太好了，觀念很清楚！','答對了！你比 GD 還快抓到方向。','漂亮！','正確！繼續保持！'];
+function qBuild(){
+  QS={ans:new Array(QZ.length).fill(-1),score:0,streak:0};var box=$('quiz');box.innerHTML='';$('qScore').textContent='';$('qAgain').style.display='none';
+  QZ.forEach(function(z,qi){var d=document.createElement('div');d.className='q';d.innerHTML='<div class="qt">'+(qi+1)+'. '+z.q+'</div><div class="opts"></div><div class="ex"></div>';
+    var ord=z.o.map(function(_,i){return i});for(var i=ord.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=ord[i];ord[i]=ord[j];ord[j]=t}
+    ord.forEach(function(oi){var b=document.createElement('button');b.textContent=z.o[oi];b.dataset.oi=oi;b.onclick=function(){qAnswer(qi,oi,d)};d.querySelector('.opts').appendChild(b)});
+    box.appendChild(d)});
+}
+function qAnswer(qi,oi,d){
+  if(QS.ans[qi]>=0)return;QS.ans[qi]=oi;var z=QZ[qi],ok=oi===z.a;
+  [].forEach.call(d.querySelectorAll('.opts button'),function(b){var k=+b.dataset.oi;b.disabled=true;b.style.opacity=1;if(k===z.a)b.classList.add('right');if(k===oi&&!ok)b.classList.add('wrong')});
+  var ex=d.querySelector('.ex');ex.innerHTML=(ok?'<span class="ok">✔ 正確！</span>':'<span class="bad">✘ 不對喔。</span>')+z.e;ex.classList.add('show');
+  if(ok){QS.score++;QS.streak++;AV2.mood('smile',QS.streak>=3?'連續答對 '+QS.streak+' 題！你的收斂速度比 SGD 還快！':PRAISE[Math.floor(Math.random()*PRAISE.length)])}
+  else{QS.streak=0;AV2.mood('frown',z.h)}
+  if(QS.ans.every(function(a){return a>=0})){$('qScore').textContent='得分：'+QS.score+' / '+QZ.length;$('qAgain').style.display='';
+    setTimeout(function(){var s=QS.score,n=QZ.length,t;
+      if(s===n)t='滿分！GD 和 SGD 的差別你完全掌握了。Wonderful！';
+      else if(s>=n-2)t='很不錯！錯的題目看看解釋，再回去玩一下對應的那一節。';
+      else t='再加油！建議先回到第 0、1 節，抓住「梯度用幾筆資料算」這個關鍵。';
+      AV2.mood(s>=n-2?'smile':'frown',t,true)},3300)}
+}
+$('qAgain').onclick=function(){qBuild();AV2.mood('','新的一輪！選項順序已經打亂囉。')};
+qBuild();
+
+function redrawAll(){r1Draw();r2Draw();r3Draw()}
+var rT;window.addEventListener('resize',function(){clearTimeout(rT);rT=setTimeout(redrawAll,150)});
+if(window.matchMedia)window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redrawAll);
+</script>
+</body>
+</html>
