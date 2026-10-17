@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>統計矩互動教學</title>
+<style>
+:root{
+  --bg:#f7f6f2;--card:#fff;--ink:#1d2330;--mute:#667085;--line:#e3e1da;--ok:#1f9d6b;--bad:#d6334f;
+  --grid:#eceae4;--axis:#9aa0ab;--accent:#2f6fdb;--tint:#eaf1fc;
+  --cv:#2f6fdb;--tan:#8b45d6;--gd:#1f9d6b;--path:#e07a1f;--pt:#1d2330;--warn:#c98a00;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+    --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+    --cv:#6c9dff;--tan:#b98bff;--gd:#4fd19d;--path:#ffa552;--pt:#f4f5f8;--warn:#ffd166;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+  --cv:#6c9dff;--tan:#b98bff;--gd:#4fd19d;--path:#ffa552;--pt:#f4f5f8;--warn:#ffd166;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.9rem}
+header p{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:18px}
+.card h2{margin:0 0 12px;font-size:1.22rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:.9rem;flex:none}
+h3{margin:0 0 6px;font-size:1.05rem}
+.m{font-family:"Times New Roman","Cambria Math",serif;font-style:italic}
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 2px;line-height:1.15}
+.frac>span:first-child{padding:0 3px 1px;border-bottom:1.3px solid currentColor}
+.frac>span:last-child{padding:1px 3px 0}
+.def{font-size:1.2rem;text-align:center;padding:14px;border-radius:10px;background:var(--tint);line-height:2.1}
+.note{color:var(--mute);font-size:.92rem}
+.gd{color:var(--gd)}.path{color:var(--path)}.tan{color:var(--tan)}.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start}
+.two>*{min-width:0}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.three>div{border:2px solid var(--line);border-radius:12px;padding:10px 14px}
+.three b.t{display:block;color:var(--accent)}
+@media (max-width:860px){.two,.three{grid-template-columns:minmax(0,1fr)}}
+.cvbox{width:100%;min-width:0}
+.sq{max-width:460px;margin:0 auto}
+canvas{width:100%;display:block;border-radius:10px;background:var(--bg);touch-action:none}
+label{font-size:.92rem;color:var(--mute);display:block}
+label b{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 12px}
+select{width:100%}
+button{cursor:pointer}button:hover{border-color:var(--accent)}
+button.pri,button.on{background:var(--accent);color:#fff;border-color:transparent}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:12px 18px;align-items:end}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(120px,100%),1fr));gap:10px;margin-top:10px}
+.stats>div{padding:8px 12px;border-radius:10px;background:var(--bg)}
+.stats small{display:block;color:var(--mute);font-size:.82rem}
+.stats b{font-size:1.2rem;font-variant-numeric:tabular-nums}
+.say{margin-top:10px;padding:10px 14px;border-left:4px solid var(--ok);background:var(--bg);border-radius:8px}
+.formula{font-size:1.08rem;line-height:2.3;overflow-x:auto;padding:4px 2px}
+.stepbar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:10px 0 8px}
+.stepbar div{height:100%;background:var(--accent);transition:width .3s}
+.explain{padding:10px 14px;border-radius:10px;background:var(--tint);min-height:3.4em}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.85rem;color:var(--mute);margin-top:6px}
+.legend i{display:inline-block;width:18px;height:4px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.zone{display:inline-block;padding:2px 10px;border-radius:999px;font-weight:700;color:#fff}
+/* quiz */
+.quiz .q{padding:12px 0;border-bottom:1px solid var(--line)}
+.quiz .q:last-child{border:none}
+.opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.opts button.right{background:var(--ok);color:#fff;border-color:transparent}
+.opts button.wrong{background:var(--bad);color:#fff;border-color:transparent}
+.fb{font-size:.92rem;margin-top:6px;min-height:1.2em}
+.score{margin-top:12px;font-size:1.15rem;font-weight:700;display:none;align-items:center;gap:12px;flex-wrap:wrap}
+footer{color:var(--mute);font-size:.85rem;text-align:center;margin-top:30px}
+/* ---------- avatar ---------- */
+.avwrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.av{width:100%;max-width:220px;cursor:pointer;user-select:none}
+.av svg{width:100%;display:block;overflow:visible;background:none}
+.av .bodyg{animation:bob 3.2s ease-in-out infinite;transform-origin:100px 200px}
+.av .eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+.av .hairL{animation:sway 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:top center}
+.av .hairR{animation:sway 3.2s ease-in-out infinite reverse;transform-box:fill-box;transform-origin:top center}
+.av .brow{transition:transform .3s;transform-box:fill-box}
+.av .browL{transform-origin:right center}.av .browR{transform-origin:left center}
+.av .mo{opacity:0;transition:opacity .25s}.av .mo.n{opacity:1}
+.av .blush,.av .sweat,.av .spark{opacity:0;transition:opacity .3s}
+.av.smile .mo.n,.av.frown .mo.n{opacity:0}
+.av.smile .mo.s{opacity:1}.av.frown .mo.f{opacity:1}
+.av.smile .blush{opacity:.55}.av.smile .spark{opacity:1}.av.frown .sweat{opacity:.9}
+.av.smile .brow{transform:translateY(-3px)}
+.av.frown .browL{transform:rotate(14deg) translateY(2px)}.av.frown .browR{transform:rotate(-14deg) translateY(2px)}
+.av.hop svg{animation:hop .7s ease}
+.av.shake svg{animation:shake .55s ease}
+.av .spark{animation:twinkle 1s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}
+@keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+@keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.bubble{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.95rem;margin-bottom:10px;min-height:2.6em;max-width:260px;text-align:center;transition:border-color .3s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--line);border-bottom:0}
+.bubble.good{border-color:var(--ok)}.bubble.good::after{border-top-color:var(--ok)}
+.bubble.bad{border-color:var(--bad)}.bubble.bad::after{border-top-color:var(--bad)}
+.intro{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:center}
+.intro>*,.qgrid>*{min-width:0}
+.intro .avwrap{flex-direction:row;gap:10px}.intro .bubble{flex:1;margin:0}.intro .bubble::after{display:none}.intro .av{width:125px;flex:none}
+.qgrid{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:18px;align-items:start}
+.qgrid .avwrap{position:sticky;top:12px}
+@media (max-width:860px){.intro,.qgrid{grid-template-columns:minmax(0,1fr)}.intro .avwrap{flex-direction:column}.intro .bubble{margin-bottom:10px}.intro .bubble::after{display:block}.intro .av,.qgrid .av{width:auto;max-width:140px}.qgrid .avwrap{position:static;order:-1}}
+</style>
+<style>
+:root{--m1:#127f86;--m2:#e46b17;--pt:#2f6fdb;--fc:#6f42c1;--sq:#e46b17}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--m1:#4fd1c5;--m2:#ffa552;--pt:#6c9dff;--fc:#b794ff;--sq:#ffa552}}
+:root[data-theme="dark"]{--m1:#4fd1c5;--m2:#ffa552;--pt:#6c9dff;--fc:#b794ff;--sq:#ffa552}
+.m1{color:var(--m1)}.m2{color:var(--m2)}.fc{color:var(--fc)}
+.story{margin-top:16px;padding:14px 18px;border-radius:12px;border:1px dashed var(--line);background:var(--bg)}
+.story h3{margin:0 0 6px}.story p{margin:6px 0}
+.vs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:12px;margin-top:10px}
+.vs>div{border:2px solid var(--line);border-radius:12px;padding:10px 14px;min-width:0}
+.vs>div.a{border-color:var(--m1)}.vs>div.b{border-color:var(--m2)}
+.vs b.t{display:block}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:none;border-radius:0;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:none}
+.tbl{overflow-x:auto;margin-top:10px}
+.tbl table{border-collapse:collapse;width:100%;font-size:.92rem;font-variant-numeric:tabular-nums}
+.tbl th,.tbl td{border-bottom:1px solid var(--line);padding:5px 10px;text-align:left;vertical-align:top}
+.tbl th{color:var(--mute);font-weight:600}
+canvas.drag{cursor:grab}
+</style>
+<style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line,#e3e1da);border-radius:12px;background:var(--card,var(--surface,#fff));color:var(--ink,#1d2330);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+.pu-badge img{width:58px;height:58px;display:block}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute,var(--muted,#667085))}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="pu-hd">
+  <div class="pu-hd-main">
+  <h1>統計學的矩（Moment）互動教學</h1>
+  <p>工程數學 ・ 互動教學：把數值取 k 次方再平均——一階矩看「中心在哪」，二階矩看「散得多開」</p>
+</div>
+  <div class="pu-badge"><img alt="靜宜大學校徽" src="data:image/webp;base64,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"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</header>
+
+<!-- 0 -->
+<section class="card">
+  <h2><span class="num">0</span>一句話直覺：k 階矩 ＝ 把數值取 k 次方，再取平均</h2>
+  <div class="intro">
+    <div>
+      <div class="def">
+        <b>k 階原始矩</b>　E[<i class="m">X</i><sup><i class="m">k</i></sup>] = <span class="frac"><span>1</span><span><i class="m">n</i></span></span> Σ <i class="m">x<sub>i</sub></i><sup><i class="m">k</i></sup>　　　<b>k 階中心矩</b>　E[(<i class="m">X</i> − μ)<sup><i class="m">k</i></sup>]
+      </div>
+      <div class="three">
+        <div><b class="t m1">一階矩：中心在哪？</b>E[<i class="m">X</i>] = μ，就是<b>平均數</b>。力學上是<b>質心</b>、蹺蹺板的平衡點。</div>
+        <div><b class="t m2">二階矩：散得多開？</b>E[(<i class="m">X</i>−μ)²] = σ²，就是<b>變異數</b>；開根號得標準差 σ。力學上是<b>轉動慣量</b>。</div>
+        <div><b class="t fc">更高階：形狀如何？</b>三階矩看<b>偏向哪一邊</b>（偏度），四階矩看<b>尾巴有多重</b>（峰度）。</div>
+      </div>
+      <p class="note">「矩」英文 moment，借自力學：力矩 ＝ 力 × 距離。把每個資料點想成一個 1 公斤的砝碼，距離的 1 次方加總決定會不會翻倒（一階），距離的 2 次方加總決定轉起來有多費力（二階）。</p>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub1">Good afternoon！我是卡爾・皮爾森（Karl Pearson）。點我聽故事！</div><div class="av" id="av1"></div></div>
+  </div>
+  <div class="story">
+    <h3>📜 小故事：把力學的「矩」搬進統計學</h3>
+    <p>1890 年代，英國統計學家<b>卡爾・皮爾森</b>研究生物測量資料（例如螃蟹的身體比例），想用幾個數字描述一整堆資料的分布。他借用力學的語言：資料點是質點，平均數是<b>質心</b>（一階矩），分散程度像<b>轉動慣量</b>（二階矩）。他並提出「<b>動差法</b>（method of moments）」：讓模型的矩和資料的矩相等，就能估計模型參數。</p>
+    <p>今天常用的「標準差」（standard deviation）、「直方圖」（histogram）這兩個詞，也都是皮爾森帶進統計學的。</p>
+  </div>
+</section>
+
+<!-- 1 -->
+<section class="card">
+  <h2><span class="num">1</span>一階矩：蹺蹺板的平衡點</h2>
+  <p style="margin-top:0">把每個資料點當成放在木板上的 1 公斤砝碼。支點放在 <i class="m">c</i>，每個砝碼產生的力矩是 (<i class="m">x<sub>i</sub></i> − <i class="m">c</i>)：右邊為正、左邊為負。<b>總力矩為 0 時，木板才會平衡</b>：</p>
+  <div class="formula" style="text-align:center">Σ (<i class="m">x<sub>i</sub></i> − <i class="m">c</i>) = 0　⟺　<i class="m">c</i> = <span class="frac"><span>1</span><span><i class="m">n</i></span></span> Σ <i class="m">x<sub>i</sub></i> = <b class="m1">一階矩（平均數 μ）</b></div>
+  <div class="ctl">
+    <label>支點位置 c = <b id="cv"></b><input id="c1s" type="range" min="0" max="10" step="0.05" value="3"></label>
+    <div class="row"><button id="bal1" class="pri">⚖ 把支點移到平均數</button><button id="add1">＋ 加一個砝碼</button><button id="del1">− 拿掉一個</button></div>
+  </div>
+  <div class="row" style="margin-top:6px"><span class="note">資料：</span><button data-d1="2,3,4,6,7">對稱</button><button data-d1="1,1.5,2,2.5,9.5">有一個很遠的點</button><button data-d1="4,5,5,6">集中</button></div>
+  <div class="cvbox" style="margin-top:10px"><canvas id="c1" class="drag"></canvas></div>
+  <p class="note" style="margin:4px 0 0">👆 可以直接拖曳木板上的砝碼。</p>
+  <div class="stats">
+    <div><small>平均數 μ（一階矩）</small><b id="s1m" class="m1"></b></div>
+    <div><small>總力矩 Σ(x<sub>i</sub> − c)</small><b id="s1t"></b></div>
+    <div><small>以 c 為中心的一階矩 E[X − c]</small><b id="s1c"></b></div>
+  </div>
+  <div class="say" id="t1"></div>
+</section>
+
+<!-- 2 -->
+<section class="card">
+  <h2><span class="num">2</span>二階矩：把「距離」畫成正方形，平均面積就是變異數</h2>
+  <p style="margin-top:0">一階矩只告訴我們中心在哪，看不出資料<b>散得多開</b>（距離有正有負，加起來會抵消成 0）。把每個距離<b>平方</b>：負號消失，而且畫出來就是一個<b>正方形</b>。所有正方形的<b>平均面積</b>就是二階矩：</p>
+  <div class="formula" style="text-align:center">二階中心矩 = E[(<i class="m">X</i> − μ)²] = σ²（變異數）　　標準差 σ = √σ²：「典型距離」</div>
+  <div class="ctl">
+    <div><span class="note">正方形的中心：</span><br><span class="seg" id="ref2"><button data-r="mean" class="on">以平均數 μ 為中心（中心矩）</button><button data-r="zero">以 0 為中心（原始矩）</button></span></div>
+    <div class="row"><button data-d2="4,4.5,5,5.5,6">集中</button><button data-d2="1,3,5,7,9">分散</button><button data-d2="4,4.5,5,5.5,9.5">有一個離群值</button><button data-d2="2,2,8,8">兩群</button></div>
+  </div>
+  <div class="cvbox" style="margin-top:10px"><canvas id="c2" class="drag"></canvas></div>
+  <p class="note" style="margin:4px 0 0">👆 可以拖曳資料點，看正方形怎麼變。</p>
+  <div class="two" style="margin-top:8px">
+    <div>
+      <div class="stats">
+        <div><small>平均數 μ</small><b id="s2m" class="m1"></b></div>
+        <div><small id="s2lab">變異數 σ²（平均面積）</small><b id="s2v" class="m2"></b></div>
+        <div><small>標準差 σ</small><b id="s2s" class="m2"></b></div>
+      </div>
+      <div class="formula" id="o2"></div>
+    </div>
+    <div><div class="say" id="t2"></div></div>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="card">
+  <h2><span class="num">3</span>（選讀）三階、四階矩：分布的形狀</h2>
+  <p style="margin-top:0">先把資料標準化成 <i class="m">z</i> = (<i class="m">x</i> − μ)/σ，再取三次方、四次方平均：</p>
+  <div class="vs" style="margin-top:0">
+    <div class="a"><b class="t">三階矩：偏度（skewness）＝ E[<i class="m">z</i>³]</b>三次方保留正負號，而且遠處的點被放大。右邊尾巴長 → 正值；左邊尾巴長 → 負值；對稱 → 0。</div>
+    <div class="b"><b class="t">四階矩：峰度（kurtosis）＝ E[<i class="m">z</i>⁴]</b>四次方更強烈地放大極端值，衡量「尾巴有多重」。常態分布的峰度是 3，常用「超額峰度」＝ 峰度 − 3。</div>
+  </div>
+  <div class="row" style="margin-top:10px"><span class="note">分布：</span><span class="seg" id="ds3"><button data-s="normal" class="on">對稱（常態）</button><button data-s="right">右偏</button><button data-s="left">左偏</button><button data-s="heavy">重尾</button><button data-s="uniform">均勻</button></span></div>
+  <div class="two" style="margin-top:10px">
+    <div><div class="cvbox"><canvas id="c3"></canvas></div>
+      <div class="legend"><span><i style="background:var(--pt)"></i>直方圖（400 筆資料）</span><span><i style="background:var(--m1)"></i>平均數 μ</span><span><i style="background:var(--m2)"></i>μ ± σ</span></div></div>
+    <div>
+      <div class="tbl"><table id="tb3"></table></div>
+      <div class="say" id="t3"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="card">
+  <h2><span class="num">4</span>矩在 AI 裡：Adam 的 m 與 v</h2>
+  <p style="margin-top:0">訓練神經網路時，每一步的梯度 <i class="m">g<sub>t</sub></i> 都不一樣，可以看成一個隨機變數。Adam 優化器就是即時估計它的兩個矩：</p>
+  <div class="tbl"><table>
+    <tr><th>Adam 的變數</th><th>估計的是</th><th>直觀意義</th><th>力學類比</th></tr>
+    <tr><td><b class="m1">m<sub>t</sub></b> = β<sub>1</sub>m<sub>t−1</sub> + (1−β<sub>1</sub>)g<sub>t</sub></td><td>一階矩 E[g]</td><td>梯度<b>平均往哪走</b>（方向）</td><td>質心、平衡點</td></tr>
+    <tr><td><b class="m2">v<sub>t</sub></b> = β<sub>2</sub>v<sub>t−1</sub> + (1−β<sub>2</sub>)g<sub>t</sub>²</td><td>二階原始矩 E[g²]</td><td>梯度<b>通常多大</b>（尺度）</td><td>以 0 為軸的轉動慣量</td></tr>
+  </table></div>
+  <p>注意 <i class="m">v</i> 是以 <b>0</b> 為中心的<b>原始矩</b>（第 2 節按「以 0 為中心」），不是變異數。兩者的關係是 E[<i class="m">g</i>²] = (E[<i class="m">g</i>])² + Var(<i class="m">g</i>)。Adam 用指數移動平均來估計這兩個矩，因為梯度的分布會隨訓練一直改變。</p>
+  <p class="note">相關教材：〈RMSProp互動教學〉第 1 節、〈Adam互動教學〉第 3 節。</p>
+</section>
+
+<!-- 5 -->
+<section class="card">
+  <h2><span class="num">5</span>觀念小測驗</h2>
+  <div class="qgrid">
+    <div>
+      <div class="quiz" id="quiz"></div>
+      <div class="score" id="score"><span id="scoreTxt"></span><button id="retry" class="pri">再做一次</button></div>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub2">來考考你！答對我會笑，答錯我會皺眉喔。</div><div class="av" id="av2"></div></div>
+  </div>
+</section>
+
+<footer>統計學的矩互動教學 ・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fr=(a,b)=>`<span class="frac"><span>${a}</span><span>${b}</span></span>`;
+const fmt=(v,d=2)=>{if(!isFinite(v))return v>0?'∞':'−∞';if(Math.abs(v)<5e-10)v=0;return v.toFixed(d).replace('-','−');};
+function sizeCanvas(cv,ratio,maxH){
+  cv.style.width='0px';const w=cv.parentElement.clientWidth;cv.style.width='100%';
+  let h=Math.round(w*ratio);if(maxH)h=Math.min(h,maxH);
+  const dpr=window.devicePixelRatio||1;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+'px';
+  const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);return {c,w,h};
+}
+const mean=a=>a.reduce((s,x)=>s+x,0)/a.length;
+function dragger(cv,getPts,toX,fromX,onMove){let idx=-1;
+  cv.addEventListener('pointerdown',e=>{const b=cv.getBoundingClientRect(),px=e.clientX-b.left;let best=1e9;getPts().forEach((x,i)=>{const d=Math.abs(toX(x)-px);if(d<best){best=d;idx=i;}});if(best>22)idx=-1;else{cv.setPointerCapture(e.pointerId);cv.style.cursor='grabbing';}});
+  cv.addEventListener('pointermove',e=>{if(idx<0)return;const b=cv.getBoundingClientRect();onMove(idx,Math.max(0,Math.min(10,Math.round(fromX(e.clientX-b.left)*10)/10)));});
+  const up=()=>{idx=-1;cv.style.cursor='grab';};cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);}
+
+/* ---------- 1. 蹺蹺板 ---------- */
+const S1={x:[1,1.5,2,2.5,9.5],c:3,ang:0};let anim1=null;
+function geo1(w){const L=30,R=w-30;return {L,R,X:x=>L+x/10*(R-L)};}
+function target1(){const t=S1.x.reduce((s,x)=>s+(x-S1.c),0);return Math.max(-0.12,Math.min(0.12,t*0.03));}
+function draw1(){
+  const {c,w,h}=sizeCanvas($('c1'),0.36,230),G=geo1(w),py=h-62,cx=G.X(S1.c),ang=S1.ang;
+  c.fillStyle=css('--grid');c.fillRect(0,h-20,w,2);
+  // fulcrum
+  c.fillStyle=css('--fc');c.beginPath();c.moveTo(cx,py);c.lineTo(cx-16,h-20);c.lineTo(cx+16,h-20);c.closePath();c.fill();
+  const rot=(x,y)=>[cx+(x-cx)*Math.cos(ang)-(y-py)*Math.sin(ang),py+(x-cx)*Math.sin(ang)+(y-py)*Math.cos(ang)];
+  // beam
+  const [x0,y0]=rot(G.L,py),[x1,y1]=rot(G.R,py);c.strokeStyle='#8b6b4a';c.lineWidth=8;c.lineCap='round';c.beginPath();c.moveTo(x0,y0);c.lineTo(x1,y1);c.stroke();
+  // ticks
+  c.fillStyle=css('--mute');c.font='11px sans-serif';c.textAlign='center';
+  for(let k=0;k<=10;k++){const [tx,ty]=rot(G.X(k),py+14);c.fillText(k,tx,ty);}
+  // mean marker
+  const mu=mean(S1.x),[mx,my]=rot(G.X(mu),py-4);c.fillStyle=css('--m1');c.beginPath();c.moveTo(mx,my+10);c.lineTo(mx-6,my+20);c.lineTo(mx+6,my+20);c.closePath();
+  // weights stacked
+  const cnt={};S1.x.forEach(x=>{const k=x.toFixed(1);cnt[k]=(cnt[k]||0)+1;const lvl=cnt[k]-1;const [bx,by]=rot(G.X(x),py-4-13-lvl*24);
+    c.save();c.translate(bx,by);c.rotate(ang);c.fillStyle=css('--pt');c.fillRect(-11,-11,22,22);c.fillStyle='#fff';c.font='bold 10px sans-serif';c.textBaseline='middle';c.fillText('1kg',0,0);c.restore();});
+  c.textBaseline='alphabetic';
+  // torque arrows text
+  const tq=S1.x.reduce((s,x)=>s+(x-S1.c),0);
+  c.fillStyle=Math.abs(tq)<0.05?css('--ok'):css('--ke')||css('--bad');c.font='bold 14px sans-serif';c.textAlign='left';
+  c.fillText(Math.abs(tq)<0.05?'⚖ 平衡！':tq>0?'↻ 往右邊倒':'↺ 往左邊倒',10,20);
+  $('cv').textContent=fmt(S1.c,2);$('s1m').textContent=fmt(mu,2);$('s1t').textContent=fmt(tq,2);$('s1c').textContent=fmt(mu-S1.c,2);
+  $('s1t').style.color=Math.abs(tq)<0.05?css('--ok'):css('--bad');
+  const terms=S1.x.map(x=>`(${fmt(x,1)}−${fmt(S1.c,1)})`).join(' + ');
+  $('t1').innerHTML=(Math.abs(tq)<0.05?`📌 <b>平衡了！</b>支點 c = ${fmt(S1.c,2)} 剛好等於平均數 μ = ${fmt(mu,2)}。左邊砝碼的力矩和右邊的互相抵消，總力矩 = 0。<b>一階矩就是資料的平衡點。</b>`
+    :`📌 總力矩 = ${terms} = <b>${fmt(tq,2)}</b>，木板${tq>0?'往右邊倒':'往左邊倒'}。把支點往${tq>0?'右':'左'}移，或按「把支點移到平均數」。`)+
+    (Math.max(...S1.x)-mu>2.5*Math.max(0.5,mu-Math.min(...S1.x))?'<br>注意：一個離很遠的點，就能把平衡點拉過去——平均數會被極端值影響。':'');
+}
+function animate1(){cancelAnimationFrame(anim1);const step=()=>{const t=target1();S1.ang+=(t-S1.ang)*0.18;draw1();if(Math.abs(t-S1.ang)>0.002)anim1=requestAnimationFrame(step);else{S1.ang=t;draw1();}};anim1=requestAnimationFrame(step);}
+$('c1s').addEventListener('input',e=>{S1.c=+e.target.value;animate1();});
+$('bal1').onclick=()=>{const mu=mean(S1.x),c0=S1.c;let k=0;const go=()=>{k++;S1.c=c0+(mu-c0)*Math.min(1,k/30);$('c1s').value=S1.c;animate1();if(k<30)requestAnimationFrame(go);};go();};
+$('add1').onclick=()=>{if(S1.x.length<12){S1.x.push(Math.round(Math.random()*100)/10);animate1();}};
+$('del1').onclick=()=>{if(S1.x.length>1){S1.x.pop();animate1();}};
+document.querySelectorAll('[data-d1]').forEach(b=>b.onclick=()=>{S1.x=b.dataset.d1.split(',').map(Number);animate1();});
+dragger($('c1'),()=>S1.x,x=>geo1($('c1').clientWidth).X(x),px=>{const G=geo1($('c1').clientWidth);return (px-G.L)/(G.R-G.L)*10;},(i,x)=>{S1.x[i]=x;animate1();});
+
+/* ---------- 2. 二階矩 ---------- */
+const S2={x:[4,4.5,5,5.5,6],ref:'mean'};
+function geo2(w){const h=Math.min(Math.round(w*0.5),330),base=h-34,mu=mean(S2.x),ref=S2.ref==='mean'?mu:0,md=Math.max(...S2.x.map(x=>Math.abs(x-ref)),0.01);
+  const u=Math.min((w-60)/10,(base-24)/md),L=30,R=L+10*u;return {L,R,X:x=>L+x*u,u,base,mu,ref};}
+function draw2(){
+  const {c,w,h}=sizeCanvas($('c2'),0.5,330),G=geo2(w),base=G.base,mu=G.mu,ref=G.ref,sc=G.u;
+  c.strokeStyle=css('--axis');c.lineWidth=2;c.beginPath();c.moveTo(G.L,base);c.lineTo(G.R,base);c.stroke();
+  c.fillStyle=css('--mute');c.font='11px sans-serif';c.textAlign='center';for(let k=0;k<=10;k++){c.fillRect(G.X(k)-0.5,base,1,5);c.fillText(k,G.X(k),base+17);}
+  // squares
+  S2.x.forEach(x=>{const d=x-ref,s=Math.abs(d)*sc,x0=Math.min(G.X(x),G.X(x)-Math.sign(d)*0)-(d>0?s:0);
+    const left=d>=0?G.X(ref)+(G.X(x)-G.X(ref))-s:G.X(x);c.fillStyle=css('--sq');c.globalAlpha=0.16;c.fillRect(left,base-s,s,s);c.globalAlpha=0.8;c.strokeStyle=css('--sq');c.lineWidth=1.5;c.strokeRect(left,base-s,s,s);c.globalAlpha=1;});
+  // ref line
+  c.strokeStyle=S2.ref==='mean'?css('--m1'):css('--ink');c.setLineDash([5,4]);c.lineWidth=2;c.beginPath();c.moveTo(G.X(ref),12);c.lineTo(G.X(ref),base);c.stroke();c.setLineDash([]);
+  c.fillStyle=c.strokeStyle;c.font='bold 12px sans-serif';c.fillText(S2.ref==='mean'?`μ = ${fmt(mu)}`:'0',G.X(ref),10+0);
+  // sigma bracket
+  const v=mean(S2.x.map(x=>(x-mu)**2)),sd=Math.sqrt(v);
+  if(S2.ref==='mean'){c.strokeStyle=css('--m2');c.lineWidth=3;c.beginPath();c.moveTo(G.X(mu-sd),base+26);c.lineTo(G.X(mu+sd),base+26);c.stroke();}
+  // points
+  S2.x.forEach(x=>{c.fillStyle=css('--pt');c.strokeStyle=css('--card');c.lineWidth=2;c.beginPath();c.arc(G.X(x),base,7,0,7);c.fill();c.stroke();});
+  const raw=mean(S2.x.map(x=>x*x));
+  $('s2m').textContent=fmt(mu);
+  if(S2.ref==='mean'){$('s2lab').textContent='變異數 σ²（平均面積）';$('s2v').textContent=fmt(v);$('s2s').textContent=fmt(sd);}
+  else{$('s2lab').textContent='二階原始矩 E[X²]（平均面積）';$('s2v').textContent=fmt(raw);$('s2s').textContent=fmt(sd);}
+  const sqs=S2.x.map(x=>`${fmt((x-ref)**2,2)}`).join(' + ');
+  $('o2').innerHTML=S2.ref==='mean'?`σ² = ${fr(sqs,S2.x.length)} = <b class="m2">${fmt(v)}</b>，　σ = √${fmt(v)} = <b class="m2">${fmt(sd)}</b>`
+    :`E[X²] = ${fr(sqs,S2.x.length)} = <b class="m2">${fmt(raw)}</b><br>驗證：μ² + σ² = ${fmt(mu*mu)} + ${fmt(v)} = <b>${fmt(mu*mu+v)}</b> ✔`;
+  const devs=S2.x.map(x=>Math.abs(x-mu)),big=Math.max(...devs),share=big*big/(v*S2.x.length);
+  $('t2').innerHTML=S2.ref==='zero'?`📌 <b>以 0 為中心</b>：正方形的邊長是 x 本身，平均面積是<b>二階原始矩 E[X²] = ${fmt(raw)}</b>。它同時包含「中心離 0 多遠」（μ² = ${fmt(mu*mu)}）和「散得多開」（σ² = ${fmt(v)}）。Adam 的 v 就是這一種。`
+    :share>0.6&&S2.x.length>2?`📌 <b>離群值的威力</b>：最遠那個點的正方形就佔了總面積的 <b>${fmt(share*100,0)}%</b>。距離平方之後，遠的點被放大得特別多，所以二階矩對離群值很敏感。`
+    :`📌 正方形越大，代表離平均數越遠。平均面積 σ² = ${fmt(v)}，開根號後 σ = ${fmt(sd)} 就是「典型距離」（橘色橫線 μ ± σ）。按「集中」和「分散」比較看看：平均數都是 5，σ 卻差很多。`;
+}
+document.querySelectorAll('#ref2 button').forEach(b=>b.onclick=()=>{S2.ref=b.dataset.r;document.querySelectorAll('#ref2 button').forEach(x=>x.classList.toggle('on',x===b));draw2();});
+document.querySelectorAll('[data-d2]').forEach(b=>b.onclick=()=>{S2.x=b.dataset.d2.split(',').map(Number);draw2();});
+let G2lock=null;
+dragger($('c2'),()=>S2.x,x=>(G2lock||geo2($('c2').clientWidth)).X(x),px=>{const G=G2lock||(G2lock=geo2($('c2').clientWidth));return (px-G.L)/G.u;},(i,x)=>{S2.x[i]=x;draw2();});
+$('c2').addEventListener('pointerup',()=>{G2lock=null;draw2();});
+
+/* ---------- 3. 高階矩 ---------- */
+function rng(seed){let s=seed>>>0;return ()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
+function gauss(r){const u=Math.max(1e-9,r()),v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+const DS3=(()=>{const N=400,mk=(seed,f)=>{const r=rng(seed);return Array.from({length:N},()=>f(r));};
+  return {normal:mk(11,r=>5+1.2*gauss(r)),right:mk(12,r=>1.5-1.6*Math.log(Math.max(1e-9,r()))),left:mk(13,r=>8.5+1.6*Math.log(Math.max(1e-9,r()))),
+    heavy:(()=>{const r=rng(14),h=[];for(let i=0;i<N/2;i++){const z=gauss(r),d=(r()<0.1?2.6:0.7)*z;h.push(5+d,5-d);}return h;})(),uniform:mk(15,r=>1+8*r())};})();
+const S3={k:'normal'};
+function stats3(a){const n=a.length,mu=mean(a),v=mean(a.map(x=>(x-mu)**2)),sd=Math.sqrt(v),z=a.map(x=>(x-mu)/sd);return {mu,v,sd,sk:mean(z.map(t=>t**3)),ku:mean(z.map(t=>t**4))};}
+function draw3(){
+  const a=DS3[S3.k],S=stats3(a),{c,w,h}=sizeCanvas($('c3'),0.6,300),L=30,R=w-12,T=12,B=h-26,bins=40,lo=-1,hi=11,bw=(hi-lo)/bins,cnt=Array(bins).fill(0);
+  a.forEach(x=>{const i=Math.floor((x-lo)/bw);if(i>=0&&i<bins)cnt[i]++;});const mx=Math.max(...cnt);
+  const X=x=>L+(x-lo)/(hi-lo)*(R-L);c.strokeStyle=css('--axis');c.beginPath();c.moveTo(L,B);c.lineTo(R,B);c.stroke();
+  c.fillStyle=css('--mute');c.font='11px sans-serif';c.textAlign='center';for(let k=0;k<=10;k+=2)c.fillText(k,X(k),B+15);
+  cnt.forEach((n,i)=>{const hh=n/mx*(B-T-10);c.fillStyle=css('--pt');c.globalAlpha=.75;c.fillRect(X(lo+i*bw)+1,B-hh,(R-L)/bins-2,hh);});c.globalAlpha=1;
+  c.strokeStyle=css('--m1');c.lineWidth=2.5;c.beginPath();c.moveTo(X(S.mu),T);c.lineTo(X(S.mu),B);c.stroke();
+  c.strokeStyle=css('--m2');c.setLineDash([5,4]);[S.mu-S.sd,S.mu+S.sd].forEach(x=>{c.beginPath();c.moveTo(X(x),T+20);c.lineTo(X(x),B);c.stroke();});c.setLineDash([]);
+  const d=v=>Math.abs(v)<0.25?'接近 0':v>0?'正':'負';
+  $('tb3').innerHTML=`<tr><th>矩</th><th>數值</th><th>意義</th></tr>
+   <tr><td>一階：平均數 μ</td><td><b class="m1">${fmt(S.mu)}</b></td><td>中心位置</td></tr>
+   <tr><td>二階：標準差 σ</td><td><b class="m2">${fmt(S.sd)}</b></td><td>分散程度</td></tr>
+   <tr><td>三階：偏度 E[z³]</td><td><b>${fmt(S.sk)}</b></td><td>${d(S.sk)}${Math.abs(S.sk)<0.25?'：大致對稱':S.sk>0?'：右邊尾巴長':'：左邊尾巴長'}</td></tr>
+   <tr><td>四階：峰度 E[z⁴]</td><td><b>${fmt(S.ku)}</b></td><td>超額峰度 ${fmt(S.ku-3)}：${S.ku-3>0.8?'尾巴比常態重，極端值多':S.ku-3<-0.8?'尾巴比常態輕，沒有極端值':'和常態差不多'}</td></tr>`;
+  const T3={normal:'📌 <b>對稱的常態分布</b>：偏度接近 0，峰度接近 3。前兩個矩就能完整描述常態分布——這也是它好用的原因。',
+    right:'📌 <b>右偏</b>：右邊有一條長尾巴（例如收入、等待時間）。尾巴把平均數往右拉，三次方又把右邊遠處的點放大，所以偏度是正的。',
+    left:'📌 <b>左偏</b>：左邊尾巴長（例如很簡單的考試成績，大部分人高分、少數人很低）。偏度是負的。',
+    heavy:'📌 <b>重尾</b>：大部分資料很集中，但偶爾冒出很遠的極端值。四次方把這些極端值放得非常大，所以峰度遠大於 3。',
+    uniform:'📌 <b>均勻分布</b>：沒有尾巴，所有值一樣常見。峰度小於 3（約 1.8），超額峰度是負的。'};
+  $('t3').innerHTML=T3[S3.k];
+}
+document.querySelectorAll('#ds3 button').forEach(b=>b.onclick=()=>{S3.k=b.dataset.s;document.querySelectorAll('#ds3 button').forEach(x=>x.classList.toggle('on',x===b));draw3();});
+
+/* ---------- 皮爾森老師 ---------- */
+const KP_SVG=`<svg viewBox="0 0 200 230" aria-label="皮爾森老師動畫">
+ <g class="bodyg">
+  <path d="M10 232 Q16 174 100 164 Q184 174 190 232 Z" fill="#2f2c2b"/>
+  <path d="M100 168 L76 232 M100 168 L124 232" stroke="#1f1d1c" stroke-width="2"/>
+  <path d="M100 166 L84 176 L96 232 L104 232 L116 176 Z" fill="#f3f1ec"/>
+  <path d="M100 174 L95 184 L98 226 L100 232 L102 226 L105 184 Z" fill="#cfcbc3"/>
+  <path d="M96 172 L104 172 L102 180 L98 180 Z" fill="#b9b4ab"/>
+  <g transform="translate(140 196)"><circle r="5" fill="#fff"/><circle cx="6" cy="2" r="4.5" fill="#fff"/><circle cx="-5" cy="3" r="4.5" fill="#fff"/><circle cx="1" cy="7" r="4.5" fill="#fff"/><circle cx="1" cy="2.5" r="2.4" fill="#f0c94a"/></g>
+  <rect x="86" y="132" width="28" height="36" rx="10" fill="#e3b79c"/>
+  <path d="M84 152 L80 172 L100 178 Z M116 152 L120 172 L100 178 Z" fill="#f6f4ef" stroke="#cfcbc3" stroke-width="1.3" stroke-linejoin="round"/>
+  <ellipse cx="67" cy="104" rx="6" ry="10" fill="#e3b79c"/><ellipse cx="133" cy="104" rx="6" ry="10" fill="#e3b79c"/>
+  <ellipse cx="100" cy="98" rx="32" ry="45" fill="#efc7ad"/>
+  <ellipse class="blush" cx="81" cy="117" rx="6.5" ry="4" fill="#f08080"/>
+  <ellipse class="blush" cx="119" cy="117" rx="6.5" ry="4" fill="#f08080"/>
+  <path d="M84 66 Q100 62 116 66 M86 73 Q100 70 114 73" stroke="#dbab90" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+  <path d="M88 56 Q96 52 104 54 M98 52 Q108 51 114 56" stroke="#d6d1c8" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <g class="hairL"><path d="M69 78 Q61 86 62 98 Q64 108 69 112 Q68 100 72 92 Q70 86 74 80 Z" fill="#d7d2c9"/></g>
+  <g class="hairR"><path d="M131 78 Q139 86 138 98 Q136 108 131 112 Q132 100 128 92 Q130 86 126 80 Z" fill="#d7d2c9"/></g>
+  <path class="brow browL" d="M76 84 Q84 80 93 83" stroke="#a49d93" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path class="brow browR" d="M107 83 Q116 80 124 84" stroke="#a49d93" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <g class="eyes"><ellipse cx="85" cy="95" rx="4.6" ry="3.2" fill="#fff"/><ellipse cx="115" cy="95" rx="4.6" ry="3.2" fill="#fff"/>
+   <circle cx="85.4" cy="95.3" r="2.5" fill="#3f3a36"/><circle cx="115.4" cy="95.3" r="2.5" fill="#3f3a36"/>
+   <circle cx="86.3" cy="94.2" r="0.8" fill="#fff"/><circle cx="116.3" cy="94.2" r="0.8" fill="#fff"/></g>
+  <path d="M79 99 Q85 101 91 99 M109 99 Q115 101 121 99" stroke="#d8a68c" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  <path d="M101 98 Q99 110 96 116 Q100 121 106 118" stroke="#c48f74" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path d="M86 116 Q85 124 88 130 M114 116 Q115 124 112 130" stroke="#dcaa90" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+  <path class="mo n" d="M90 131 Q100 133 110 130" stroke="#8a4a3a" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <path class="mo s" d="M88 128 Q100 140 112 128 Q100 132 88 128 Z" fill="#9b3a2c" stroke="#8a4a3a" stroke-width="1.5" stroke-linejoin="round"/>
+  <path class="mo f" d="M90 135 Q100 128 110 135" stroke="#8a4a3a" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <path class="sweat" d="M136 66 Q141 76 136 80 Q131 76 136 66 Z" fill="#7cc3f0"/>
+  <text class="spark" x="30" y="44" font-size="18" fill="#f0b400">✦</text>
+  <text class="spark" x="160" y="40" font-size="14" fill="#f0b400">✦</text>
+  <text class="spark" x="170" y="96" font-size="11" fill="#f0b400">✦</text>
+ </g></svg>`;
+function makeAvatar(el,bubble){
+  el.innerHTML=KP_SVG;let tm=null;
+  function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
+  return {mood(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
+    if(m==='smile'){el.classList.add('smile');restart('hop');}
+    if(m==='frown'){el.classList.add('frown');restart('shake');}
+    if(text!==undefined){bubble.innerHTML=text;bubble.className='bubble'+(m==='smile'?' good':m==='frown'?' bad':'');}
+    if(!hold)tm=setTimeout(()=>{el.classList.remove('smile','frown');bubble.className='bubble';},3200);}};
+}
+var AV1=makeAvatar($('av1'),$('bub1')),AV2=makeAvatar($('av2'),$('bub2'));
+const QUOTES=[
+ '我借用了力學的「矩」：把資料點看成質點，平均數就是質心，變異數就像轉動慣量。',
+ '1890 年代，我和生物學家韋爾登（Weldon）研究螃蟹的測量資料。為了用公式描述這些分布，我提出了「動差法」：讓模型的矩等於資料的矩。',
+ '「標準差」（standard deviation）這個名詞是我取的；「直方圖」（histogram）也是我在講課時開始用的。',
+ '你們熟悉的相關係數，全名是「皮爾森積差相關係數」（product-moment correlation）——「積差」就是兩個變數離差乘積的矩。',
+ '1900 年我提出了卡方（χ²）檢定，用來檢驗資料是否符合某個分布。',
+ '1901 年，我和韋爾登、高爾頓一起創辦了期刊《Biometrika》；1911 年，我在倫敦大學學院成立了世界上第一個大學統計系。',
+ '「峰度」（kurtosis）這個詞也是我提出的，用四階矩來描述分布的尾巴。'];
+let qi=0;$('av1').onclick=()=>AV1.mood('smile',QUOTES[qi++%QUOTES.length]);
+
+/* ---------- 5. 小測驗 ---------- */
+const QZ=[
+ {q:'k 階原始矩的定義是？',o:['E[X<sup>k</sup>]：把數值取 k 次方再平均','把數值乘以 k 再平均','第 k 大的數','k 個數的總和'],a:0,
+  e:'一階 E[X] 是平均數，二階 E[X²] 是平方的平均。',h:'看第 0 節的公式框。'},
+ {q:'一階矩（平均數）的直觀意義是？',o:['資料的平衡點（質心）','資料散得多開','最大值和最小值的差','出現最多次的值'],a:0,
+  e:'支點放在平均數時，總力矩 Σ(xᵢ − μ) = 0，蹺蹺板平衡。',h:'第 1 節按「把支點移到平均數」。'},
+ {q:'Σ(xᵢ − μ) 等於多少？',o:['永遠等於 0','等於變異數','等於標準差','等於 n'],a:0,
+  e:'這正是平均數的定義：正負距離剛好抵消。也因此一階中心矩不能用來描述分散程度。',h:'蹺蹺板平衡時總力矩是多少？'},
+ {q:'二階中心矩 E[(X − μ)²] 是什麼？',o:['變異數 σ²，描述資料散得多開','平均數','偏度','中位數'],a:0,
+  e:'開根號得到標準差 σ，就是「典型距離」。',h:'第 2 節：正方形的平均面積。'},
+ {q:'為什麼要把距離「平方」？',o:['消去正負號，而且距離越遠被放大越多','為了讓數字變小','因為平方比較好算','為了得到平均數'],a:0,
+  e:'不平方的話，正負距離會互相抵消成 0；平方後每個距離都是正的。',h:'第 2 節一開始的說明。'},
+ {q:'資料中有一個離群值時，對哪個量影響特別大？',o:['變異數（二階矩），因為距離被平方放大','資料的個數','最小值','完全沒有影響'],a:0,
+  e:'第 2 節按「有一個離群值」：最遠那個點的正方形佔了大部分面積。',h:'第 2 節按「有一個離群值」。'},
+ {q:'二階原始矩 E[X²] 和平均數、變異數的關係是？',o:['E[X²] = μ² + σ²','E[X²] = μ + σ','E[X²] = σ² − μ²','E[X²] = μ²'],a:0,
+  e:'以 0 為中心的正方形面積 ＝ 中心離 0 的距離平方 ＋ 散開程度。',h:'第 2 節切換到「以 0 為中心」，看驗證那一行。'},
+ {q:'偏度（三階矩）是正值，代表什麼？',o:['右邊有一條長尾巴','分布完全對稱','左邊有長尾巴','資料都一樣'],a:0,
+  e:'三次方保留正負號，並放大遠處的點；右側遠處的點多，偏度就是正的。',h:'第 3 節選「右偏」。'},
+ {q:'Adam 優化器的 m 和 v 分別估計梯度的什麼？',o:['一階矩（平均）和二階原始矩（平方的平均）','變異數和偏度','最大值和最小值','中位數和眾數'],a:0,
+  e:'m 給方向，v 給尺度；v 是 E[g²]，不是變異數。',h:'看第 4 節的表格。'}
+];
+const PRAISE=['Excellent！答對了 😄','Splendid！你的估計完全不偏！','Very good！誤差平方和是零！','Capital！完全符合我的統計！'];
+let sc=0,dn=0,streak=0;
+function shuffle(a){return a.map(v=>[Math.random(),v]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);}
+function buildQuiz(){sc=0;dn=0;streak=0;$('score').style.display='none';
+  $('quiz').innerHTML=QZ.map((z,i)=>{const ord=shuffle(z.o.map((t,j)=>j));
+    return `<div class="q"><div><b>Q${i+1}.</b> ${z.q}</div><div class="opts">${ord.map(j=>`<button data-q="${i}" data-o="${j}">${z.o[j]}</button>`).join('')}</div><div class="fb" id="fb${i}"></div></div>`;}).join('');}
+$('quiz').onclick=e=>{const b=e.target.closest('button');if(!b)return;const i=+b.dataset.q,j=+b.dataset.o,z=QZ[i],box=b.parentElement;if(box.dataset.done)return;box.dataset.done=1;dn++;
+  if(j===z.a){b.classList.add('right');sc++;streak++;$('fb'+i).innerHTML='✔ 正確！'+z.e;
+    AV2.mood('smile',streak>=3?`連對 ${streak} 題！你的答對率顯著高於隨機猜測 🎉`:PRAISE[Math.floor(Math.random()*PRAISE.length)]);}
+  else{b.classList.add('wrong');streak=0;[...box.children].forEach(x=>{if(+x.dataset.o===z.a)x.classList.add('right');});$('fb'+i).innerHTML='✘ '+z.e;AV2.mood('frown',z.h);}
+  if(dn===QZ.length){$('scoreTxt').textContent=`得分：${sc} / ${QZ.length}`;$('score').style.display='flex';
+    setTimeout(()=>{if(sc===QZ.length)AV2.mood('smile','滿分！一階、二階、三階、四階矩你都掌握了 🏆',true);
+      else if(sc>=QZ.length-2)AV2.mood('smile',`${sc} 分，很不錯！錯的題目回到對應小節再玩一下。`,true);
+      else AV2.mood('frown','建議回到第 1、2 節，玩玩蹺蹺板和正方形，再來挑戰！',true);},3300);}
+};
+$('retry').onclick=()=>{buildQuiz();AV2.mood('','新的一輪！選項順序都換過了喔。');};
+
+/* ---------- init ---------- */
+S1.ang=target1();draw1();draw2();draw3();buildQuiz();
+function redrawAll(){draw1();draw2();draw3();}
+let rz=null;window.addEventListener('resize',()=>{cancelAnimationFrame(rz);rz=requestAnimationFrame(redrawAll);});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redrawAll);
+</script>
+</body>
+</html>

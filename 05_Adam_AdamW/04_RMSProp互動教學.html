@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RMSProp互動教學</title>
+<style>
+:root{
+  --bg:#f7f6f2;--card:#fff;--ink:#1d2330;--mute:#667085;--line:#e3e1da;--ok:#1f9d6b;--bad:#d6334f;
+  --grid:#eceae4;--axis:#9aa0ab;--accent:#2f6fdb;--tint:#eaf1fc;
+  --cv:#2f6fdb;--tan:#8b45d6;--gd:#1f9d6b;--path:#e07a1f;--pt:#1d2330;--warn:#c98a00;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+    --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+    --cv:#6c9dff;--tan:#b98bff;--gd:#4fd19d;--path:#ffa552;--pt:#f4f5f8;--warn:#ffd166;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+  --cv:#6c9dff;--tan:#b98bff;--gd:#4fd19d;--path:#ffa552;--pt:#f4f5f8;--warn:#ffd166;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.9rem}
+header p{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:18px}
+.card h2{margin:0 0 12px;font-size:1.22rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:.9rem;flex:none}
+h3{margin:0 0 6px;font-size:1.05rem}
+.m{font-family:"Times New Roman","Cambria Math",serif;font-style:italic}
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 2px;line-height:1.15}
+.frac>span:first-child{padding:0 3px 1px;border-bottom:1.3px solid currentColor}
+.frac>span:last-child{padding:1px 3px 0}
+.def{font-size:1.2rem;text-align:center;padding:14px;border-radius:10px;background:var(--tint);line-height:2.1}
+.note{color:var(--mute);font-size:.92rem}
+.gd{color:var(--gd)}.path{color:var(--path)}.tan{color:var(--tan)}.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start}
+.two>*{min-width:0}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.three>div{border:2px solid var(--line);border-radius:12px;padding:10px 14px}
+.three b.t{display:block;color:var(--accent)}
+@media (max-width:860px){.two,.three{grid-template-columns:minmax(0,1fr)}}
+.cvbox{width:100%;min-width:0}
+.sq{max-width:460px;margin:0 auto}
+canvas{width:100%;display:block;border-radius:10px;background:var(--bg);touch-action:none}
+label{font-size:.92rem;color:var(--mute);display:block}
+label b{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 12px}
+select{width:100%}
+button{cursor:pointer}button:hover{border-color:var(--accent)}
+button.pri,button.on{background:var(--accent);color:#fff;border-color:transparent}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:12px 18px;align-items:end}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(120px,100%),1fr));gap:10px;margin-top:10px}
+.stats>div{padding:8px 12px;border-radius:10px;background:var(--bg)}
+.stats small{display:block;color:var(--mute);font-size:.82rem}
+.stats b{font-size:1.2rem;font-variant-numeric:tabular-nums}
+.say{margin-top:10px;padding:10px 14px;border-left:4px solid var(--ok);background:var(--bg);border-radius:8px}
+.formula{font-size:1.08rem;line-height:2.3;overflow-x:auto;padding:4px 2px}
+.stepbar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:10px 0 8px}
+.stepbar div{height:100%;background:var(--accent);transition:width .3s}
+.explain{padding:10px 14px;border-radius:10px;background:var(--tint);min-height:3.4em}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.85rem;color:var(--mute);margin-top:6px}
+.legend i{display:inline-block;width:18px;height:4px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.zone{display:inline-block;padding:2px 10px;border-radius:999px;font-weight:700;color:#fff}
+/* quiz */
+.quiz .q{padding:12px 0;border-bottom:1px solid var(--line)}
+.quiz .q:last-child{border:none}
+.opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.opts button.right{background:var(--ok);color:#fff;border-color:transparent}
+.opts button.wrong{background:var(--bad);color:#fff;border-color:transparent}
+.fb{font-size:.92rem;margin-top:6px;min-height:1.2em}
+.score{margin-top:12px;font-size:1.15rem;font-weight:700;display:none;align-items:center;gap:12px;flex-wrap:wrap}
+footer{color:var(--mute);font-size:.85rem;text-align:center;margin-top:30px}
+/* ---------- avatar ---------- */
+.avwrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.av{width:100%;max-width:220px;cursor:pointer;user-select:none}
+.av svg{width:100%;display:block;overflow:visible;background:none}
+.av .bodyg{animation:bob 3.2s ease-in-out infinite;transform-origin:100px 200px}
+.av .eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+.av .hairL{animation:sway 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:top center}
+.av .hairR{animation:sway 3.2s ease-in-out infinite reverse;transform-box:fill-box;transform-origin:top center}
+.av .brow{transition:transform .3s;transform-box:fill-box}
+.av .browL{transform-origin:right center}.av .browR{transform-origin:left center}
+.av .mo{opacity:0;transition:opacity .25s}.av .mo.n{opacity:1}
+.av .blush,.av .sweat,.av .spark{opacity:0;transition:opacity .3s}
+.av.smile .mo.n,.av.frown .mo.n{opacity:0}
+.av.smile .mo.s{opacity:1}.av.frown .mo.f{opacity:1}
+.av.smile .blush{opacity:.55}.av.smile .spark{opacity:1}.av.frown .sweat{opacity:.9}
+.av.smile .brow{transform:translateY(-3px)}
+.av.frown .browL{transform:rotate(14deg) translateY(2px)}.av.frown .browR{transform:rotate(-14deg) translateY(2px)}
+.av.hop svg{animation:hop .7s ease}
+.av.shake svg{animation:shake .55s ease}
+.av .spark{animation:twinkle 1s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}
+@keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+@keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.bubble{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.95rem;margin-bottom:10px;min-height:2.6em;max-width:260px;text-align:center;transition:border-color .3s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--line);border-bottom:0}
+.bubble.good{border-color:var(--ok)}.bubble.good::after{border-top-color:var(--ok)}
+.bubble.bad{border-color:var(--bad)}.bubble.bad::after{border-top-color:var(--bad)}
+.intro{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:center}
+.intro>*,.qgrid>*{min-width:0}
+.intro .avwrap{flex-direction:row;gap:10px}.intro .bubble{flex:1;margin:0}.intro .bubble::after{display:none}.intro .av{width:125px;flex:none}
+.qgrid{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:18px;align-items:start}
+.qgrid .avwrap{position:sticky;top:12px}
+@media (max-width:860px){.intro,.qgrid{grid-template-columns:minmax(0,1fr)}.intro .avwrap{flex-direction:column}.intro .bubble{margin-bottom:10px}.intro .bubble::after{display:block}.intro .av,.qgrid .av{width:auto;max-width:140px}.qgrid .avwrap{position:static;order:-1}}
+</style>
+<style>
+:root{--sgd:#d63384;--mom:#e07a1f;--rms:#0a8fb8;--m1:#1f9d6b}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--sgd:#ff6fb5;--mom:#ffa552;--rms:#4fd0ff;--m1:#4fd19d}}
+:root[data-theme="dark"]{--sgd:#ff6fb5;--mom:#ffa552;--rms:#4fd0ff;--m1:#4fd19d}
+.sgd{color:var(--sgd)}.mom{color:var(--mom)}.rms{color:var(--rms)}.m1{color:var(--m1)}
+.vs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:12px;margin-top:10px}
+.vs>div{border:2px solid var(--line);border-radius:12px;padding:10px 14px;min-width:0}
+.vs>div.a{border-color:var(--sgd)}.vs>div.b{border-color:var(--mom)}.vs>div.c{border-color:var(--rms)}.vs>div.d{border-color:var(--m1)}
+.vs b.t{display:block}
+.chk{display:flex;gap:6px;align-items:center;color:var(--ink);font-size:.92rem}
+.story{margin-top:16px;padding:14px 18px;border-radius:12px;border:1px dashed var(--line);background:var(--bg)}
+.story h3{margin:0 0 6px}.story p{margin:6px 0}
+.story .tl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:10px}
+.story .tl>div{border-left:4px solid var(--rms);padding:4px 10px;background:var(--card);border-radius:6px;font-size:.92rem;min-width:0}
+.story .tl b{display:block;color:var(--rms)}
+@media (max-width:860px){.story .tl{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.bars{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 10px;align-items:center;font-size:.92rem;margin-top:8px}
+.bars .bar{height:16px;border-radius:4px;min-width:2px;transition:width .25s}
+.bars .val{font-variant-numeric:tabular-nums;color:var(--mute);min-width:5.5em;text-align:right}
+.quote{font-style:italic;color:var(--mute)}
+</style>
+<style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line,#e3e1da);border-radius:12px;background:var(--card,var(--surface,#fff));color:var(--ink,#1d2330);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+.pu-badge img{width:58px;height:58px;display:block}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute,var(--muted,#667085))}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="pu-hd">
+  <div class="pu-hd-main">
+  <h1>RMSProp 與二階矩互動教學</h1>
+  <p>工程數學 ・ 互動教學：用「最近的梯度平方」量出腳下有多陡，替每個參數自動調整步伐</p>
+</div>
+  <div class="pu-badge"><img alt="靜宜大學校徽" src="data:image/webp;base64,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"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</header>
+
+<!-- 0 -->
+<section class="card">
+  <h2><span class="num">0</span>一句話直覺：陡的地方走小步，緩的地方走大步</h2>
+  <div class="intro">
+    <div>
+      <div class="def">
+        <b class="rms">v</b> ＝ β<sub>2</sub> × 舊 v ＋ (1−β<sub>2</sub>) × 梯度²　　新位置 ＝ 舊位置 − η × <span class="frac"><span>梯度</span><span>√<b class="rms">v</b></span></span><br>
+        <i class="m">v<sub>t</sub></i> = β<sub>2</sub><i class="m">v</i><sub><i class="m">t</i>−1</sub> + (1−β<sub>2</sub>)<i class="m">g<sub>t</sub></i>²　　　<i class="m">θ<sub>t</sub></i> = <i class="m">θ</i><sub><i class="m">t</i>−1</sub> − η · <span class="frac"><span><i class="m">g<sub>t</sub></i></span><span>√<i class="m">v<sub>t</sub></i> + ε</span></span>
+      </div>
+      <div class="three">
+        <div><b class="t">① 量坡度</b>把梯度<b>平方</b>：不管往正還是往負，只看「有多陡」。這就是梯度的<b>二階矩</b>。</div>
+        <div><b class="t">② 只記最近</b>用 β<sub>2</sub>（辛頓的投影片用 0.9）把舊的 <i class="m">g</i>² 慢慢遺忘，<i class="m">v</i> 反映的是<b>現在腳下</b>的坡度。</div>
+        <div><b class="t">③ 除以 √v</b>梯度大的參數被縮小、梯度小的被放大，<b>每個參數每一步都走大約 η</b>。</div>
+      </div>
+      <p class="note">RMS ＝ Root Mean Square（均方根）：先平方（Square）、再平均（Mean）、最後開根號（Root）。√<i class="m">v<sub>t</sub></i> 就是「最近梯度的典型大小」。<br><b>符號與 Adam 一致</b>：步數 <i class="m">t</i> = 1, 2, …；梯度 <i class="m">g<sub>t</sub></i> = ∇<i class="m">f</i>(<i class="m">θ</i><sub><i class="m">t</i>−1</sub>)；二階矩 <i class="m">v</i>（初值 <i class="m">v</i><sub>0</sub> = 0）；衰減係數 β<sub>2</sub>；學習率 η。（PyTorch 的 <code>RMSprop</code> 把這個係數叫 <code>alpha</code>。）</p>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub1">Hello！我是辛頓（Geoffrey Hinton）。點我聽 RMSProp 的故事！</div><div class="av" id="av1"></div></div>
+  </div>
+  <div class="story">
+    <h3>📜 小故事：一張投影片上的優化器</h3>
+    <p>在 RMSProp 之前，AdaGrad（2011）已經想到「用梯度平方替每個參數調整步伐」，但它把<b>從第一步開始的所有</b>梯度平方都加起來，分母只增不減，學習率越來越小，訓練最後就停住了。</p>
+    <p>2012 年，辛頓在 Coursera 線上課程《Neural Networks for Machine Learning》第 6 講（6e）提出一個簡單的修正：<b>只累加最近一段時間的梯度平方</b>（指數移動平均）。投影片的標題是 <span class="quote">“rmsprop: Divide the gradient by a running average of its recent magnitude”</span>。這個方法從未正式發表成論文，至今大家引用的仍是那份課程投影片（Tieleman &amp; Hinton, 2012）。</p>
+    <div class="tl">
+      <div><b>1964</b>Polyak 提出動量（一階矩）</div>
+      <div><b>2011</b>AdaGrad：累加所有梯度平方</div>
+      <div><b>2012</b>RMSProp：只累加最近的梯度平方</div>
+      <div><b>2014</b>Adam：一階矩 ＋ 二階矩 ＋ 偏差修正</div>
+    </div>
+  </div>
+</section>
+
+<!-- 1 -->
+<section class="card">
+  <h2><span class="num">1</span>二階矩的涵義：不管正負，梯度「通常有多大」？</h2>
+  <p style="margin-top:0">把每一步的梯度 <i class="m">g</i> 看成一個會隨機變動的數。下圖的點是 40 次取樣，用兩個「矩」來描述它們：</p>
+  <div class="vs" style="margin-top:0">
+    <div class="d"><b class="t m1">一階矩 E[<i class="m">g</i>]＝平均（動量 m）</b>梯度<b>平均往哪邊推</b>。正負會互相抵消。力學類比：<b>質心</b>（▲ 平衡點）。</div>
+    <div class="c"><b class="t rms">二階矩 E[<i class="m">g</i>²]＝平方的平均（RMSProp 的 v）</b>梯度<b>通常有多大</b>。平方後沒有負數，不會抵消。力學類比：<b>轉動慣量</b>。開根號 √E[<i class="m">g</i>²] 就是 RMS。</div>
+  </div>
+  <div class="ctl" style="margin-top:12px">
+    <label>平均 μ（梯度的固定方向）= <b id="mu1v"></b><input id="mu1" type="range" min="-2" max="2" step="0.1" value="0.5"></label>
+    <label>雜訊 σ（梯度的晃動）= <b id="sg1v"></b><input id="sg1" type="range" min="0" max="2" step="0.1" value="1"></label>
+    <div class="row"><button id="rs1">🎲 重新取樣</button></div>
+  </div>
+  <div class="row" style="margin-top:8px"><span class="note">試試看：</span><button data-p1="1.5,0.2">又穩又同向</button><button data-p1="0,1.5">只有雜訊（忽正忽負）</button><button data-p1="-2,0.3">很陡、往負向</button><button data-p1="0.1,0.1">很平緩</button></div>
+  <div class="two" style="margin-top:12px">
+    <div>
+      <div class="cvbox"><canvas id="c1"></canvas></div>
+      <div class="legend"><span><i style="background:var(--cv)"></i>梯度取樣 g<sub>i</sub></span><span><i style="background:var(--m1)"></i>▲ 一階矩（平均）</span><span><i style="background:var(--rms)"></i>±√E[g²]（RMS，離 0 的典型距離）</span></div>
+    </div>
+    <div>
+      <div class="stats">
+        <div><small class="m1">一階矩 E[g]</small><b id="s1m" class="m1"></b></div>
+        <div><small class="rms">二階矩 E[g²]</small><b id="s1s" class="rms"></b></div>
+        <div><small class="rms">RMS = √E[g²]</small><b id="s1r" class="rms"></b></div>
+        <div><small>變異數 Var(g)</small><b id="s1v"></b></div>
+      </div>
+      <div class="formula" id="o1"></div>
+      <div class="say" id="t1"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="card">
+  <h2><span class="num">2</span>只看最近：AdaGrad 記得太多，RMSProp 懂得遺忘</h2>
+  <p style="margin-top:0">某個參數前 50 步在<b>陡坡</b>（梯度 = 10），之後走到<b>緩坡</b>（梯度 = 0.1）。比較三種方法「每一步走多遠」（以 η 為單位，縱軸是對數刻度）：</p>
+  <div class="vs" style="margin-top:0">
+    <div class="a"><b class="t sgd">SGD</b>步長 = η·<i class="m">g</i>：坡度一變，步長跟著差 100 倍。</div>
+    <div class="d"><b class="t m1">AdaGrad</b><i class="m">G<sub>t</sub></i> = <i class="m">G</i><sub><i class="m">t</i>−1</sub> + <i class="m">g<sub>t</sub></i>²，步長 = η·<i class="m">g<sub>t</sub></i>/√<i class="m">G<sub>t</sub></i>：<b>全部</b>歷史都加總。</div>
+    <div class="c"><b class="t rms">RMSProp</b><i class="m">v<sub>t</sub></i> = β<sub>2</sub><i class="m">v</i><sub><i class="m">t</i>−1</sub> + (1−β<sub>2</sub>)<i class="m">g<sub>t</sub></i>²，步長 = η·<i class="m">g<sub>t</sub></i>/√<i class="m">v<sub>t</sub></i>：只看<b>最近</b>。</div>
+  </div>
+  <div class="ctl" style="margin-top:12px">
+    <label>衰減係數 β<sub>2</sub> = <b id="rho2v"></b><input id="rho2" type="range" min="0.5" max="0.99" step="0.01" value="0.9"></label>
+    <div class="stats" style="margin:0">
+      <div><small>大約記得幾步 1/(1−β<sub>2</sub>)</small><b id="s2mem"></b></div>
+      <div><small>20 步前的 g² 剩下</small><b id="s2old"></b></div>
+    </div>
+  </div>
+  <div class="two" style="margin-top:12px">
+    <div>
+      <div class="cvbox"><canvas id="c2"></canvas></div>
+      <div class="legend"><span><i style="background:var(--sgd)"></i>SGD</span><span><i style="background:var(--m1)"></i>AdaGrad</span><span><i style="background:var(--rms)"></i>RMSProp</span><span><i style="background:var(--warn)"></i>陡坡 → 緩坡</span></div>
+    </div>
+    <div>
+      <div class="row"><button id="r2">⟲ 重來</button><button id="p2">◀ 上一步</button><button id="n2" class="pri">下一步 ▶</button><button id="a2">▶ 自動播放</button><button id="end2">⏩ 直接看結果</button></div>
+      <div class="stepbar"><div id="bar2"></div></div>
+      <div class="explain" id="t2"></div>
+      <div class="formula" id="o2"></div>
+      <div class="say">📌 <b>AdaGrad 永遠記得「以前很陡」</b>，到了緩坡步長只剩千分之一，幾乎停住。<b>RMSProp 會慢慢忘掉過去</b>，發現「現在很平緩」後，步長恢復到約 η。這就是「只累加最近一段時間的梯度平方」的意義。</div>
+      <p class="note">⚠️ 注意第 1 步：<i class="m">v</i><sub>0</sub> = 0，第一步只累積到 <i class="m">v</i><sub>1</sub> = (1−β<sub>2</sub>)<i class="m">g</i><sub>1</sub>²，步長變成 1/√(1−β<sub>2</sub>) 倍（β<sub>2</sub> = 0.9 時約 3.16 倍）。這個「初期偏差」後來由 Adam 的<b>偏差修正</b>解決。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="card">
+  <h2><span class="num">3</span>除以 √v：每個參數都走大約 η 這麼遠</h2>
+  <p style="margin-top:0">神經網路裡，不同參數的梯度大小可能差上千倍。假設參數 A、B 的梯度一直維持固定大小，學習率 η = 0.01：</p>
+  <div class="ctl">
+    <label>參數 A 的梯度大小 |g<sub>A</sub>| = <b id="gAv"></b><input id="gA" type="range" min="-3" max="3" step="0.5" value="2"></label>
+    <label>參數 B 的梯度大小 |g<sub>B</sub>| = <b id="gBv"></b><input id="gB" type="range" min="-3" max="3" step="0.5" value="-1"></label>
+  </div>
+  <div class="two" style="margin-top:10px">
+    <div>
+      <h3 class="sgd">SGD：步長 = η·|g<sub>t</sub>|</h3>
+      <div class="bars" id="bS"></div>
+      <h3 class="rms" style="margin-top:14px">RMSProp：步長 = η·|g<sub>t</sub>| / √v<sub>t</sub> ≈ η</h3>
+      <div class="bars" id="bR"></div>
+      <p class="note">長條是對數刻度：每一格代表 10 倍。</p>
+    </div>
+    <div>
+      <div class="say" id="t3"></div>
+      <div class="formula" id="o3"></div>
+      <p class="note">這就是「<b>自適應學習率</b>（adaptive learning rate）」：只設定一個 η，RMSProp 會依照每個參數自己的梯度大小，自動換算成合適的步長。代價是：步長幾乎只剩「方向」，梯度的大小資訊被正規化掉了。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="card">
+  <h2><span class="num">4</span>軌跡比較：SGD、Momentum、RMSProp 在峽谷裡賽跑</h2>
+  <div class="vs" style="margin-top:0">
+    <div class="a"><b class="t sgd">● SGD</b><i class="m">θ<sub>t</sub></i> = <i class="m">θ</i><sub><i class="m">t</i>−1</sub> − η<i class="m">g<sub>t</sub></i></div>
+    <div class="b"><b class="t mom">■ Momentum（一階矩）</b><i class="m">m<sub>t</sub></i> = β<i class="m">m</i><sub><i class="m">t</i>−1</sub> + <i class="m">g<sub>t</sub></i>，<i class="m">θ<sub>t</sub></i> = <i class="m">θ</i><sub><i class="m">t</i>−1</sub> − η<i class="m">m<sub>t</sub></i></div>
+    <div class="c"><b class="t rms">▲ RMSProp（二階矩）</b><i class="m">v<sub>t</sub></i> = β<sub>2</sub><i class="m">v</i><sub><i class="m">t</i>−1</sub> + (1−β<sub>2</sub>)<i class="m">g<sub>t</sub></i>²，<i class="m">θ<sub>t</sub></i> = <i class="m">θ</i><sub><i class="m">t</i>−1</sub> − η<sub>R</sub> <i class="m">g<sub>t</sub></i>/(√<i class="m">v<sub>t</sub></i> + ε)</div>
+  </div>
+  <div class="ctl" style="margin-top:12px">
+    <label>地形<select id="f4"></select></label>
+    <label>SGD／Momentum 的 η = <b id="e4v"></b><input id="e4" type="range" min="0.05" max="0.5" step="0.025" value="0.475"></label>
+    <label>Momentum 的 β = <b id="b4v"></b><input id="b4" type="range" min="0" max="0.95" step="0.05" value="0.6"></label>
+    <label>RMSProp 的 η<sub>R</sub> = <b id="r4v"></b><input id="r4" type="range" min="0.02" max="0.3" step="0.01" value="0.1"></label>
+    <label>RMSProp 的 β<sub>2</sub> = <b id="p4v"></b><input id="p4" type="range" min="0.5" max="0.99" step="0.01" value="0.9"></label>
+    <div><label class="chk"><input type="checkbox" id="sm4" checked> 顯示 Momentum 路徑</label><div class="note">👆 點地圖可以換起點</div></div>
+  </div>
+  <div class="two" style="margin-top:12px">
+    <div><div class="cvbox sq"><canvas id="c4"></canvas></div>
+      <div class="legend"><span><i style="background:var(--sgd)"></i>SGD</span><span><i style="background:var(--mom)"></i>Momentum</span><span><i style="background:var(--rms)"></i>RMSProp</span></div></div>
+    <div>
+      <div class="row"><button id="r4b">⟲ 重來</button><button id="p4b">◀ 上一步</button><button id="n4" class="pri">下一步 ▶</button><button id="a4">▶ 自動播放</button><button id="end4">⏩ 直接看結果</button></div>
+      <div class="stepbar"><div id="bar4"></div></div>
+      <div class="explain" id="t4"></div>
+      <div class="formula" id="o4"></div>
+      <div class="stats">
+        <div><small class="sgd">SGD 到 f &lt; 0.01</small><b id="h4s" class="sgd"></b></div>
+        <div><small class="mom">Momentum 到 f &lt; 0.01</small><b id="h4m" class="mom"></b></div>
+        <div><small class="rms">RMSProp 到 f &lt; 0.01</small><b id="h4r" class="rms"></b></div>
+      </div>
+      <h3 style="margin-top:10px">f 隨步數的變化</h3>
+      <div class="cvbox"><canvas id="c4L"></canvas></div>
+    </div>
+  </div>
+  <div class="say" id="say4"></div>
+</section>
+
+<!-- 5 -->
+<section class="card">
+  <h2><span class="num">5</span>觀念小測驗</h2>
+  <div class="qgrid">
+    <div>
+      <div class="quiz" id="quiz"></div>
+      <div class="score" id="score"><span id="scoreTxt"></span><button id="retry" class="pri">再做一次</button></div>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub2">來考考你！答對我會笑，答錯我會皺眉喔。</div><div class="av" id="av2"></div></div>
+  </div>
+</section>
+
+<footer>RMSProp 與二階矩互動教學 ・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fr=(a,b)=>`<span class="frac"><span>${a}</span><span>${b}</span></span>`;
+const M=s=>`<i class="m">${s}</i>`;
+const fmt=(v,d=3)=>{if(!isFinite(v))return v>0?'∞':'−∞';if(Math.abs(v)<5e-10)v=0;if(Math.abs(v)>=1e5)return v.toExponential(2).replace('-','−');return v.toFixed(d).replace('-','−');};
+const fmtf=v=>{if(!isFinite(v))return '∞';if(v!==0&&Math.abs(v)<1e-3)return v.toExponential(1).replace('-','−');return fmt(v,4);};
+const fmtg=v=>{v=+v.toPrecision(3);const a=Math.abs(v);if(a===0)return '0';if(a>=1e6||a<1e-3)return v.toExponential(1).replace('-','−').replace('e+','e');return v.toLocaleString('en-US',{maximumSignificantDigits:3}).replace('-','−');};
+function sizeCanvas(cv,ratio,maxH){
+  cv.style.width='0px';const w=cv.parentElement.clientWidth;cv.style.width='100%';
+  let h=Math.round(w*ratio);if(maxH)h=Math.min(h,maxH);
+  const dpr=window.devicePixelRatio||1;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+'px';
+  const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);return {c,w,h};
+}
+function niceStep(span){const raw=span/6,p=Math.pow(10,Math.floor(Math.log10(raw))),n=raw/p;return (n<1.5?1:n<3.5?2:n<7.5?5:10)*p;}
+function dot(c,x,y,col,r){c.fillStyle=col||'#111';c.strokeStyle=css('--card');c.lineWidth=2;c.beginPath();c.arc(x,y,r||6,0,7);c.fill();c.stroke();}
+function sqr(c,x,y,col,r){r=r||6;c.fillStyle=col;c.strokeStyle=css('--card');c.lineWidth=2;c.beginPath();c.rect(x-r,y-r,2*r,2*r);c.fill();c.stroke();}
+function tri(c,x,y,col,r){r=r||7;c.fillStyle=col;c.strokeStyle=css('--card');c.lineWidth=2;c.beginPath();c.moveTo(x,y-r);c.lineTo(x+r*0.95,y+r*0.75);c.lineTo(x-r*0.95,y+r*0.75);c.closePath();c.fill();c.stroke();}
+function plot(cv,ratio,xr,yr,opt){
+  opt=opt||{};const {c,w,h}=sizeCanvas(cv,ratio,opt.maxH||420),L=opt.L||40,R=12,T=10,B=opt.B||28;
+  const X=x=>L+(x-xr[0])/(xr[1]-xr[0])*(w-L-R),Y=y=>T+(yr[1]-y)/(yr[1]-yr[0])*(h-T-B);
+  const sx=opt.sx||niceStep(xr[1]-xr[0]),sy=opt.sy||niceStep(yr[1]-yr[0]),fy=opt.fy||(y=>+y.toFixed(4)+'');
+  c.font='11px sans-serif';c.strokeStyle=css('--grid');c.fillStyle=css('--mute');c.lineWidth=1;c.textAlign='center';c.textBaseline='top';
+  for(let x=Math.ceil(xr[0]/sx-1e-9)*sx;x<=xr[1]+1e-9;x+=sx){c.beginPath();c.moveTo(X(x),T);c.lineTo(X(x),h-B);c.stroke();c.fillText(+x.toFixed(4)+'',X(x),h-B+4);}
+  if(!opt.noY){c.textAlign='right';c.textBaseline='middle';
+  for(let y=Math.ceil(yr[0]/sy-1e-9)*sy;y<=yr[1]+1e-9;y+=sy){c.beginPath();c.moveTo(L,Y(y));c.lineTo(w-R,Y(y));c.stroke();c.fillText(fy(y),L-4,Y(y));}}
+  c.strokeStyle=css('--axis');c.strokeRect(L,T,w-L-R,h-T-B);
+  if(opt.xl){c.textAlign='right';c.textBaseline='bottom';c.fillText(opt.xl,w-R-4,h-B-3);}
+  return {c,w,h,X,Y,L,R,T,B,clip(){c.save();c.beginPath();c.rect(L,T,w-L-R,h-T-B);c.clip();}};
+}
+function onClick(cv,cb){cv.addEventListener('pointerdown',e=>{const b=cv.getBoundingClientRect();cb(e.clientX-b.left,e.clientY-b.top);});}
+function stepper(ids,getN,setK,getK,ms){
+  let T=null;const stop=()=>{clearInterval(T);T=null;$(ids[3]).textContent='▶ 自動播放';};
+  $(ids[0]).onclick=()=>{stop();setK(0);};
+  if(ids[1])$(ids[1]).onclick=()=>{stop();setK(getK()-1);};
+  $(ids[2]).onclick=()=>{stop();setK(getK()+1);};
+  $(ids[3]).onclick=()=>{if(T){stop();return;}if(getK()>=getN())setK(0);$(ids[3]).textContent='⏸ 暫停';
+    T=setInterval(()=>{if(getK()>=getN()){stop();return;}setK(getK()+1);},ms||1100);};
+  return stop;
+}
+function rng(seed){let s=seed>>>0;return ()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
+function gauss(r){const u=Math.max(1e-9,r()),v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+
+/* ---------- 1. 二階矩 ---------- */
+const S1={mu:0.5,sg:1,seed:7,z:[]},N1=40;
+function samp1(){const r=rng(S1.seed);S1.z=Array.from({length:N1},()=>gauss(r));}
+function draw1(){
+  const g=S1.z.map(z=>S1.mu+S1.sg*z),m1=g.reduce((a,b)=>a+b,0)/N1,m2=g.reduce((a,b)=>a+b*b,0)/N1,rmsv=Math.sqrt(m2),vr=m2-m1*m1;
+  const P=plot($('c1'),0.62,[-5,5],[0,1],{xl:'g',sx:1,noY:true,L:14,maxH:330}),c=P.c;P.clip();
+  c.strokeStyle=css('--axis');c.lineWidth=1.5;c.beginPath();c.moveTo(P.X(0),P.Y(0));c.lineTo(P.X(0),P.Y(1));c.stroke();
+  c.fillStyle=css('--rms');c.globalAlpha=0.13;c.fillRect(P.X(-rmsv),P.Y(0.97),P.X(rmsv)-P.X(-rmsv),P.Y(0.06)-P.Y(0.97));c.globalAlpha=1;
+  c.strokeStyle=css('--rms');c.lineWidth=2.5;c.setLineDash([6,4]);[-rmsv,rmsv].forEach(x=>{c.beginPath();c.moveTo(P.X(x),P.Y(0.06));c.lineTo(P.X(x),P.Y(0.97));c.stroke();});c.setLineDash([]);
+  c.font='bold 12px sans-serif';c.textAlign='center';c.fillStyle=css('--rms');c.fillText('−RMS',P.X(-rmsv),P.Y(0.99)+8);c.fillText('+RMS',P.X(rmsv),P.Y(0.99)+8);
+  g.forEach((v,i)=>{const y=0.16+0.74*((i*0.618)%1);c.fillStyle=css('--cv');c.globalAlpha=0.8;c.beginPath();c.arc(P.X(Math.max(-4.95,Math.min(4.95,v))),P.Y(y),4.5,0,7);c.fill();});c.globalAlpha=1;
+  const yb=P.Y(0.02);c.fillStyle=css('--m1');c.beginPath();c.moveTo(P.X(m1),yb-16);c.lineTo(P.X(m1)+9,yb);c.lineTo(P.X(m1)-9,yb);c.closePath();c.fill();
+  c.restore();
+  $('mu1v').textContent=S1.mu.toFixed(1);$('sg1v').textContent=S1.sg.toFixed(1);
+  $('s1m').textContent=fmt(m1,2);$('s1s').textContent=fmt(m2,2);$('s1r').textContent=fmt(rmsv,2);$('s1v').textContent=fmt(vr,2);
+  $('o1').innerHTML=`二階矩 ＝ 一階矩² ＋ 變異數：　${M('E')}[${M('g')}²] = (${M('E')}[${M('g')}])² + Var(${M('g')})<br>代入：<b class="rms">${fmt(m2,2)}</b> = (${fmt(m1,2)})² + ${fmt(vr,2)} = ${fmt(m1*m1,2)} + ${fmt(vr,2)}`;
+  let t;const am=Math.abs(m1);
+  if(rmsv<0.3)t='📌 梯度都很小：二階矩很小，代表<b>腳下很平緩</b>。RMSProp 會除以一個小的 √v，把步伐<b>放大</b>。';
+  else if(am<0.25*rmsv)t='📌 <b>一階矩 ≈ 0，二階矩卻不小！</b>梯度忽正忽負，平均起來互相抵消，所以一階矩看不出「有多陡」；平方之後沒有負數，二階矩才量得出梯度的真實大小。';
+  else if(S1.sg<0.35*am)t='📌 梯度又穩又同向：RMS ≈ |平均|，二階矩幾乎都來自「固定的方向」（一階矩²），雜訊很少。';
+  else t='📌 二階矩同時包含兩種成分：<b>固定方向的大小</b>（一階矩²）和<b>雜訊的大小</b>（變異數）。RMSProp 用 √E[g²] 當作「這個參數的梯度通常有多大」。';
+  $('t1').innerHTML=t;
+}
+$('mu1').addEventListener('input',e=>{S1.mu=+e.target.value;draw1();});
+$('sg1').addEventListener('input',e=>{S1.sg=+e.target.value;draw1();});
+$('rs1').onclick=()=>{S1.seed=(S1.seed*7+13)%100000;samp1();draw1();};
+document.querySelectorAll('[data-p1]').forEach(b=>b.onclick=()=>{const [m,s]=b.dataset.p1.split(',').map(Number);S1.mu=m;S1.sg=s;$('mu1').value=m;$('sg1').value=s;draw1();});
+
+/* ---------- 2. AdaGrad vs RMSProp ---------- */
+const S2={rho:0.9,k:0,sgd:[],ada:[],rms:[],sq:[],G:[]},N2=150,SW=50;
+const g2=k=>k<=SW?10:0.1;
+function run2(){S2.sgd=[NaN];S2.ada=[NaN];S2.rms=[NaN];S2.sq=[0];S2.G=[0];let G=0,s=0;
+  for(let k=1;k<=N2;k++){const g=g2(k);G+=g*g;s=S2.rho*s+(1-S2.rho)*g*g;S2.sgd.push(g);S2.ada.push(g/Math.sqrt(G));S2.rms.push(g/Math.sqrt(s));S2.sq.push(s);S2.G.push(G);}}
+function draw2(){
+  const k=S2.k,lg=v=>Math.log10(v);
+  const P=plot($('c2'),0.68,[0,N2],[-4,1.5],{xl:'步數',sx:25,sy:1,fy:y=>({'1':'10','0':'1','-1':'0.1','-2':'0.01','-3':'0.001','-4':'0.0001'})[String(Math.round(y))]||'',maxH:380}),c=P.c;P.clip();
+  c.fillStyle=css('--warn');c.globalAlpha=0.08;c.fillRect(P.X(0),P.Y(1.5),P.X(SW)-P.X(0),P.Y(-4)-P.Y(1.5));c.globalAlpha=1;
+  c.strokeStyle=css('--warn');c.setLineDash([5,4]);c.beginPath();c.moveTo(P.X(SW),P.Y(1.5));c.lineTo(P.X(SW),P.Y(-4));c.stroke();c.setLineDash([]);
+  c.fillStyle=css('--warn');c.font='12px sans-serif';c.textAlign='center';c.fillText('陡坡 g = 10',P.X(SW/2),P.Y(1.5)+14);c.fillText('緩坡 g = 0.1',P.X(SW+(N2-SW)/2),P.Y(1.5)+14);
+  c.strokeStyle=css('--axis');c.setLineDash([2,3]);c.beginPath();c.moveTo(P.X(0),P.Y(0));c.lineTo(P.X(N2),P.Y(0));c.stroke();c.setLineDash([]);
+  [['sgd','--sgd'],['ada','--m1'],['rms','--rms']].forEach(([key,col])=>{const a=S2[key];c.strokeStyle=css(col);c.lineWidth=2.8;c.beginPath();
+    for(let i=1;i<=k;i++){const y=P.Y(Math.max(-4.2,lg(a[i])));i>1?c.lineTo(P.X(i),y):c.moveTo(P.X(i),y);}c.stroke();
+    if(k>0){c.fillStyle=css(col);c.beginPath();c.arc(P.X(k),P.Y(Math.max(-4.2,lg(a[k]))),4.5,0,7);c.fill();}});
+  c.restore();
+  $('rho2v').textContent=S2.rho.toFixed(2);$('s2mem').textContent='≈ '+fmt(1/(1-S2.rho),0)+' 步';$('s2old').textContent=(Math.pow(S2.rho,20)*100).toFixed(1)+'%';
+  $('bar2').style.width=(k/N2*100)+'%';
+  if(k===0){$('t2').innerHTML='<b>起點</b>：還沒走。按「下一步」或「自動播放」，觀察三條線在第 50 步「坡度突然變緩」之後的反應。';$('o2').innerHTML='';return;}
+  const g=g2(k);
+  $('t2').innerHTML=`<b>第 ${k} 步</b>（${k<=SW?'陡坡':'緩坡'}，g = ${g}）：每步走多遠（×η）　<b class="sgd">SGD ${fmtg(S2.sgd[k])}</b>　<b class="m1">AdaGrad ${fmtg(S2.ada[k])}</b>　<b class="rms">RMSProp ${fmtg(S2.rms[k])}</b>`+
+    (k>SW&&k<SW+25?'<br>RMSProp 正在「遺忘」陡坡的記憶，√v 一步步變小。':k>=SW+25&&S2.rms[k]>0.5?'<br>RMSProp 已經適應了緩坡，步長回到約 η；AdaGrad 還停在千分之一。':'');
+  $('o2').innerHTML=`RMSProp：${M('v')}<sub>${k}</sub> = ${S2.rho.toFixed(2)}×${fmtg(S2.sq[k-1])} + ${(1-S2.rho).toFixed(2)}×${fmtg(g*g)} = <b class="rms">${fmtg(S2.sq[k])}</b>，√${M('v')}<sub>${k}</sub> = ${fmtg(Math.sqrt(S2.sq[k]))}<br>AdaGrad：${M('G')}<sub>${k}</sub> = 前 ${k} 步 ${M('g')}² 的總和 = <b class="m1">${fmtg(S2.G[k])}</b>，√${M('G')}<sub>${k}</sub> = ${fmtg(Math.sqrt(S2.G[k]))}`;
+}
+const set2=k=>{S2.k=Math.max(0,Math.min(N2,k));draw2();};
+const stop2=stepper(['r2','p2','n2','a2'],()=>N2,set2,()=>S2.k,90);
+$('end2').onclick=()=>{stop2();set2(N2);};
+$('rho2').addEventListener('input',e=>{S2.rho=+e.target.value;run2();draw2();});
+
+/* ---------- 3. 每個參數走約 η ---------- */
+const S3={a:2,b:-1},E3=0.01;
+function bars(el,rows){const lo=-6,hi=1;el.innerHTML=rows.map(([lab,val,col])=>{const w=Math.max(1,(Math.log10(val)-lo)/(hi-lo)*100);
+  return `<span>${lab}</span><div><div class="bar" style="width:${w}%;background:${col}"></div></div><span class="val">${fmtg(val)}</span>`;}).join('');}
+function draw3(){
+  const gA=Math.pow(10,S3.a),gB=Math.pow(10,S3.b);
+  $('gAv').textContent=fmtg(gA);$('gBv').textContent=fmtg(gB);
+  bars($('bS'),[['參數 A',E3*gA,css('--sgd')],['參數 B',E3*gB,css('--sgd')]]);
+  bars($('bR'),[['參數 A',E3*gA/(gA+1e-8),css('--rms')],['參數 B',E3*gB/(gB+1e-8),css('--rms')]]);
+  const ratio=gA>=gB?gA/gB:gB/gA,big=gA>=gB?'A':'B',small=gA>=gB?'B':'A';
+  $('t3').innerHTML=ratio<1.01?'📌 兩個參數的梯度一樣大，SGD 和 RMSProp 都讓它們走一樣遠。把兩個滑桿拉開看看！'
+    :`📌 SGD：參數 ${big} 每步走的距離是 ${small} 的 <b class="sgd">${fmtg(ratio)} 倍</b>。η 若配合 ${big} 調小，${small} 幾乎不動；若配合 ${small} 調大，${big} 就會爆掉。<br>RMSProp：兩個參數都走 <b class="rms">≈ η = 0.01</b>，一個 η 就能照顧所有參數。`;
+  $('o3').innerHTML=`穩定時 ${M('v<sub>t</sub>')} ≈ ${M('g<sub>t</sub>')}²，所以 ${fr('η · '+M('g<sub>t</sub>'),'√'+M('v<sub>t</sub>'))} ≈ ${fr('η · '+M('g<sub>t</sub>'),'|'+M('g<sub>t</sub>')+'|')} = ± η`;
+}
+$('gA').addEventListener('input',e=>{S3.a=+e.target.value;draw3();});
+$('gB').addEventListener('input',e=>{S3.b=+e.target.value;draw3();});
+
+/* ---------- 4. 軌跡比較 ---------- */
+const R2=Math.SQRT1_2;
+const FN4={
+ ravine:{lab:'與座標軸對齊的峽谷  f = 0.03x² + 2y²',r:3,s:[-2.8,1.2],f:(x,y)=>0.03*x*x+2*y*y,fx:(x,y)=>0.06*x,fy:(x,y)=>4*y},
+ tilt:{lab:'斜的峽谷（旋轉 45°）',r:3,s:[-2.6,-1.4],f:(x,y)=>{const u=(x+y)*R2,w=(x-y)*R2;return 0.03*u*u+2*w*w;},
+   fx:(x,y)=>{const u=(x+y)*R2,w=(x-y)*R2;return (0.06*u+4*w)*R2;},fy:(x,y)=>{const u=(x+y)*R2,w=(x-y)*R2;return (0.06*u-4*w)*R2;}},
+ bowl:{lab:'圓碗  f = x² + y²',r:2,s:[-1.7,1.3],f:(x,y)=>x*x+y*y,fx:(x,y)=>2*x,fy:(x,y)=>2*y}
+};
+const PAL=[[68,1,84],[59,82,139],[33,145,140],[94,201,98],[253,231,37]];
+function pal(t){t=Math.max(0,Math.min(1,t))*(PAL.length-1);const i=Math.min(PAL.length-2,Math.floor(t)),u=t-i;return PAL[i].map((a,k)=>a+(PAL[i+1][k]-a)*u);}
+const INFO={},MAPC={};
+function info(k){if(INFO[k])return INFO[k];const F=FN4[k],r=F.r;let lo=1e9,hi=-1e9;
+  for(let i=0;i<=60;i++)for(let j=0;j<=60;j++){const v=F.f(-r+2*r*i/60,-r+2*r*j/60);lo=Math.min(lo,v);hi=Math.max(hi,v);}return INFO[k]={lo,hi};}
+function mapImage(k,w,h){const key=k+'|'+w+'|'+h;if(MAPC[key])return MAPC[key];
+  const F=FN4[k],r=F.r,I=info(k),nb=16,cell=3,dpr=window.devicePixelRatio||1;
+  const off=document.createElement('canvas');off.width=Math.round(w*dpr);off.height=Math.round(h*dpr);const c=off.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);
+  const nx=Math.ceil(w/cell),ny=Math.ceil(h/cell),B=[];
+  for(let j=0;j<ny;j++){B[j]=[];for(let i=0;i<nx;i++){const x=-r+2*r*(i+.5)*cell/w,y=r-2*r*(j+.5)*cell/h;
+    B[j][i]=Math.max(0,Math.min(nb-1,Math.floor(Math.sqrt((F.f(x,y)-I.lo)/(I.hi-I.lo||1))*nb)));}}
+  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const col=pal((B[j][i]+.5)/nb);c.fillStyle=`rgb(${col.map(v=>Math.round(v*.7+60))})`;c.fillRect(i*cell,j*cell,cell+.5,cell+.5);}
+  c.fillStyle='rgba(255,255,255,.75)';
+  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){if(i+1<nx&&B[j][i]!==B[j][i+1])c.fillRect((i+1)*cell-.6,j*cell,1.2,cell);if(j+1<ny&&B[j][i]!==B[j+1][i])c.fillRect(i*cell,(j+1)*cell-.6,cell,1.2);}
+  c.fillStyle='rgba(255,255,255,.95)';c.font='12px sans-serif';c.textAlign='right';c.textBaseline='bottom';c.fillText('x →',w-6,h-4);c.textAlign='left';c.textBaseline='top';c.fillText('↑ y',6,6);
+  return MAPC[key]=off;}
+const S4={fn:'ravine',x:-2.8,y:1.2,eta:0.475,beta:0.6,etaR:0.1,rho:0.9,showM:true,k:0,pS:[],pM:[],pR:[],sR:[],gR:[]},N4=80,EPS=1e-8;
+const BIG=1e6,ok=p=>isFinite(p[0])&&isFinite(p[1])&&Math.abs(p[0])<BIG&&Math.abs(p[1])<BIG;
+function run4(){const F=FN4[S4.fn],e=S4.eta,b=S4.beta,eR=S4.etaR,rho=S4.rho;let x,y;
+  S4.pS=[[S4.x,S4.y]];[x,y]=[S4.x,S4.y];for(let k=0;k<N4;k++){let n=[x-e*F.fx(x,y),y-e*F.fy(x,y)];if(!ok(n))n=[x,y];[x,y]=n;S4.pS.push(n);}
+  S4.pM=[[S4.x,S4.y]];[x,y]=[S4.x,S4.y];let mx=0,my=0;for(let k=0;k<N4;k++){mx=b*mx+F.fx(x,y);my=b*my+F.fy(x,y);let n=[x-e*mx,y-e*my];if(!ok(n))n=[x,y];[x,y]=n;S4.pM.push(n);}
+  S4.pR=[[S4.x,S4.y]];S4.sR=[[0,0]];S4.gR=[];[x,y]=[S4.x,S4.y];let sx=0,sy=0;
+  for(let k=0;k<N4;k++){const gx=F.fx(x,y),gy=F.fy(x,y);S4.gR.push([gx,gy]);sx=rho*sx+(1-rho)*gx*gx;sy=rho*sy+(1-rho)*gy*gy;
+    let n=[x-eR*gx/(Math.sqrt(sx)+EPS),y-eR*gy/(Math.sqrt(sy)+EPS)];if(!ok(n))n=[x,y];[x,y]=n;S4.pR.push(n);S4.sR.push([sx,sy]);}
+}
+function hit(path,F){for(let i=0;i<path.length;i++)if(F.f(...path[i])<0.01)return i;return -1;}
+function drawPath(c,X,Y,path,k,col,shape){
+  c.lineJoin='round';
+  c.strokeStyle='rgba(0,0,0,.45)';c.lineWidth=5;c.beginPath();for(let i=0;i<=k;i++){const [x,y]=path[i];i?c.lineTo(X(x),Y(y)):c.moveTo(X(x),Y(y));}c.stroke();
+  c.strokeStyle=col;c.lineWidth=2.6;c.beginPath();for(let i=0;i<=k;i++){const [x,y]=path[i];i?c.lineTo(X(x),Y(y)):c.moveTo(X(x),Y(y));}c.stroke();
+  c.fillStyle=col;for(let i=1;i<k;i++){const [x,y]=path[i];c.beginPath();if(shape==='s')c.rect(X(x)-2.6,Y(y)-2.6,5.2,5.2);else if(shape==='t'){c.moveTo(X(x),Y(y)-3.4);c.lineTo(X(x)+3.2,Y(y)+2.4);c.lineTo(X(x)-3.2,Y(y)+2.4);c.closePath();}else c.arc(X(x),Y(y),2.8,0,7);c.fill();}
+}
+function draw4(){
+  const F=FN4[S4.fn],r=F.r,{c,w,h}=sizeCanvas($('c4'),1);if(!w||!h)return;c.drawImage(mapImage(S4.fn,w,h),0,0,w,h);
+  const X=x=>(x+r)/(2*r)*w,Y=y=>h-(y+r)/(2*r)*h,k=S4.k,cs=css('--sgd'),cm=css('--mom'),cr=css('--rms');
+  c.save();c.beginPath();c.rect(0,0,w,h);c.clip();
+  c.fillStyle='#ffd166';c.font='bold 18px sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('★',X(0),Y(0));
+  drawPath(c,X,Y,S4.pS,k,cs,'c');if(S4.showM)drawPath(c,X,Y,S4.pM,k,cm,'s');drawPath(c,X,Y,S4.pR,k,cr,'t');
+  dot(c,X(S4.pS[k][0]),Y(S4.pS[k][1]),cs,7);if(S4.showM)sqr(c,X(S4.pM[k][0]),Y(S4.pM[k][1]),cm,6.5);tri(c,X(S4.pR[k][0]),Y(S4.pR[k][1]),cr,9);
+  c.restore();
+  const vals=p=>p.slice(0,k+1).map(q=>F.f(...q)),fS=vals(S4.pS),fM=vals(S4.pM),fR=vals(S4.pR);
+  const top=F.f(S4.x,S4.y)*1.6+0.1,P=plot($('c4L'),0.42,[0,N4],[0,top],{maxH:200,xl:'步數',sx:10});P.clip();
+  [[fS,cs],[S4.showM?fM:null,cm],[fR,cr]].forEach(([v,col])=>{if(!v)return;P.c.strokeStyle=col;P.c.lineWidth=2.5;P.c.beginPath();v.forEach((y,i)=>{const yy=P.Y(Math.min(isFinite(y)?y:top*2,top*1.2));i?P.c.lineTo(P.X(i),yy):P.c.moveTo(P.X(i),yy);});P.c.stroke();});P.c.restore();
+  $('e4v').textContent=S4.eta.toFixed(3);$('b4v').textContent=S4.beta.toFixed(2);$('r4v').textContent=S4.etaR.toFixed(2);$('p4v').textContent=S4.rho.toFixed(2);$('bar4').style.width=(k/N4*100)+'%';
+  const hs=hit(S4.pS,F),hm=hit(S4.pM,F),hr=hit(S4.pR,F),H=v=>v<0?`${N4} 步內沒做到`:v+' 步';
+  $('h4s').textContent=H(hs);$('h4m').textContent=S4.showM?H(hm):'（未顯示）';$('h4r').textContent=H(hr);
+  if(k<N4){const [gx,gy]=S4.gR[k],[sx0,sy0]=S4.sR[k],rho=S4.rho,sx=rho*sx0+(1-rho)*gx*gx,sy=rho*sy0+(1-rho)*gy*gy,[px,py]=S4.pR[k];
+    $('t4').innerHTML=(k===0?'<b>起點</b>：三個方法都從同一點出發（<i class="m">v</i><sub>0</sub> = 0）。':`<b>已走 ${k} 步</b>。`)+`下一步 <i class="m">t</i> = ${k+1}：看 <b class="rms">RMSProp</b> 怎麼替 x、y 兩個方向<b>各自</b>換算步長：`;
+    $('o4').innerHTML=`梯度 ${M('g')}<sub>${k+1}</sub> = (${fmt(gx)}, ${fmt(gy)})<br>${M('v')}<sub>${k+1}</sub> = ${rho.toFixed(2)}·(${fmtg(sx0)}, ${fmtg(sy0)}) + ${(1-rho).toFixed(2)}·${M('g')}<sub>${k+1}</sub>² = (<b class="rms">${fmtg(sx)}, ${fmtg(sy)}</b>)<br>每個方向的步長 −η<sub>R</sub>·${M('g')}<sub>${k+1}</sub>/√${M('v')}<sub>${k+1}</sub> = (<b class="rms">${fmt(-S4.etaR*gx/(Math.sqrt(sx)+EPS))}, ${fmt(-S4.etaR*gy/(Math.sqrt(sy)+EPS))}</b>)`;}
+  else{$('t4').innerHTML=`<b>走完 ${N4} 步</b>：f 分別是 <b class="sgd">SGD ${fmtf(fS[k])}</b>、${S4.showM?`<b class="mom">Momentum ${fmtf(fM[k])}</b>、`:''}<b class="rms">RMSProp ${fmtf(fR[k])}</b>。`;$('o4').innerHTML='';}
+  $('say4').innerHTML=S4.fn==='ravine'?'📌 <b>峽谷和座標軸對齊時，RMSProp 幾乎走直線！</b>陡的 y 方向梯度大、√v 也大，步伐被壓小；緩的 x 方向梯度小、√v 也小，步伐被放大。兩個方向都走約 η<sub>R</sub>，所以不再左右撞牆。'
+    :S4.fn==='tilt'?'📌 <b>峽谷是斜的時，RMSProp 又開始左右震盪了！</b>RMSProp 只能沿著 x、y <b>座標軸</b>各自縮放。斜峽谷的陡方向和緩方向都混在 x、y 裡，逐參數縮放分不開它們。而 RMSProp 本身沒有動量，抵消不了來回的震盪。這時 <b class="mom">Momentum</b> 反而表現較好。→ 把<b>一階矩（動量）和二階矩（RMSProp）結合起來</b>，就是下一課的 <b>Adam</b>。'
+    :'📌 圓碗的每個方向都一樣陡，三個方法都很快。注意 RMSProp 接近谷底時步長仍約 η<sub>R</sub>，會在 ★ 附近小幅晃動——因為它把梯度的大小正規化掉了。';
+}
+const set4=k=>{S4.k=Math.max(0,Math.min(N4,k));draw4();};
+const stop4=stepper(['r4b','p4b','n4','a4'],()=>N4,set4,()=>S4.k,160);
+$('end4').onclick=()=>{stop4();set4(N4);};
+const sel4=$('f4');Object.entries(FN4).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=v.lab;sel4.appendChild(o);});
+sel4.onchange=()=>{stop4();S4.fn=sel4.value;[S4.x,S4.y]=FN4[S4.fn].s;run4();set4(0);};
+[['e4','eta'],['b4','beta'],['r4','etaR'],['p4','rho']].forEach(([id,key])=>$(id).addEventListener('input',e=>{S4[key]=+e.target.value;run4();draw4();}));
+$('sm4').onchange=e=>{S4.showM=e.target.checked;draw4();};
+onClick($('c4'),(px,py)=>{const cv=$('c4'),r=FN4[S4.fn].r,w=cv.clientWidth,h=cv.clientHeight;stop4();S4.x=Math.round((px/w*2*r-r)*20)/20;S4.y=Math.round((r-py/h*2*r)*20)/20;run4();set4(0);});
+
+/* ---------- 辛頓老師 ---------- */
+const HI_SVG=`<svg viewBox="0 0 200 230" aria-label="辛頓老師動畫">
+ <g class="bodyg">
+  <path d="M10 232 Q16 176 100 164 Q184 176 190 232 Z" fill="#ece5ea"/>
+  <path d="M30 196 L170 196 M22 214 L178 214 M60 172 L56 232 M80 166 L78 232 M120 166 L122 232 M140 172 L144 232" stroke="#d6cbd3" stroke-width="1.4"/>
+  <rect x="86" y="130" width="28" height="36" rx="10" fill="#e6b9a0"/>
+  <path d="M86 156 L100 182 L114 156 L114 166 L100 186 L86 166 Z" fill="#e6b9a0"/>
+  <path d="M84 148 L80 172 L100 184 Z M116 148 L120 172 L100 184 Z" fill="#f4eef2" stroke="#c9bcc5" stroke-width="1.4" stroke-linejoin="round"/>
+  <ellipse cx="68" cy="106" rx="6" ry="10" fill="#e6b9a0"/><ellipse cx="132" cy="106" rx="6" ry="10" fill="#e6b9a0"/>
+  <ellipse cx="100" cy="102" rx="31" ry="43" fill="#f0c9b2"/>
+  <ellipse class="blush" cx="81" cy="118" rx="6.5" ry="4" fill="#f08080"/>
+  <ellipse class="blush" cx="119" cy="118" rx="6.5" ry="4" fill="#f08080"/>
+  <path d="M86 72 Q100 69 114 72 M88 78 Q100 76 112 78" stroke="#dba890" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+  <path d="M69 104 Q58 82 66 62 Q72 50 84 46 Q92 40 104 42 Q120 40 130 52 Q142 66 134 104 Q131 86 127 76 Q122 66 112 63 Q100 60 90 63 Q78 67 75 84 Q72 96 69 104 Z" fill="#d9d5ce"/>
+  <path d="M76 58 Q92 48 112 52 M82 54 Q100 46 124 58 M72 70 Q80 56 98 54" stroke="#b9b4ab" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <g class="hairL"><path d="M70 76 Q57 86 58 104 Q59 118 66 122 Q64 108 70 98 Q68 90 72 84 Z" fill="#cfcac2"/></g>
+  <g class="hairR"><path d="M130 76 Q143 86 142 104 Q141 118 134 122 Q136 108 130 98 Q132 90 128 84 Z" fill="#cfcac2"/></g>
+  <path class="brow browL" d="M76 87 Q84 84 93 86" stroke="#9c958c" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path class="brow browR" d="M107 86 Q116 84 124 87" stroke="#9c958c" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <g class="eyes"><ellipse cx="85" cy="97" rx="4.2" ry="3" fill="#fff"/><ellipse cx="115" cy="97" rx="4.2" ry="3" fill="#fff"/>
+   <circle cx="85.4" cy="97.3" r="2.3" fill="#3b3430"/><circle cx="115.4" cy="97.3" r="2.3" fill="#3b3430"/>
+   <circle cx="86.2" cy="96.3" r="0.8" fill="#fff"/><circle cx="116.2" cy="96.3" r="0.8" fill="#fff"/></g>
+  <rect x="73" y="89" width="24" height="16" rx="3.5" fill="rgba(200,220,240,.18)" stroke="#3a3632" stroke-width="2.6"/>
+  <rect x="103" y="89" width="24" height="16" rx="3.5" fill="rgba(200,220,240,.18)" stroke="#3a3632" stroke-width="2.6"/>
+  <path d="M97 94 Q100 92 103 94 M73 93 L67 95 M127 93 L133 95" stroke="#3a3632" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <path d="M100 104 Q98 114 96 118 Q100 122 105 119" stroke="#c9967a" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M86 116 Q85 124 88 128 M114 116 Q115 124 112 128" stroke="#e0ad95" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+  <path class="mo n" d="M90 131 Q100 133 110 130" stroke="#8a4a3a" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <path class="mo s" d="M88 127 Q100 140 112 127 Q100 131 88 127 Z" fill="#fff" stroke="#8a4a3a" stroke-width="1.8" stroke-linejoin="round"/>
+  <path class="mo f" d="M90 134 Q100 127 110 134" stroke="#8a4a3a" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <path class="sweat" d="M136 70 Q141 80 136 84 Q131 80 136 70 Z" fill="#7cc3f0"/>
+  <text class="spark" x="30" y="44" font-size="18" fill="#f0b400">✦</text>
+  <text class="spark" x="160" y="40" font-size="14" fill="#f0b400">✦</text>
+  <text class="spark" x="170" y="96" font-size="11" fill="#f0b400">✦</text>
+ </g></svg>`;
+function makeAvatar(el,bubble){
+  el.innerHTML=HI_SVG;let tm=null;
+  function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
+  return {mood(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
+    if(m==='smile'){el.classList.add('smile');restart('hop');}
+    if(m==='frown'){el.classList.add('frown');restart('shake');}
+    if(text!==undefined){bubble.innerHTML=text;bubble.className='bubble'+(m==='smile'?' good':m==='frown'?' bad':'');}
+    if(!hold)tm=setTimeout(()=>{el.classList.remove('smile','frown');bubble.className='bubble';},3200);}};
+}
+var AV1=makeAvatar($('av1'),$('bub1')),AV2=makeAvatar($('av2'),$('bub2'));
+const QUOTES=[
+ '2012 年，我在 Coursera 開了《Neural Networks for Machine Learning》線上課程。RMSProp 就出現在第 6 講的投影片上。',
+ '投影片標題是：“Divide the gradient by a running average of its recent magnitude”——把梯度除以它最近大小的移動平均。',
+ 'RMSProp 從來沒有發表成正式論文。直到今天，大家引用的還是那份課程投影片（Tieleman &amp; Hinton, 2012）。',
+ '同一講裡我也試過把 RMSProp 和動量結合，當時覺得一般動量「沒有平常那麼有幫助，需要更多研究」。兩年後，Adam 把它們好好結合起來了。',
+ '1986 年，我和魯梅爾哈特、威廉斯在《自然》期刊發表了反向傳播的論文；2012 年，我的學生用 AlexNet 贏得 ImageNet 競賽。',
+ '2018 年，我和班吉歐、楊立昆一起得到圖靈獎；2024 年，我和霍普菲爾德一起得到諾貝爾物理學獎。',
+ '有個小趣聞：發明布林代數的喬治・布爾（George Boole），是我的高祖父。'];
+let qi=0;$('av1').onclick=()=>AV1.mood('smile',QUOTES[qi++%QUOTES.length]);
+
+/* ---------- 5. 小測驗 ---------- */
+const QZ=[
+ {q:'梯度的二階矩 E[g²] 量的是什麼？',o:['梯度通常有多大（不分正負）','梯度平均往哪個方向','參數本身的大小','學習率的大小'],a:0,
+  e:'平方去掉了正負號，所以 E[g²] 只量大小；開根號就是 RMS。',h:'平方之後還會有負數嗎？'},
+ {q:'梯度一正一負交替出現（例如 +2, −2, +2, −2…），一階矩和二階矩分別約為？',o:['一階矩 ≈ 0，二階矩 ≈ 4','一階矩 ≈ 2，二階矩 ≈ 0','兩者都 ≈ 0','兩者都 ≈ 2'],a:0,
+  e:'平均時正負抵消 → 0；平方後都是 4 → 二階矩 = 4。這正是第 1 節「只有雜訊」的情況。',h:'回到第 1 節，按「只有雜訊」看看。'},
+ {q:'二階矩、一階矩和變異數的關係是？',o:['E[g²] = (E[g])² + Var(g)','E[g²] = E[g] + Var(g)','E[g²] = Var(g) − (E[g])²','E[g²] = (E[g])²'],a:0,
+  e:'二階矩 ＝ 固定方向的大小（一階矩²）＋ 雜訊的大小（變異數）。',h:'第 1 節的公式框有代入的數字。'},
+ {q:'RMSProp 和 AdaGrad 最主要的差別是？',o:['RMSProp 只累加最近的梯度平方，AdaGrad 累加全部','RMSProp 有動量，AdaGrad 沒有','RMSProp 不用平方','AdaGrad 比較晚提出'],a:0,
+  e:'AdaGrad 的分母只增不減，學習率會越來越小；RMSProp 用 β<sub>2</sub> 遺忘舊的，能適應現在的地形。',h:'第 2 節：走到緩坡之後，誰停住了？'},
+ {q:'在 RMSProp 中，梯度一直很大的參數，它的步長會？',o:['被縮小到約 η','變得更大','變成 0','和 SGD 一樣'],a:0,
+  e:'√v 大約等於 |g|，所以 η·g/√v ≈ η。',h:'第 3 節把參數 A 的梯度拉到最大看看。'},
+ {q:'β<sub>2</sub> = 0.9 時，RMSProp 大約「記得」最近幾步的梯度？',o:['約 10 步','約 1 步','約 90 步','全部'],a:0,
+  e:'有效記憶長度約 1/(1−β<sub>2</sub>) = 10 步，和動量的 β 是同一個道理。',h:'權重 β<sub>2</sub><sup>k</sup> 的總和是 1/(1−β<sub>2</sub>)。'},
+ {q:'為什麼 RMSProp 在「斜的峽谷」裡還是會震盪？',o:['它只能沿座標軸各自縮放，而且沒有動量抵消震盪','因為它的學習率太小','因為斜峽谷沒有最小值','因為它會發散'],a:0,
+  e:'斜峽谷的陡、緩方向混在 x、y 裡，逐參數縮放分不開；需要動量來抵消來回的分量 → Adam。',h:'第 4 節把地形切換成「斜的峽谷」。'},
+ {q:'RMSProp 最早是在哪裡提出的？',o:['辛頓 2012 年 Coursera 課程的投影片','一篇 Nature 論文','ICLR 2015 研討會論文','PyTorch 的官方文件'],a:0,
+  e:'它從未正式發表，大家引用的是 Tieleman &amp; Hinton (2012) 的課程投影片 Lecture 6.5。',h:'點第 0 節的辛頓老師聽故事。'}
+];
+const PRAISE=['Excellent！答對了 😄','Splendid！你的梯度方向完全正確！','Well done！損失又往下降了！','Brilliant！比我的投影片還清楚！'];
+let sc=0,dn=0,streak=0;
+function shuffle(a){return a.map(v=>[Math.random(),v]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);}
+function buildQuiz(){sc=0;dn=0;streak=0;$('score').style.display='none';
+  $('quiz').innerHTML=QZ.map((z,i)=>{const ord=shuffle(z.o.map((t,j)=>j));
+    return `<div class="q"><div><b>Q${i+1}.</b> ${z.q}</div><div class="opts">${ord.map(j=>`<button data-q="${i}" data-o="${j}">${z.o[j]}</button>`).join('')}</div><div class="fb" id="fb${i}"></div></div>`;}).join('');}
+$('quiz').onclick=e=>{const b=e.target.closest('button');if(!b)return;const i=+b.dataset.q,j=+b.dataset.o,z=QZ[i],box=b.parentElement;if(box.dataset.done)return;box.dataset.done=1;dn++;
+  if(j===z.a){b.classList.add('right');sc++;streak++;$('fb'+i).innerHTML='✔ 正確！'+z.e;
+    AV2.mood('smile',streak>=3?`連對 ${streak} 題！Marvellous！你的步伐又穩又準 🎉`:PRAISE[Math.floor(Math.random()*PRAISE.length)]);}
+  else{b.classList.add('wrong');streak=0;[...box.children].forEach(x=>{if(+x.dataset.o===z.a)x.classList.add('right');});$('fb'+i).innerHTML='✘ '+z.e;AV2.mood('frown',z.h);}
+  if(dn===QZ.length){$('scoreTxt').textContent=`得分：${sc} / ${QZ.length}`;$('score').style.display='flex';
+    setTimeout(()=>{if(sc===QZ.length)AV2.mood('smile','滿分！你已經掌握二階矩和 RMSProp 了，下一站是 Adam 🏆',true);
+      else if(sc>=QZ.length-2)AV2.mood('smile',`${sc} 分，很不錯！錯的題目回到對應小節再玩一下。`,true);
+      else AV2.mood('frown','建議回到第 1 節弄懂「二階矩＝梯度通常多大」，再看第 2、3 節！',true);},3300);}
+};
+$('retry').onclick=()=>{buildQuiz();AV2.mood('','新的一輪！選項順序都換過了喔。');};
+
+/* ---------- init ---------- */
+samp1();draw1();run2();draw2();draw3();run4();draw4();buildQuiz();
+function redrawAll(){draw1();draw2();draw3();draw4();}
+let rz=null;window.addEventListener('resize',()=>{cancelAnimationFrame(rz);rz=requestAnimationFrame(redrawAll);});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redrawAll);
+</script>
+</body>
+</html>

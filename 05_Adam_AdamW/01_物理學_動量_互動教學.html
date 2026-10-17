@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>物理動量互動教學</title>
+<style>
+:root{
+  --bg:#f7f6f2;--card:#fff;--ink:#1d2330;--mute:#667085;--line:#e3e1da;--ok:#1f9d6b;--bad:#d6334f;
+  --grid:#eceae4;--axis:#9aa0ab;--accent:#2f6fdb;--tint:#eaf1fc;
+  --cv:#2f6fdb;--tan:#8b45d6;--gd:#1f9d6b;--path:#e07a1f;--pt:#1d2330;--warn:#c98a00;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+    --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+    --cv:#6c9dff;--tan:#b98bff;--gd:#4fd19d;--path:#ffa552;--pt:#f4f5f8;--warn:#ffd166;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+  --cv:#6c9dff;--tan:#b98bff;--gd:#4fd19d;--path:#ffa552;--pt:#f4f5f8;--warn:#ffd166;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.9rem}
+header p{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:18px}
+.card h2{margin:0 0 12px;font-size:1.22rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:.9rem;flex:none}
+h3{margin:0 0 6px;font-size:1.05rem}
+.m{font-family:"Times New Roman","Cambria Math",serif;font-style:italic}
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 2px;line-height:1.15}
+.frac>span:first-child{padding:0 3px 1px;border-bottom:1.3px solid currentColor}
+.frac>span:last-child{padding:1px 3px 0}
+.def{font-size:1.2rem;text-align:center;padding:14px;border-radius:10px;background:var(--tint);line-height:2.1}
+.note{color:var(--mute);font-size:.92rem}
+.gd{color:var(--gd)}.path{color:var(--path)}.tan{color:var(--tan)}.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start}
+.two>*{min-width:0}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.three>div{border:2px solid var(--line);border-radius:12px;padding:10px 14px}
+.three b.t{display:block;color:var(--accent)}
+@media (max-width:860px){.two,.three{grid-template-columns:minmax(0,1fr)}}
+.cvbox{width:100%;min-width:0}
+.sq{max-width:460px;margin:0 auto}
+canvas{width:100%;display:block;border-radius:10px;background:var(--bg);touch-action:none}
+label{font-size:.92rem;color:var(--mute);display:block}
+label b{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 12px}
+select{width:100%}
+button{cursor:pointer}button:hover{border-color:var(--accent)}
+button.pri,button.on{background:var(--accent);color:#fff;border-color:transparent}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:12px 18px;align-items:end}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(120px,100%),1fr));gap:10px;margin-top:10px}
+.stats>div{padding:8px 12px;border-radius:10px;background:var(--bg)}
+.stats small{display:block;color:var(--mute);font-size:.82rem}
+.stats b{font-size:1.2rem;font-variant-numeric:tabular-nums}
+.say{margin-top:10px;padding:10px 14px;border-left:4px solid var(--ok);background:var(--bg);border-radius:8px}
+.formula{font-size:1.08rem;line-height:2.3;overflow-x:auto;padding:4px 2px}
+.stepbar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:10px 0 8px}
+.stepbar div{height:100%;background:var(--accent);transition:width .3s}
+.explain{padding:10px 14px;border-radius:10px;background:var(--tint);min-height:3.4em}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.85rem;color:var(--mute);margin-top:6px}
+.legend i{display:inline-block;width:18px;height:4px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.zone{display:inline-block;padding:2px 10px;border-radius:999px;font-weight:700;color:#fff}
+/* quiz */
+.quiz .q{padding:12px 0;border-bottom:1px solid var(--line)}
+.quiz .q:last-child{border:none}
+.opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.opts button.right{background:var(--ok);color:#fff;border-color:transparent}
+.opts button.wrong{background:var(--bad);color:#fff;border-color:transparent}
+.fb{font-size:.92rem;margin-top:6px;min-height:1.2em}
+.score{margin-top:12px;font-size:1.15rem;font-weight:700;display:none;align-items:center;gap:12px;flex-wrap:wrap}
+footer{color:var(--mute);font-size:.85rem;text-align:center;margin-top:30px}
+/* ---------- avatar ---------- */
+.avwrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.av{width:100%;max-width:220px;cursor:pointer;user-select:none}
+.av svg{width:100%;display:block;overflow:visible;background:none}
+.av .bodyg{animation:bob 3.2s ease-in-out infinite;transform-origin:100px 200px}
+.av .eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+.av .hairL{animation:sway 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:top center}
+.av .hairR{animation:sway 3.2s ease-in-out infinite reverse;transform-box:fill-box;transform-origin:top center}
+.av .brow{transition:transform .3s;transform-box:fill-box}
+.av .browL{transform-origin:right center}.av .browR{transform-origin:left center}
+.av .mo{opacity:0;transition:opacity .25s}.av .mo.n{opacity:1}
+.av .blush,.av .sweat,.av .spark{opacity:0;transition:opacity .3s}
+.av.smile .mo.n,.av.frown .mo.n{opacity:0}
+.av.smile .mo.s{opacity:1}.av.frown .mo.f{opacity:1}
+.av.smile .blush{opacity:.55}.av.smile .spark{opacity:1}.av.frown .sweat{opacity:.9}
+.av.smile .brow{transform:translateY(-3px)}
+.av.frown .browL{transform:rotate(14deg) translateY(2px)}.av.frown .browR{transform:rotate(-14deg) translateY(2px)}
+.av.hop svg{animation:hop .7s ease}
+.av.shake svg{animation:shake .55s ease}
+.av .spark{animation:twinkle 1s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}
+@keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+@keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.bubble{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.95rem;margin-bottom:10px;min-height:2.6em;max-width:260px;text-align:center;transition:border-color .3s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--line);border-bottom:0}
+.bubble.good{border-color:var(--ok)}.bubble.good::after{border-top-color:var(--ok)}
+.bubble.bad{border-color:var(--bad)}.bubble.bad::after{border-top-color:var(--bad)}
+.intro{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:center}
+.intro>*,.qgrid>*{min-width:0}
+.intro .avwrap{flex-direction:row;gap:10px}.intro .bubble{flex:1;margin:0}.intro .bubble::after{display:none}.intro .av{width:125px;flex:none}
+.qgrid{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:18px;align-items:start}
+.qgrid .avwrap{position:sticky;top:12px}
+@media (max-width:860px){.intro,.qgrid{grid-template-columns:minmax(0,1fr)}.intro .avwrap{flex-direction:column}.intro .bubble{margin-bottom:10px}.intro .bubble::after{display:block}.intro .av,.qgrid .av{width:auto;max-width:140px}.qgrid .avwrap{position:static;order:-1}}
+</style>
+<style>
+:root{--pa:#2f6fdb;--pb:#e07a1f;--tot:#6f42c1;--ke:#d6334f;--lt:#9aa0ab}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--pa:#6c9dff;--pb:#ffa552;--tot:#b794ff;--ke:#ff6f86;--lt:#6b7385}}
+:root[data-theme="dark"]{--pa:#6c9dff;--pb:#ffa552;--tot:#b794ff;--ke:#ff6f86;--lt:#6b7385}
+.pa{color:var(--pa)}.pb{color:var(--pb)}.tot{color:var(--tot)}.ke{color:var(--ke)}
+.story{margin-top:16px;padding:14px 18px;border-radius:12px;border:1px dashed var(--line);background:var(--bg)}
+.story h3{margin:0 0 6px}.story p{margin:6px 0}
+.quote{font-style:italic;color:var(--mute)}
+.vs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:12px;margin-top:10px}
+.vs>div{border:2px solid var(--line);border-radius:12px;padding:10px 14px;min-width:0}
+.vs>div.a{border-color:var(--pa)}.vs>div.b{border-color:var(--pb)}
+.vs b.t{display:block}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:none;border-radius:0;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:none}
+.tbl{overflow-x:auto;margin-top:10px}
+.tbl table{border-collapse:collapse;width:100%;font-size:.92rem;font-variant-numeric:tabular-nums}
+.tbl th,.tbl td{border-bottom:1px solid var(--line);padding:5px 10px;text-align:right}
+.tbl th{color:var(--mute);font-weight:600}.tbl td:first-child,.tbl th:first-child{text-align:left}
+</style>
+<style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line,#e3e1da);border-radius:12px;background:var(--card,var(--surface,#fff));color:var(--ink,#1d2330);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+.pu-badge img{width:58px;height:58px;display:block}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute,var(--muted,#667085))}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="pu-hd">
+  <div class="pu-hd-main">
+  <h1>物理學的動量（Momentum）互動教學</h1>
+  <p>工程數學 ・ 互動教學：動量是描述物體「運動狀態」的物理量——從牛頓的「運動的量」到 AI 優化器裡的重球</p>
+</div>
+  <div class="pu-badge"><img alt="靜宜大學校徽" src="data:image/webp;base64,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"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</header>
+
+<!-- 0 -->
+<section class="card">
+  <h2><span class="num">0</span>一句話直覺：動量代表一個運動中的物體「有多難讓它停下來」</h2>
+  <div class="intro">
+    <div>
+      <div class="def"><b class="tot">動量（momentum）</b>是描述物體<b>「運動狀態」</b>的物理量，<br>代表一個運動中的物體<b>有多難讓它停下來</b>。<br><b class="tot">動量</b> ＝ 質量 × 速度　　<i class="m">p</i> = <i class="m">m</i> <i class="m">v</i>　　（單位：kg·m/s）</div>
+      <div class="three">
+        <div><b class="t">① 質量 m</b>物體「有多少東西」。越重越難推動、也越難攔下——這就是<b>慣性</b>。</div>
+        <div><b class="t">② 速度 v</b>跑得多快。同一個物體，跑越快越難停下。</div>
+        <div><b class="t">③ 有方向的量</b>速度有方向，動量也有方向（向量）。往右為正、往左為負，相加時會互相抵消。</div>
+      </div>
+      <p class="note">為什麼說是「運動狀態」？靜止的物體 v = 0，動量就是 0；只要動起來，動量就同時記錄了「有多少東西在動（m）」和「動得多快、往哪個方向（v）」。動量越大，要讓它停下來就需要越大的力或越長的時間。日常例子：高速行駛的火車和在地上慢慢滾動的網球，誰比較難停下來？（第 1 節）</p>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub1">Good day！我是牛頓（Isaac Newton）。點我聽動量的故事！</div><div class="av" id="av1"></div></div>
+  </div>
+  <div class="story">
+    <h3>📜 小故事：「運動的量」</h3>
+    <p>1687 年，牛頓在《自然哲學的數學原理》（<i>Principia</i>）的開頭先下定義。定義 II 說：<span class="quote">運動的量，是由速度與物質的量共同量度的。</span>用今天的話就是 <i class="m">p</i> = <i class="m">m</i><i class="m">v</i>。</p>
+    <p>接著他的<b>第二定律</b>說：運動（的量）的改變，與施加的力成正比，並沿著力的方向——也就是「力 ＝ 動量的變化率」。我們熟悉的 <i class="m">F</i> = <i class="m">m</i><i class="m">a</i>，是後來歐拉等人整理出的寫法。</p>
+  </div>
+</section>
+
+<!-- 1 -->
+<section class="card">
+  <h2><span class="num">1</span>擋擋看：一個人要擋下網球和火車，難度差多少？</h2>
+  <p style="margin-top:0">你站在軌道上，用力把迎面而來的東西推停。一個人用力推大約 <b>500 N</b>（相當於 50 公斤重）。推力固定時，牛頓第二定律告訴我們：</p>
+  <div class="formula" style="text-align:center">停下來要花的時間 Δ<i class="m">t</i> = <span class="frac"><span>動量 <i class="m">p</i></span><span>推力 <i class="m">F</i></span></span> = <span class="frac"><span><i class="m">m</i><i class="m">v</i></span><span><i class="m">F</i></span></span>　　被推著退後的距離 <i class="m">d</i> = <span class="frac"><span><i class="m">p</i>²</span><span>2<i class="m">m</i><i class="m">F</i></span></span> = <span class="frac"><span><i class="m">m</i><i class="m">v</i>²</span><span>2<i class="m">F</i></span></span></div>
+  <div class="row" style="margin-top:6px"><span class="note">選一個來擋：</span><span class="seg" id="ob1"></span></div>
+  <div class="ctl" style="margin-top:10px">
+    <label>質量 m = <b id="m1v"></b> kg<input id="m1" type="range" min="-2" max="6" step="0.01" value="-1.237"></label>
+    <label>速度 v = <b id="v1v"></b> m/s<input id="v1" type="range" min="-1" max="2" step="0.01" value="0"></label>
+    <label>一起擋的人數 n = <b id="n1v"></b>（總推力 F = <b id="F1v"></b> N）<input id="n1" type="range" min="0" max="5" step="0.05" value="0"></label>
+  </div>
+  <div class="two" style="margin-top:12px">
+    <div>
+      <div class="cvbox"><canvas id="c1"></canvas></div>
+      <div class="row" style="margin-top:8px"><button id="go1" class="pri">▶ 擋擋看！</button><button id="rs1">⟲ 重來</button></div>
+      <p class="note" style="margin:6px 0 0">假設：人站穩不滑倒、推力固定、不計摩擦。動畫的時間是真實時間；太久的情況只播放前 4 秒。</p>
+    </div>
+    <div>
+      <div class="stats">
+        <div><small>動量 p = mv</small><b id="s1p" class="tot"></b></div>
+        <div><small>停下來要花 Δt</small><b id="s1t" class="ke"></b></div>
+        <div><small>被推退的距離 d</small><b id="s1d" class="ke"></b></div>
+      </div>
+      <div class="say" id="t1"></div>
+      <div class="formula" id="o1"></div>
+    </div>
+  </div>
+  <h3 style="margin-top:14px">一個人（500 N）擋各種東西</h3>
+  <div class="tbl"><table id="tb1"></table></div>
+  <p class="note">表格最後一欄：如果要在 <b>1 秒內</b>擋下來，需要的推力是 p ÷ 1 s，相當於幾個人一起推。動量越大，需要的力越大、時間越長——這就是「動量代表有多難讓它停下來」。</p>
+</section>
+
+<!-- 2 -->
+<section class="card">
+  <h2><span class="num">2</span>動量守恆：碰撞前後，總動量不變</h2>
+  <p style="margin-top:0">兩台車在無摩擦的軌道上相撞。碰撞時 A 推 B、B 推 A，力大小相等、方向相反（第三定律），作用時間也一樣，所以 A 失去多少動量，B 就得到多少：</p>
+  <div class="formula" style="text-align:center"><i class="m">m</i><sub>A</sub><i class="m">v</i><sub>A</sub> + <i class="m">m</i><sub>B</sub><i class="m">v</i><sub>B</sub> = <i class="m">m</i><sub>A</sub><i class="m">v</i><sub>A</sub>′ + <i class="m">m</i><sub>B</sub><i class="m">v</i><sub>B</sub>′　（只要沒有外力）</div>
+  <div class="ctl">
+    <label class="pa">m<sub>A</sub> = <b id="m3Av"></b> kg<input id="m3A" type="range" min="0.5" max="5" step="0.5" value="1"></label>
+    <label class="pa">v<sub>A</sub> = <b id="v3Av"></b> m/s<input id="v3A" type="range" min="-3" max="3" step="0.5" value="2"></label>
+    <label class="pb">m<sub>B</sub> = <b id="m3Bv"></b> kg<input id="m3B" type="range" min="0.5" max="5" step="0.5" value="1"></label>
+    <label class="pb">v<sub>B</sub> = <b id="v3Bv"></b> m/s<input id="v3B" type="range" min="-3" max="3" step="0.5" value="0"></label>
+    <label>恢復係數 e = <b id="ev"></b>（1 = 彈性，0 = 黏在一起）<input id="e3" type="range" min="0" max="1" step="0.1" value="1"></label>
+  </div>
+  <div class="row" style="margin-top:8px"><span class="note">試試看：</span><button data-p3="1,2,1,0,1">同質量、彈性碰撞</button><button data-p3="1,2,1,0,0">黏在一起</button><button data-p3="5,2,0.5,0,1">重撞輕</button><button data-p3="0.5,2,5,0,1">輕撞重</button><button data-p3="2,2,2,-2,0">對撞後黏住</button></div>
+  <div style="margin-top:10px"><div class="cvbox"><canvas id="c3"></canvas></div></div>
+  <div class="row" style="margin-top:8px"><button id="go3" class="pri">▶ 開始碰撞</button><button id="rs3">⟲ 重來</button></div>
+  <div class="two" style="margin-top:12px">
+    <div>
+      <h3>動量：碰撞前 vs. 碰撞後</h3>
+      <div class="cvbox"><canvas id="c3b"></canvas></div>
+      <div class="legend"><span><i style="background:var(--pa)"></i>p<sub>A</sub></span><span><i style="background:var(--pb)"></i>p<sub>B</sub></span><span><i style="background:var(--tot)"></i>總動量</span></div>
+    </div>
+    <div>
+      <div class="tbl"><table id="tb3"></table></div>
+      <div class="say" id="t3"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="card">
+  <h2><span class="num">3</span>從物理到 AI：有摩擦的重球 ＝ Polyak 的動量法</h2>
+  <p style="margin-top:0">一顆質量 <i class="m">m</i> 的球受推力 <i class="m">F</i>，還有與速度成正比的摩擦力 −γ<i class="m">v</i>。牛頓第二定律：</p>
+  <div class="formula" style="text-align:center"><i class="m">m</i> <span class="frac"><span>d<i class="m">v</i></span><span>d<i class="m">t</i></span></span> = <i class="m">F</i> − γ<i class="m">v</i>　→（取 Δt = 1 離散化）→　<i class="m">v<sub>t</sub></i> = <b class="tot">(1 − γ/<i class="m">m</i>)</b> <i class="m">v</i><sub><i class="m">t</i>−1</sub> + <span class="frac"><span>1</span><span><i class="m">m</i></span></span> <i class="m">F<sub>t</sub></i></div>
+  <div class="formula" style="text-align:center">和動量優化 <i class="m">m<sub>t</sub></i> = <b class="tot">β</b> <i class="m">m</i><sub><i class="m">t</i>−1</sub> + <i class="m">g<sub>t</sub></i> 比較：<b class="tot">β = 1 − γ/m</b>，推力就是梯度。<b>球越重（或摩擦越小），β 越接近 1，記得越久。</b></div>
+  <p>讓推力忽左忽右：<i class="m">F<sub>t</sub></i> = 0.3 + 1.5·(−1)<sup><i class="m">t</i></sup>（固定的推力 0.3 ＋ 來回晃動的雜訊），摩擦係數 γ = 1：</p>
+  <div class="ctl">
+    <label>球的質量 m = <b id="m4v"></b>　→　β = 1 − γ/m = <b id="b4v" class="tot"></b><input id="m4" type="range" min="1" max="20" step="0.5" value="10"></label>
+    <div class="row"><button data-m4="1">m = 1（β = 0，沒有質量的粒子）</button><button data-m4="2.5">m = 2.5（β = 0.6）</button><button data-m4="10">m = 10（β = 0.9，重球）</button></div>
+  </div>
+  <div class="two" style="margin-top:12px">
+    <div>
+      <div class="cvbox"><canvas id="c4"></canvas></div>
+      <div class="legend"><span><i style="background:var(--lt)"></i>推力 F<sub>t</sub>（長條）</span><span><i style="background:var(--tot)"></i>球的速度 v<sub>t</sub></span><span><i style="background:var(--ok)"></i>終端速度 F̄/γ = 0.3（虛線）</span></div>
+    </div>
+    <div>
+      <div class="stats">
+        <div><small>最後 10 步速度的平均</small><b id="s4a" class="tot"></b></div>
+        <div><small>最後 10 步速度的晃動（±）</small><b id="s4b" class="tot"></b></div>
+      </div>
+      <div class="say" id="t4"></div>
+      <p class="note">這正是動量優化那一課的「同向累加、反向抵消」：固定推力讓速度穩定在 F̄/γ，來回晃動的推力被質量（慣性）濾掉。<b>m = 1 時 β = 0，球沒有記憶，推力一變就立刻轉向</b>——就像沒有動量的梯度下降。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="card">
+  <h2><span class="num">4</span>觀念小測驗</h2>
+  <div class="qgrid">
+    <div>
+      <div class="quiz" id="quiz"></div>
+      <div class="score" id="score"><span id="scoreTxt"></span><button id="retry" class="pri">再做一次</button></div>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub2">來考考你！答對我會笑，答錯我會皺眉喔。</div><div class="av" id="av2"></div></div>
+  </div>
+</section>
+
+<footer>物理學的動量互動教學 ・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const M=s=>`<i class="m">${s}</i>`;
+const fr=(a,b)=>`<span class="frac"><span>${a}</span><span>${b}</span></span>`;
+const fmt=(v,d=3)=>{if(!isFinite(v))return v>0?'∞':'−∞';if(Math.abs(v)<5e-10)v=0;return v.toFixed(d).replace('-','−');};
+const fmtz=v=>v>=1e8?(v/1e8).toPrecision(2)+' 億':v>=1e4?(v/1e4).toPrecision(3).replace(/\.0+$/,'')+' 萬':fmtg(v);
+const fmtg=v=>{if(!isFinite(v))return '∞';v=+v.toPrecision(3);const a=Math.abs(v);if(a===0)return '0';if(a>=1e10||a<1e-3)return v.toExponential(2).replace('-','−').replace('e+','e');return v.toLocaleString('en-US',{maximumSignificantDigits:3}).replace('-','−');};
+function sizeCanvas(cv,ratio,maxH){
+  cv.style.width='0px';const w=cv.parentElement.clientWidth;cv.style.width='100%';
+  let h=Math.round(w*ratio);if(maxH)h=Math.min(h,maxH);
+  const dpr=window.devicePixelRatio||1;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+'px';
+  const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);return {c,w,h};
+}
+function niceStep(span){const raw=span/6,p=Math.pow(10,Math.floor(Math.log10(raw))),n=raw/p;return (n<1.5?1:n<3.5?2:n<7.5?5:10)*p;}
+function plot(cv,ratio,xr,yr,opt){
+  opt=opt||{};const {c,w,h}=sizeCanvas(cv,ratio,opt.maxH||420),L=opt.L||44,R=12,T=10,B=opt.B||28;
+  const X=x=>L+(x-xr[0])/(xr[1]-xr[0])*(w-L-R),Y=y=>T+(yr[1]-y)/(yr[1]-yr[0])*(h-T-B);
+  const sx=opt.sx||niceStep(xr[1]-xr[0]),sy=opt.sy||niceStep(yr[1]-yr[0]),fy=opt.fy||(y=>+y.toFixed(4)+''),fx=opt.fx||(x=>+x.toFixed(4)+'');
+  c.font='11px sans-serif';c.strokeStyle=css('--grid');c.fillStyle=css('--mute');c.lineWidth=1;c.textAlign='center';c.textBaseline='top';
+  for(let x=Math.ceil(xr[0]/sx-1e-9)*sx;x<=xr[1]+1e-9;x+=sx){c.beginPath();c.moveTo(X(x),T);c.lineTo(X(x),h-B);c.stroke();c.fillText(fx(x),X(x),h-B+4);}
+  c.textAlign='right';c.textBaseline='middle';
+  for(let y=Math.ceil(yr[0]/sy-1e-9)*sy;y<=yr[1]+1e-9;y+=sy){c.beginPath();c.moveTo(L,Y(y));c.lineTo(w-R,Y(y));c.stroke();c.fillText(fy(y),L-4,Y(y));}
+  c.strokeStyle=css('--axis');c.strokeRect(L,T,w-L-R,h-T-B);
+  if(opt.xl){c.textAlign='right';c.textBaseline='bottom';c.fillText(opt.xl,w-R-4,h-B-3);}
+  return {c,w,h,X,Y,L,R,T,B,clip(){c.save();c.beginPath();c.rect(L,T,w-L-R,h-T-B);c.clip();}};
+}
+function line(P,xs,ys,col,lw,dash){const c=P.c;c.strokeStyle=col;c.lineWidth=lw||2.5;c.setLineDash(dash||[]);c.beginPath();xs.forEach((x,i)=>i?c.lineTo(P.X(x),P.Y(ys[i])):c.moveTo(P.X(x),P.Y(ys[i])));c.stroke();c.setLineDash([]);}
+function arrow(c,x1,y1,x2,y2,col,lw){const a=Math.atan2(y2-y1,x2-x1),L=Math.hypot(x2-x1,y2-y1);if(L<2)return;lw=lw||5;const hd=Math.min(16,L*0.6);
+  c.strokeStyle=col;c.fillStyle=col;c.lineWidth=lw;c.lineCap='round';c.beginPath();c.moveTo(x1,y1);c.lineTo(x2-hd*0.7*Math.cos(a),y2-hd*0.7*Math.sin(a));c.stroke();
+  c.beginPath();c.moveTo(x2,y2);c.lineTo(x2-hd*Math.cos(a-0.45),y2-hd*Math.sin(a-0.45));c.lineTo(x2-hd*Math.cos(a+0.45),y2-hd*Math.sin(a+0.45));c.closePath();c.fill();}
+
+/* ---------- 1. 擋擋看 ---------- */
+const OBJ1=[{k:'tennis',n:'網球',m:0.058,v:1,d:'慢慢滾動'},{k:'bowl',n:'保齡球',m:7,v:8,d:'用力丟出'},{k:'bike',n:'騎腳踏車的人',m:90,v:5},{k:'car',n:'汽車',m:1500,v:15},{k:'train',n:'高速火車',m:400000,v:83.3,d:'300 km/h'}];
+const PF=500;const S1={k:'tennis',m:0.058,v:1,n:1};let anim1=null,A1={ph:'idle'};
+const fT=s=>s<1?fmtg(s*1000)+' 毫秒':s<120?fmtg(s)+' 秒':s<7200?fmtg(s/60)+' 分鐘':fmtg(s/3600)+' 小時';
+const fD=d=>d<0.01?fmtg(d*1000)+' 毫米':d<1000?fmtg(d)+' 公尺':fmtg(d/1000)+' 公里';
+(function(){$('ob1').innerHTML=OBJ1.map(o=>`<button data-k="${o.k}">${o.n}</button>`).join('');
+  document.querySelectorAll('#ob1 button').forEach(b=>b.onclick=()=>{const o=OBJ1.find(x=>x.k===b.dataset.k);S1.k=o.k;S1.m=o.m;S1.v=o.v;$('m1').value=Math.log10(o.m);$('v1').value=Math.log10(o.v);stop1();draw1();});})();
+function phys1(){const F=PF*S1.n,p=S1.m*S1.v,T=p/F,D=S1.m*S1.v*S1.v/(2*F);return {F,p,T,D,a:F/S1.m};}
+function stop1(){cancelAnimationFrame(anim1);A1={ph:'idle'};}
+function drawObj(c,k,xf,gy,col){ // xf = 物體右側（前緣）
+  c.lineWidth=2;c.strokeStyle=css('--ink');
+  if(k==='tennis'||k==='bowl'||k==='custom'){const r=k==='bowl'?13:k==='custom'?10:7;c.fillStyle=k==='tennis'?'#c8dc2c':k==='bowl'?'#3b2a6b':col;c.beginPath();c.arc(xf-r,gy-r,r,0,7);c.fill();c.stroke();
+    if(k==='bowl'){c.fillStyle='#0d0a1a';[[-4,-5],[2,-6],[-1,1]].forEach(([dx,dy])=>{c.beginPath();c.arc(xf-r+dx,gy-r+dy,2,0,7);c.fill();});}return r*2;}
+  if(k==='bike'){c.beginPath();c.arc(xf-10,gy-10,10,0,7);c.arc(xf-46,gy-10,10,0,7);c.stroke();c.beginPath();c.moveTo(xf-46,gy-10);c.lineTo(xf-28,gy-30);c.lineTo(xf-10,gy-10);c.moveTo(xf-28,gy-30);c.lineTo(xf-30,gy-52);c.stroke();
+    c.fillStyle=col;c.beginPath();c.arc(xf-26,gy-60,7,0,7);c.fill();return 58;}
+  if(k==='car'){c.fillStyle=col;c.beginPath();c.moveTo(xf-90,gy-12);c.lineTo(xf-90,gy-30);c.lineTo(xf-68,gy-30);c.lineTo(xf-56,gy-44);c.lineTo(xf-24,gy-44);c.lineTo(xf-12,gy-30);c.lineTo(xf,gy-26);c.lineTo(xf,gy-12);c.closePath();c.fill();
+    c.fillStyle=css('--ink');[xf-70,xf-20].forEach(x=>{c.beginPath();c.arc(x,gy-10,9,0,7);c.fill();});return 90;}
+  // train
+  const L=520;c.fillStyle=col;c.beginPath();c.moveTo(xf-L,gy-8);c.lineTo(xf-L,gy-58);c.lineTo(xf-40,gy-58);c.quadraticCurveTo(xf,gy-50,xf,gy-14);c.lineTo(xf,gy-8);c.closePath();c.fill();
+  c.fillStyle='#dbeafe';for(let x=xf-60;x>xf-L+10;x-=34)c.fillRect(x-22,gy-48,22,14);c.fillRect(xf-34,gy-50,18,14);
+  c.fillStyle=css('--ink');for(let x=xf-30;x>xf-L;x-=70){c.beginPath();c.arc(x,gy-6,6,0,7);c.fill();}return L;}
+function drawPerson(c,x,gy,lean,col){c.strokeStyle=col;c.fillStyle=col;c.lineWidth=3.2;c.lineCap='round';
+  const hx=x-lean*10;c.beginPath();c.arc(hx,gy-66,10,0,7);c.fill();
+  c.beginPath();c.moveTo(hx,gy-56);c.lineTo(x,gy-28);c.moveTo(x,gy-28);c.lineTo(x-8,gy);c.moveTo(x,gy-28);c.lineTo(x+12,gy);
+  c.moveTo(hx+1,gy-50);c.lineTo(hx-24,gy-44);c.moveTo(hx+1,gy-48);c.lineTo(hx-24,gy-38);c.stroke();}
+function layout1(w){const k=Math.min(S1.n,12),sp=Math.min(14,(w*0.24)/Math.max(1,k-1)),tot=(k-1)*sp,px0=Math.min(w*0.7,w*0.86-24-tot);return {k,sp,tot,px0};}
+function scene1(objFront,shift,info){
+  const {c,w,h}=sizeCanvas($('c1'),0.45,250),gy=h-26,LY=layout1(w),px0=LY.px0;
+  c.fillStyle=css('--axis');c.fillRect(0,gy,w,3);for(let x=((-shift)%40+40)%40;x<w;x+=40){c.fillRect(x,gy+3,2,6);}
+  const col=S1.k==='train'?'#2f6fdb':S1.k==='car'?'#e07a1f':css('--pa');
+  drawObj(c,S1.k,objFront,gy,col);
+  const sh=Math.min(shift,w-14-(px0+24+LY.tot));
+  for(let i=LY.k-1;i>=0;i--){c.globalAlpha=i===0?1:Math.max(0.35,1-i*0.06);drawPerson(c,px0+sh+24+i*LY.sp,gy,info&&info.lean?1:0,css('--ink'));}c.globalAlpha=1;
+  if(S1.n>1){c.fillStyle=css('--pa');c.font='bold 12px sans-serif';c.textAlign='center';c.fillText(S1.n>LY.k?(w<450?`共 ${S1.n.toLocaleString('en-US')} 人`:`共 ${S1.n.toLocaleString('en-US')} 人（畫出 ${LY.k} 人）`):`${S1.n} 人一起推`,Math.min(px0+sh+24+LY.tot/2,w-50),Math.max(gy-86,54)-(w<450?6:0));}
+  if(info){c.fillStyle=css('--ink');c.font='bold 13px sans-serif';c.textAlign='left';c.fillText(info.l1||'',10,20);c.fillStyle=css('--mute');c.font='12px sans-serif';c.fillText(info.l2||'',10,38);
+    if(info.big){c.fillStyle=info.bc||css('--ke');c.font='bold 18px sans-serif';c.textAlign='center';c.fillText(info.big,w*0.42,h*0.42);}}
+  return {w,px0};
+}
+function draw1(){
+  const P=phys1();
+  $('m1v').textContent=fmtg(S1.m);$('v1v').textContent=fmtg(S1.v);$('n1v').textContent=S1.n.toLocaleString('en-US');$('F1v').textContent=(PF*S1.n).toLocaleString('en-US');
+  const o=OBJ1.find(x=>x.k===S1.k&&Math.abs(x.m-S1.m)<1e-9&&Math.abs(x.v-S1.v)<1e-9);if(!o)S1.k='custom';
+  document.querySelectorAll('#ob1 button').forEach(b=>b.classList.toggle('on',o&&b.dataset.k===o.k));
+  $('s1p').textContent=fmtg(P.p)+' kg·m/s';$('s1t').textContent=fT(P.T);$('s1d').textContent=fD(P.D);
+  const name=o?o.n:'這個物體',need1=Math.ceil(P.p/PF);
+  $('o1').innerHTML=`Δ${M('t')} = ${fr(fmtg(P.p),fmtg(P.F))} = <b class="ke">${fT(P.T)}</b>　　${M('d')} = ${fr(fmtg(S1.m)+' × '+fmtg(S1.v)+'²','2 × '+fmtg(P.F))} = <b class="ke">${fD(P.D)}</b>`;
+  let t;
+  if(P.T<0.05)t=`📌 <b>${name}：輕輕一擋就停了！</b>動量只有 ${fmtg(P.p)} kg·m/s，${fT(P.T)}就停下，手幾乎感覺不到被推。`;
+  else if(P.T<2)t=`📌 <b>${name}：要出點力，但擋得住。</b>${fT(P.T)}停下，會被推退 ${fD(P.D)}。`;
+  else if(P.T<60)t=`📌 <b>${name}：非常吃力！</b>要一直頂 ${fT(P.T)}，還會被推著退 ${fD(P.D)}。要在 1 秒內擋下，需要大約 <b>${need1.toLocaleString('en-US')} 個人</b>一起推。`;
+  else t=`📌 <b>${name}：根本擋不住！</b>動量高達 ${fmtg(P.p)} kg·m/s。就算你不放棄，也要推 <b>${fT(P.T)}</b>、被推著退 <b>${fD(P.D)}</b> 才停得下來。要在 1 秒內擋下，需要大約 <b>${need1.toLocaleString('en-US')} 個人</b>一起推。`;
+  if(S1.n>1)t+=`<br>現在有 ${S1.n.toLocaleString('en-US')} 個人一起推：推力變 ${S1.n.toLocaleString('en-US')} 倍，停下時間就縮短成 1/${S1.n.toLocaleString('en-US')}。`;
+  $('t1').innerHTML=t;
+  if(A1.ph==='idle'){const s=scene1(sizeCanvas($('c1'),0.45,250).w*0.18,0,{l1:`${name}：m = ${fmtg(S1.m)} kg，v = ${fmtg(S1.v)} m/s`,l2:'按「擋擋看！」開始'});}
+  $('tb1').innerHTML='<tr><th>物體</th><th>m（kg）</th><th>v（m/s）</th><th>動量 p</th><th>停下要花 Δt</th><th>被推退 d</th><th>1 秒內擋下需要</th></tr>'+OBJ1.map(o=>{const p=o.m*o.v,T=p/PF,D=o.m*o.v*o.v/(2*PF);
+    return `<tr><td>${o.n}${o.d?`<span class="note">（${o.d}）</span>`:''}</td><td>${fmtg(o.m)}</td><td>${fmtg(o.v)}</td><td><b>${fmtg(p)}</b></td><td>${fT(T)}</td><td>${fD(D)}</td><td>${Math.max(1,Math.ceil(p/PF)).toLocaleString('en-US')} 人</td></tr>`;}).join('');
+}
+function play1(){stop1();const P=phys1();const long=P.T>3,dur=long?4:Math.max(0.9,P.T);let t0=null;A1={ph:'run'};
+  const step=ts=>{if(t0===null)t0=ts;const e=(ts-t0)/1000;const {w}=sizeCanvas($('c1'),0.45,250);const LY=layout1(w),px0=LY.px0,contact=px0,start=w*0.12,pxm=w/14;
+    let front,shift=0,info;
+    if(e<1){front=start+(contact-start)*e;info={l1:`迎面而來：v = ${fmtg(S1.v)} m/s`,l2:`動量 p = ${fmtg(P.p)} kg·m/s`};scene1(front,0,info);anim1=requestAnimationFrame(step);return;}
+    const u=Math.min(1,(e-1)/dur),tr=long?u*4:u*P.T,v=(S1.v-P.a*tr)<1e-9*S1.v?0:S1.v-P.a*tr,s=S1.v*tr-0.5*P.a*tr*tr;
+    shift=Math.min(s*pxm,w-14-(px0+24+LY.tot));front=contact+shift;
+    const done=u>=1;
+    info={l1:`擋了 ${fT(tr)}　目前速度 ${fmtg(v)} m/s`,l2:`已被推退 ${fD(s)}`,lean:true};
+    if(done){if(long){info.big=`擋不住！還要 ${fT(P.T-4)} 才停得下來`;}else{info.big=P.T<0.05?'啪！瞬間停下 ✋':`停下來了！花了 ${fT(P.T)}`;info.bc=css('--ok');}}
+    scene1(front,shift,info);if(!done)anim1=requestAnimationFrame(step);else A1={ph:'done'};};
+  anim1=requestAnimationFrame(step);}
+$('go1').onclick=play1;$('rs1').onclick=()=>{stop1();draw1();};
+$('m1').addEventListener('input',e=>{stop1();S1.m=+Math.pow(10,+e.target.value).toPrecision(3);draw1();});
+$('v1').addEventListener('input',e=>{stop1();S1.v=+Math.pow(10,+e.target.value).toPrecision(3);draw1();});
+$('n1').addEventListener('input',e=>{stop1();S1.n=Math.round(Math.pow(10,+e.target.value));draw1();});
+
+/* ---------- 3. 碰撞 ---------- */
+const S3={mA:1,vA:2,mB:1,vB:0,e:1,t:0,run:false};let anim3=null;
+function after3(){const {mA,vA,mB,vB,e}=S3,P=mA*vA+mB*vB,M=mA+mB;
+  return [(P+mB*e*(vB-vA))/M,(P+mA*e*(vA-vB))/M];}
+const W=m=>0.5+0.18*m;
+function state3(t){const {mA,vA,mB,vB}=S3,xA0=2.5,xB0=7.5,gap=(xB0-W(mB)/2)-(xA0+W(mA)/2),rel=vA-vB;
+  const tc=rel>0?gap/rel:Infinity,[a,b]=after3();
+  if(t<tc)return {xA:xA0+vA*t,xB:xB0+vB*t,hit:false,tc};
+  const xAc=xA0+vA*tc,xBc=xB0+vB*tc;return {xA:xAc+a*(t-tc),xB:xBc+b*(t-tc),hit:true,tc};}
+function draw3(){
+  const {c,w,h}=sizeCanvas($('c3'),0.22,150),X=x=>20+x/10*(w-40),yb=h-30;
+  c.fillStyle=css('--axis');c.fillRect(10,yb,w-20,3);
+  for(let x=0;x<=10;x++){c.fillStyle=css('--mute');c.font='10px sans-serif';c.textAlign='center';c.fillText(x+' m',X(x),yb+16);}
+  const s=state3(S3.t),[a,b]=after3();
+  [[s.xA,S3.mA,css('--pa'),'A',s.hit?a:S3.vA],[s.xB,S3.mB,css('--pb'),'B',s.hit?b:S3.vB]].forEach(([x,m,col,n,v])=>{
+    const ww=W(m)/10*(w-40),hh=22+6*m;c.fillStyle=col;c.fillRect(X(x)-ww/2,yb-hh,ww,hh);
+    c.fillStyle='#fff';c.font='bold 13px sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(n,X(x),yb-hh/2);c.textBaseline='alphabetic';
+    if(Math.abs(v)>0.01)arrow(c,X(x),yb-hh-12,X(x)+v*18,yb-hh-12,col,3.5);
+    c.fillStyle=col;c.font='12px sans-serif';c.fillText(`${fmt(v,2)} m/s`,X(x),yb-hh-24);});
+  // bars
+  const pA=S3.mA*S3.vA,pB=S3.mB*S3.vB,pA2=S3.mA*a,pB2=S3.mB*b,tot=pA+pB,mx=Math.max(1,...[pA,pB,pA2,pB2,tot].map(Math.abs))*1.15;
+  const P=plot($('c3b'),0.55,[0,7],[-mx,mx],{maxH:260,sx:100,fx:()=>''});const cc=P.c;
+  const bar=(x,v,col)=>{cc.fillStyle=col;cc.fillRect(P.X(x-0.4),Math.min(P.Y(0),P.Y(v)),P.X(x+0.4)-P.X(x-0.4),Math.abs(P.Y(v)-P.Y(0)));};
+  bar(0.8,pA,css('--pa'));bar(1.8,pB,css('--pb'));bar(2.8,tot,css('--tot'));bar(4.2,pA2,css('--pa'));bar(5.2,pB2,css('--pb'));bar(6.2,pA2+pB2,css('--tot'));
+  cc.strokeStyle=css('--axis');cc.beginPath();cc.moveTo(P.X(0),P.Y(0));cc.lineTo(P.X(7),P.Y(0));cc.stroke();
+  cc.setLineDash([3,3]);cc.beginPath();cc.moveTo(P.X(3.5),P.Y(-mx));cc.lineTo(P.X(3.5),P.Y(mx));cc.stroke();cc.setLineDash([]);
+  cc.fillStyle=css('--mute');cc.font='12px sans-serif';cc.textAlign='center';cc.fillText('碰撞前',P.X(1.8),P.Y(-mx)-6);cc.fillText('碰撞後',P.X(5.2),P.Y(-mx)-6);
+  const kb=0.5*S3.mA*S3.vA**2+0.5*S3.mB*S3.vB**2,ka=0.5*S3.mA*a*a+0.5*S3.mB*b*b,coll=S3.vA>S3.vB;
+  ['m3A','v3A','m3B','v3B'].forEach(k=>$(k+'v').textContent=fmt(+$(k).value,1));$('ev').textContent=S3.e.toFixed(1);
+  $('tb3').innerHTML=`<tr><th></th><th>碰撞前</th><th>碰撞後</th></tr>
+   <tr><td class="pa">v<sub>A</sub></td><td>${fmt(S3.vA,2)}</td><td>${fmt(coll?a:S3.vA,2)}</td></tr>
+   <tr><td class="pb">v<sub>B</sub></td><td>${fmt(S3.vB,2)}</td><td>${fmt(coll?b:S3.vB,2)}</td></tr>
+   <tr><td class="tot"><b>總動量</b></td><td><b>${fmt(tot,2)}</b></td><td><b>${fmt(coll?pA2+pB2:tot,2)}</b></td></tr>
+   <tr><td class="ke">總動能</td><td>${fmt(kb,2)} J</td><td>${fmt(coll?ka:kb,2)} J</td></tr>`;
+  let t;
+  if(!coll)t='📌 A 追不上 B（v<sub>A</sub> ≤ v<sub>B</sub>），兩台車不會相撞。把 v<sub>A</sub> 調大，或讓 B 往左開。';
+  else{const lost=kb-ka;
+    t=`📌 <b class="tot">總動量碰撞前後都是 ${fmt(tot,2)}</b>——動量守恆。`+
+      (S3.e>=0.999?' 彈性碰撞（e = 1）連動能也守恆。'+(Math.abs(S3.mA-S3.mB)<1e-9&&Math.abs(S3.vB)<1e-9?' 同質量時兩車剛好<b>交換速度</b>：A 停住，B 以 A 原來的速度開走。':'')
+       :` 但動能少了 ${fmt(lost,2)} J（${fmt(lost/kb*100,0)}%），變成了熱、聲音和車體變形。`+(S3.e<0.001?' e = 0 時兩車<b>黏在一起</b>，以同一個速度前進。':'')+'<b>動能可以不守恆，動量一定守恆。</b>');}
+  $('t3').innerHTML=t;
+}
+function play3(){cancelAnimationFrame(anim3);S3.t=0;let last=null;
+  const inside=t=>{const s=state3(t);return s.xA>0.4&&s.xA<9.6&&s.xB>0.4&&s.xB<9.6;};
+  const f=ts=>{if(last===null)last=ts;const nt=S3.t+Math.min(0.05,(ts-last)/1000);last=ts;if(!inside(nt)||nt>8){draw3();return;}S3.t=nt;draw3();anim3=requestAnimationFrame(f);};anim3=requestAnimationFrame(f);}
+[['m3A','mA'],['v3A','vA'],['m3B','mB'],['v3B','vB'],['e3','e']].forEach(([id,k])=>$(id).addEventListener('input',e=>{cancelAnimationFrame(anim3);S3[k]=+e.target.value;S3.t=0;draw3();}));
+$('go3').onclick=play3;$('rs3').onclick=()=>{cancelAnimationFrame(anim3);S3.t=0;draw3();};
+document.querySelectorAll('[data-p3]').forEach(b=>b.onclick=()=>{const [mA,vA,mB,vB,e]=b.dataset.p3.split(',').map(Number);Object.assign(S3,{mA,vA,mB,vB,e});
+  $('m3A').value=mA;$('v3A').value=vA;$('m3B').value=mB;$('v3B').value=vB;$('e3').value=e;play3();});
+
+/* ---------- 4. 重球 ---------- */
+const S4={m:10},G4=1,N4=40;
+function draw4(){
+  const m=S4.m,beta=1-G4/m,ts=[],F=[],v=[0];for(let t=1;t<=N4;t++){const f=0.3+1.5*((t%2)?-1:1);F.push(f);v.push(beta*v[t-1]+f/m);ts.push(t);}
+  const P=plot($('c4'),0.62,[0,N4+0.5],[-2,2],{xl:'步數 t',sx:5,sy:0.5,maxH:320});P.clip();const c=P.c;
+  F.forEach((f,i)=>{c.fillStyle=css('--lt');c.globalAlpha=.45;c.fillRect(P.X(i+1-0.3),Math.min(P.Y(0),P.Y(f)),P.X(i+1.3)-P.X(i+1),Math.abs(P.Y(f)-P.Y(0)));});c.globalAlpha=1;
+  line(P,[0,N4],[0.3,0.3],css('--ok'),2,[6,4]);line(P,[0,...ts],v,css('--tot'),3);P.c.restore();
+  const last=v.slice(N4-9),avg=last.reduce((a,b)=>a+b,0)/10,amp=(Math.max(...last)-Math.min(...last))/2;
+  $('m4v').textContent=m.toFixed(1);$('b4v').textContent=beta.toFixed(2);$('s4a').textContent=fmt(avg,3);$('s4b').textContent=fmt(amp,3);
+  $('t4').innerHTML=beta<0.05?'📌 <b>m = 1、β = 0</b>：球沒有記憶，速度完全跟著推力走：一下 +1.8、一下 −1.2，來回亂跳。這就是「沒有質量的粒子」——標準梯度下降。'
+    :`📌 <b>m = ${m.toFixed(1)}、β = ${beta.toFixed(2)}</b>：速度平均約 ${fmt(avg,2)}（接近終端速度 0.3），晃動只剩 ±${fmt(amp,3)}。<b>質量越大，慣性越大，越不會被來回的推力左右</b>——Polyak 的重球就是這樣在峽谷裡穩穩前進。`;
+}
+$('m4').addEventListener('input',e=>{S4.m=+e.target.value;draw4();});
+document.querySelectorAll('[data-m4]').forEach(b=>b.onclick=()=>{S4.m=+b.dataset.m4;$('m4').value=S4.m;draw4();});
+
+/* ---------- 牛頓老師 ---------- */
+const NT_SVG=`<svg viewBox="0 0 200 230" aria-label="牛頓老師動畫">
+ <g class="bodyg">
+  <path d="M10 232 Q16 170 100 160 Q184 170 190 232 Z" fill="#3b2b24"/>
+  <path d="M70 178 Q76 205 72 232 M130 178 Q124 205 128 232" stroke="#2a1e19" stroke-width="2" fill="none"/>
+  <path d="M63 66 Q46 104 50 146 Q46 176 60 188 L140 188 Q154 176 150 146 Q154 104 137 66 Z" fill="#a39d95"/>
+  <rect x="87" y="128" width="26" height="34" rx="9" fill="#e3b69a"/>
+  <path d="M82 154 Q100 166 118 154 L114 190 Q100 196 86 190 Z" fill="#f7f5ef" stroke="#d2ccc0" stroke-width="1.3" stroke-linejoin="round"/>
+  <path d="M100 163 L100 192 M92 172 Q96 180 94 188 M108 172 Q104 180 106 188" stroke="#d2ccc0" stroke-width="1.2" fill="none"/>
+  <ellipse cx="100" cy="100" rx="30" ry="41" fill="#f0c6aa"/>
+  <ellipse class="blush" cx="82" cy="118" rx="6.5" ry="4.2" fill="#f08080"/>
+  <ellipse class="blush" cx="118" cy="118" rx="6.5" ry="4.2" fill="#f08080"/>
+  <path d="M68 100 Q60 58 100 52 Q140 58 132 100 Q129 80 118 71 Q108 64 100 67 Q92 64 82 71 Q71 80 68 100 Z" fill="#c9c4bc"/>
+  <path d="M100 54 Q99 60 100 67 M86 60 Q78 66 74 78 M114 60 Q122 66 126 78" stroke="#9a948c" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <g class="hairL"><path d="M71 70 Q56 78 58 98 Q51 111 57 124 Q49 138 57 151 Q50 165 60 180 Q70 186 77 175 Q70 162 76 150 Q69 137 75 124 Q69 111 74 99 Q69 86 75 77 Z" fill="#c9c4bc"/>
+   <path d="M64 92 Q60 104 65 114 M62 130 Q58 142 64 152 M63 166 Q62 174 68 178" stroke="#9a948c" stroke-width="1.5" fill="none" stroke-linecap="round"/></g>
+  <g class="hairR"><path d="M129 70 Q144 78 142 98 Q149 111 143 124 Q151 138 143 151 Q150 165 140 180 Q130 186 123 175 Q130 162 124 150 Q131 137 125 124 Q131 111 126 99 Q131 86 125 77 Z" fill="#c9c4bc"/>
+   <path d="M136 92 Q140 104 135 114 M138 130 Q142 142 136 152 M137 166 Q138 174 132 178" stroke="#9a948c" stroke-width="1.5" fill="none" stroke-linecap="round"/></g>
+  <path class="brow browL" d="M76 85 Q84 80 93 84" stroke="#6b5d52" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path class="brow browR" d="M107 84 Q116 80 124 85" stroke="#6b5d52" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <g class="eyes"><ellipse cx="85" cy="97" rx="5.4" ry="4" fill="#fff"/><ellipse cx="115" cy="97" rx="5.4" ry="4" fill="#fff"/>
+   <circle cx="85.5" cy="97.4" r="3" fill="#4a3a2e"/><circle cx="115.5" cy="97.4" r="3" fill="#4a3a2e"/>
+   <circle cx="86.5" cy="96.2" r="1" fill="#fff"/><circle cx="116.5" cy="96.2" r="1" fill="#fff"/></g>
+  <path d="M79.5 92.5 Q85 90 90.5 92.5 M109.5 92.5 Q115 90 120.5 92.5" stroke="#c99a80" stroke-width="1.2" fill="none"/>
+  <path d="M101 96 Q100 110 95 119 Q100 124 107 121" stroke="#c9967a" stroke-width="2.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path class="mo n" d="M90 131 Q100 134 110 130" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path class="mo s" d="M88 128 Q100 142 112 128 Q100 133 88 128 Z" fill="#9b3a2c" stroke="#8a4a3a" stroke-width="1.5" stroke-linejoin="round"/>
+  <path class="mo f" d="M90 135 Q100 127 110 135" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path d="M95 139 Q100 141 105 139" stroke="#d9a88e" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+  <ellipse cx="156" cy="216" rx="15" ry="9" fill="#e3b69a"/>
+  <circle cx="150" cy="203" r="11" fill="#d63a3a"/><circle cx="160" cy="203" r="11" fill="#d63a3a"/>
+  <ellipse cx="149" cy="199" rx="3" ry="4.5" fill="#f08a8a" opacity=".7"/>
+  <path d="M155 193 Q156 186 158 182" stroke="#6b4a2a" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <path d="M157 186 Q166 178 172 184 Q164 191 157 186 Z" fill="#4caf50"/>
+  <path class="sweat" d="M138 72 Q143 82 138 86 Q133 82 138 72 Z" fill="#7cc3f0"/>
+  <text class="spark" x="30" y="44" font-size="18" fill="#f0b400">✦</text>
+  <text class="spark" x="160" y="40" font-size="14" fill="#f0b400">✦</text>
+  <text class="spark" x="170" y="96" font-size="11" fill="#f0b400">✦</text>
+ </g></svg>`;
+function makeAvatar(el,bubble){
+  el.innerHTML=NT_SVG;let tm=null;
+  function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
+  return {mood(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
+    if(m==='smile'){el.classList.add('smile');restart('hop');}
+    if(m==='frown'){el.classList.add('frown');restart('shake');}
+    if(text!==undefined){bubble.innerHTML=text;bubble.className='bubble'+(m==='smile'?' good':m==='frown'?' bad':'');}
+    if(!hold)tm=setTimeout(()=>{el.classList.remove('smile','frown');bubble.className='bubble';},3200);}};
+}
+var AV1=makeAvatar($('av1'),$('bub1')),AV2=makeAvatar($('av2'),$('bub2'));
+const QUOTES=[
+ '1687 年我出版《自然哲學的數學原理》。書一開頭的定義 II：「運動的量」由速度和物質的量共同量度——就是你們的 p = mv。',
+ '我的第二定律原文說：運動的改變與施加的力成正比，沿著力的方向。所以力其實是「動量的變化率」；F = ma 的寫法是後來歐拉等人整理的。',
+ '第三定律：作用力與反作用力大小相等、方向相反。兩車相撞時互推，一個得到多少動量，另一個就失去多少——所以總動量守恆。',
+ '在我之前，笛卡兒就談過「運動的量」，但他用的是沒有方向的速率。把方向算進去，碰撞前後的總量才真的守恆。',
+ '1665–1666 年倫敦大瘟疫，劍橋停課，我回到家鄉伍爾索普，想出了微積分、光學和重力的許多點子。',
+ '我晚年當過皇家鑄幣廠的主管，還親自追查偽造錢幣的人。',
+ '如果你把我的運動方程加上摩擦力、再一步一步離散化，就會得到 1964 年 Polyak 的重球法——AI 優化器裡的「動量」就是這麼來的！'];
+let qi=0;$('av1').onclick=()=>AV1.mood('smile',QUOTES[qi++%QUOTES.length]);
+
+/* ---------- 5. 小測驗 ---------- */
+const QZ=[
+ {q:'動量的定義是什麼？',o:['p = m v（質量 × 速度）','p = m a（質量 × 加速度）','p = ½ m v²','p = F / t'],a:0,
+  e:'動量是牛頓所說的「運動的量」，單位 kg·m/s。',h:'看第 0 節的公式框。'},
+ {q:'「動量」描述的是物體的什麼？',o:['運動狀態：運動中的物體有多難讓它停下來','物體的重量','物體的溫度','物體的形狀'],a:0,
+  e:'動量是描述運動狀態的物理量；靜止的物體動量為 0，動量越大越難讓它停下來。',h:'看第 0 節最上面那句定義。'},
+ {q:'兩個 1 kg 的球，一個以 3 m/s 往右、一個以 3 m/s 往左，總動量是多少？',o:['0','6 kg·m/s','9 kg·m/s','3 kg·m/s'],a:0,
+  e:'動量是向量：+3 + (−3) = 0。但兩個球的動能都還在，總動能 9 J。',h:'動量是向量：往右為正、往左為負。'},
+ {q:'400 公噸的高速火車以 300 km/h（約 83 m/s）行駛，58 g 的網球以 1 m/s 慢慢滾動。哪個比較難讓它停下來？',o:['火車：動量約 3.3×10⁷ kg·m/s，是網球的數億倍','網球：因為它比較小','一樣難：兩個都在動','無法比較：單位不同'],a:0,
+  e:'p = mv：火車 400000 × 83.3 ≈ 3.3×10⁷，網球 0.058 × 1 = 0.058。動量越大，越難讓它停下來。',h:'第 1 節分別選網球和高速火車，按「擋擋看！」比較。'},
+ {q:'牛頓第二定律最原始的形式是？',o:['F = dp/dt（力 ＝ 動量的變化率）','F = mv','F = ½mv²','F = p·t'],a:0,
+  e:'質量不變時 dp/dt = m·dv/dt = ma，就是熟悉的 F = ma。',h:'看第 0 節的小故事：第二定律說的是「運動的改變」。'},
+ {q:'動量守恆成立的條件是？',o:['系統所受的合外力為 0','碰撞一定要是彈性的','兩個物體質量相同','速度不能太快'],a:0,
+  e:'內力（互推）成對抵消，只要沒有外力，總動量就不變——不論彈性或非彈性。',h:'第 2 節調成「黏在一起」，總動量變了嗎？'},
+ {q:'兩台車相撞後黏在一起（完全非彈性碰撞），下列何者正確？',o:['動量守恆，動能減少','動量和動能都守恆','動量減少，動能守恆','兩者都減少'],a:0,
+  e:'損失的動能變成熱、聲音和形變，但動量一定守恆。',h:'第 2 節看表格的總動能。'},
+ {q:'把「有摩擦的重球」離散化得到 v<sub>t</sub> = (1 − γ/m)v<sub>t−1</sub> + F<sub>t</sub>/m。球越重時？',o:['β = 1 − γ/m 越接近 1，慣性越大，越不受來回推力影響','β 越接近 0，記憶越短','速度一定越大','球會停下來'],a:0,
+  e:'這就是 Polyak 動量法的 β：重球記得久、能濾掉雜訊。',h:'第 3 節把 m 從 1 拉到 10。'}
+];
+const PRAISE=['Splendid！答對了 😄','Excellent！完全符合我的定律！','Well done！你的動量守恆了！','Marvellous！比蘋果落地還自然！'];
+let sc=0,dn=0,streak=0;
+function shuffle(a){return a.map(v=>[Math.random(),v]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);}
+function buildQuiz(){sc=0;dn=0;streak=0;$('score').style.display='none';
+  $('quiz').innerHTML=QZ.map((z,i)=>{const ord=shuffle(z.o.map((t,j)=>j));
+    return `<div class="q"><div><b>Q${i+1}.</b> ${z.q}</div><div class="opts">${ord.map(j=>`<button data-q="${i}" data-o="${j}">${z.o[j]}</button>`).join('')}</div><div class="fb" id="fb${i}"></div></div>`;}).join('');}
+$('quiz').onclick=e=>{const b=e.target.closest('button');if(!b)return;const i=+b.dataset.q,j=+b.dataset.o,z=QZ[i],box=b.parentElement;if(box.dataset.done)return;box.dataset.done=1;dn++;
+  if(j===z.a){b.classList.add('right');sc++;streak++;$('fb'+i).innerHTML='✔ 正確！'+z.e;
+    AV2.mood('smile',streak>=3?`連對 ${streak} 題！你的學習動量越來越大了 🎉`:PRAISE[Math.floor(Math.random()*PRAISE.length)]);}
+  else{b.classList.add('wrong');streak=0;[...box.children].forEach(x=>{if(+x.dataset.o===z.a)x.classList.add('right');});$('fb'+i).innerHTML='✘ '+z.e;AV2.mood('frown',z.h);}
+  if(dn===QZ.length){$('scoreTxt').textContent=`得分：${sc} / ${QZ.length}`;$('score').style.display='flex';
+    setTimeout(()=>{if(sc===QZ.length)AV2.mood('smile','滿分！從 p = mv 到重球法，你都懂了 🏆🍎',true);
+      else if(sc>=QZ.length-2)AV2.mood('smile',`${sc} 分，很不錯！錯的題目回到對應小節再玩一下。`,true);
+      else AV2.mood('frown','建議回到第 0、1 節，弄懂 p = mv 和「有多難停下來」，再來挑戰！',true);},3300);}
+};
+$('retry').onclick=()=>{buildQuiz();AV2.mood('','新的一輪！選項順序都換過了喔。');};
+
+/* ---------- init ---------- */
+draw1();draw3();draw4();buildQuiz();
+function redrawAll(){draw1();draw3();draw4();}
+let rz=null;window.addEventListener('resize',()=>{cancelAnimationFrame(rz);rz=requestAnimationFrame(redrawAll);});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redrawAll);
+</script>
+</body>
+</html>

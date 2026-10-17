@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AdamW互動教學</title>
+<style>
+:root{
+  --bg:#f7f6f2;--card:#fff;--ink:#1d2330;--mute:#667085;--line:#e3e1da;--ok:#1f9d6b;--bad:#d6334f;
+  --grid:#eceae4;--axis:#9aa0ab;--accent:#2f6fdb;--tint:#eaf1fc;
+  --cv:#2f6fdb;--tan:#8b45d6;--gd:#1f9d6b;--path:#e07a1f;--pt:#1d2330;--warn:#c98a00;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+    --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+    --cv:#6c9dff;--tan:#b98bff;--gd:#4fd19d;--path:#ffa552;--pt:#f4f5f8;--warn:#ffd166;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+  --cv:#6c9dff;--tan:#b98bff;--gd:#4fd19d;--path:#ffa552;--pt:#f4f5f8;--warn:#ffd166;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.9rem}
+header p{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:18px}
+.card h2{margin:0 0 12px;font-size:1.22rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:.9rem;flex:none}
+h3{margin:0 0 6px;font-size:1.05rem}
+.m{font-family:"Times New Roman","Cambria Math",serif;font-style:italic}
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 2px;line-height:1.15}
+.frac>span:first-child{padding:0 3px 1px;border-bottom:1.3px solid currentColor}
+.frac>span:last-child{padding:1px 3px 0}
+.def{font-size:1.2rem;text-align:center;padding:14px;border-radius:10px;background:var(--tint);line-height:2.1}
+.note{color:var(--mute);font-size:.92rem}
+.gd{color:var(--gd)}.path{color:var(--path)}.tan{color:var(--tan)}.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start}
+.two>*{min-width:0}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.three>div{border:2px solid var(--line);border-radius:12px;padding:10px 14px}
+.three b.t{display:block;color:var(--accent)}
+@media (max-width:860px){.two,.three{grid-template-columns:minmax(0,1fr)}}
+.cvbox{width:100%;min-width:0}
+.sq{max-width:460px;margin:0 auto}
+canvas{width:100%;display:block;border-radius:10px;background:var(--bg);touch-action:none}
+label{font-size:.92rem;color:var(--mute);display:block}
+label b{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 12px}
+select{width:100%}
+button{cursor:pointer}button:hover{border-color:var(--accent)}
+button.pri,button.on{background:var(--accent);color:#fff;border-color:transparent}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:12px 18px;align-items:end}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(120px,100%),1fr));gap:10px;margin-top:10px}
+.stats>div{padding:8px 12px;border-radius:10px;background:var(--bg)}
+.stats small{display:block;color:var(--mute);font-size:.82rem}
+.stats b{font-size:1.2rem;font-variant-numeric:tabular-nums}
+.say{margin-top:10px;padding:10px 14px;border-left:4px solid var(--ok);background:var(--bg);border-radius:8px}
+.formula{font-size:1.08rem;line-height:2.3;overflow-x:auto;padding:4px 2px}
+.stepbar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:10px 0 8px}
+.stepbar div{height:100%;background:var(--accent);transition:width .3s}
+.explain{padding:10px 14px;border-radius:10px;background:var(--tint);min-height:3.4em}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.85rem;color:var(--mute);margin-top:6px}
+.legend i{display:inline-block;width:18px;height:4px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.zone{display:inline-block;padding:2px 10px;border-radius:999px;font-weight:700;color:#fff}
+/* quiz */
+.quiz .q{padding:12px 0;border-bottom:1px solid var(--line)}
+.quiz .q:last-child{border:none}
+.opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.opts button.right{background:var(--ok);color:#fff;border-color:transparent}
+.opts button.wrong{background:var(--bad);color:#fff;border-color:transparent}
+.fb{font-size:.92rem;margin-top:6px;min-height:1.2em}
+.score{margin-top:12px;font-size:1.15rem;font-weight:700;display:none;align-items:center;gap:12px;flex-wrap:wrap}
+footer{color:var(--mute);font-size:.85rem;text-align:center;margin-top:30px}
+/* ---------- avatar ---------- */
+.avwrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.av{width:100%;max-width:220px;cursor:pointer;user-select:none}
+.av svg{width:100%;display:block;overflow:visible;background:none}
+.av .bodyg{animation:bob 3.2s ease-in-out infinite;transform-origin:100px 200px}
+.av .eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+.av .hairL{animation:sway 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:top center}
+.av .hairR{animation:sway 3.2s ease-in-out infinite reverse;transform-box:fill-box;transform-origin:top center}
+.av .brow{transition:transform .3s;transform-box:fill-box}
+.av .browL{transform-origin:right center}.av .browR{transform-origin:left center}
+.av .mo{opacity:0;transition:opacity .25s}.av .mo.n{opacity:1}
+.av .blush,.av .sweat,.av .spark{opacity:0;transition:opacity .3s}
+.av.smile .mo.n,.av.frown .mo.n{opacity:0}
+.av.smile .mo.s{opacity:1}.av.frown .mo.f{opacity:1}
+.av.smile .blush{opacity:.55}.av.smile .spark{opacity:1}.av.frown .sweat{opacity:.9}
+.av.smile .brow{transform:translateY(-3px)}
+.av.frown .browL{transform:rotate(14deg) translateY(2px)}.av.frown .browR{transform:rotate(-14deg) translateY(2px)}
+.av.hop svg{animation:hop .7s ease}
+.av.shake svg{animation:shake .55s ease}
+.av .spark{animation:twinkle 1s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}
+@keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+@keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.bubble{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.95rem;margin-bottom:10px;min-height:2.6em;max-width:260px;text-align:center;transition:border-color .3s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--line);border-bottom:0}
+.bubble.good{border-color:var(--ok)}.bubble.good::after{border-top-color:var(--ok)}
+.bubble.bad{border-color:var(--bad)}.bubble.bad::after{border-top-color:var(--bad)}
+.intro{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:center}
+.intro>*,.qgrid>*{min-width:0}
+.intro .avwrap{flex-direction:row;gap:10px}.intro .bubble{flex:1;margin:0}.intro .bubble::after{display:none}.intro .av{width:125px;flex:none}
+.qgrid{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:18px;align-items:start}
+.qgrid .avwrap{position:sticky;top:12px}
+@media (max-width:860px){.intro,.qgrid{grid-template-columns:minmax(0,1fr)}.intro .avwrap{flex-direction:column}.intro .bubble{margin-bottom:10px}.intro .bubble::after{display:block}.intro .av,.qgrid .av{width:auto;max-width:140px}.qgrid .avwrap{position:static;order:-1}}
+</style>
+<style>
+:root{--l2:#d6334f;--aw:#1f8a5b;--wa:#0a8fb8;--wb:#e07a1f;--adam:#6f42c1}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--l2:#ff6f86;--aw:#4fd19d;--wa:#4fd0ff;--wb:#ffa552;--adam:#b794ff}}
+:root[data-theme="dark"]{--l2:#ff6f86;--aw:#4fd19d;--wa:#4fd0ff;--wb:#ffa552;--adam:#b794ff}
+.l2{color:var(--l2)}.aw{color:var(--aw)}.wa{color:var(--wa)}.wb{color:var(--wb)}.adam{color:var(--adam)}
+.vs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:12px;margin-top:10px}
+.vs>div{border:2px solid var(--line);border-radius:12px;padding:10px 14px;min-width:0}
+.vs>div.x{border-color:var(--l2)}.vs>div.y{border-color:var(--aw)}
+.vs b.t{display:block}
+.story{margin-top:16px;padding:14px 18px;border-radius:12px;border:1px dashed var(--line);background:var(--bg)}
+.story h3{margin:0 0 6px}.story p{margin:6px 0}
+.story .tl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:10px}
+.story .tl>div{border-left:4px solid var(--aw);padding:4px 10px;background:var(--card);border-radius:6px;font-size:.92rem;min-width:0}
+.story .tl b{display:block;color:var(--aw)}
+@media (max-width:860px){.story .tl{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.code{background:#1e2230;color:#e8eaf0;border-radius:10px;padding:8px 0;font-family:Consolas,"Courier New",monospace;font-size:.86rem;overflow-x:auto;line-height:1.75}
+.code div{padding:0 14px;white-space:pre;border-left:4px solid transparent}
+.code div.hl{background:rgba(79,209,157,.16);border-left-color:#4fd19d}
+.code div.bad{background:rgba(255,111,134,.16);border-left-color:#ff6f86}
+.code .c{color:#8a93a8}.code .k{color:#ff9bd2}
+.bars{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 10px;align-items:center;font-size:.92rem;margin-top:8px}
+.bars .bar{height:16px;border-radius:4px;min-width:2px;transition:width .25s}
+.bars .val{font-variant-numeric:tabular-nums;color:var(--mute);min-width:6em;text-align:right}
+.tbl{overflow-x:auto;margin-top:10px}
+.tbl table{border-collapse:collapse;width:100%;font-size:.92rem}
+.tbl th,.tbl td{border-bottom:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}
+.tbl th{color:var(--mute);font-weight:600}
+.quote{font-style:italic;color:var(--mute)}
+code{font-family:Consolas,"Courier New",monospace;font-size:.9em;background:var(--bg);padding:1px 5px;border-radius:5px}
+</style>
+<style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line,#e3e1da);border-radius:12px;background:var(--card,var(--surface,#fff));color:var(--ink,#1d2330);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+.pu-badge img{width:58px;height:58px;display:block}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute,var(--muted,#667085))}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="pu-hd">
+  <div class="pu-hd-main">
+  <h1>AdamW 與權重衰減互動教學</h1>
+  <p>工程數學 ・ 互動教學：把「往 0 拉」從梯度裡拿出來，讓每個參數公平地衰減</p>
+</div>
+  <div class="pu-badge"><img alt="靜宜大學校徽" src="data:image/webp;base64,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"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</header>
+
+<!-- 0 -->
+<section class="card">
+  <h2><span class="num">0</span>一句話直覺：AdamW ＝ Adam ＋「解耦」的權重衰減</h2>
+  <div class="intro">
+    <div>
+      <div class="vs" style="margin-top:0">
+        <div class="x"><b class="t l2">✘ Adam ＋ L2 正則化</b>把 λθ 加進梯度：<i class="m">g<sub>t</sub></i> = ∇<i class="m">f</i>(<i class="m">θ</i><sub><i class="m">t</i>−1</sub>) <b class="l2">+ λ<i class="m">θ</i><sub><i class="m">t</i>−1</sub></b><br><i class="m">θ<sub>t</sub></i> = <i class="m">θ</i><sub><i class="m">t</i>−1</sub> − η · <span class="frac"><span><i class="m">m̂<sub>t</sub></i></span><span>√<i class="m">v̂<sub>t</sub></i> + ε</span></span><br><span class="note">λθ 也被除以 √v̂ → 每個參數衰減得不一樣</span></div>
+        <div class="y"><b class="t aw">✔ AdamW（解耦的權重衰減）</b>梯度只有損失：<i class="m">g<sub>t</sub></i> = ∇<i class="m">f</i>(<i class="m">θ</i><sub><i class="m">t</i>−1</sub>)<br><i class="m">θ<sub>t</sub></i> = <i class="m">θ</i><sub><i class="m">t</i>−1</sub> − η<span style="font-size:1.1em">(</span><span class="frac"><span><i class="m">m̂<sub>t</sub></i></span><span>√<i class="m">v̂<sub>t</sub></i> + ε</span></span> <b class="aw">+ λ<i class="m">θ</i><sub><i class="m">t</i>−1</sub></b><span style="font-size:1.1em">)</span><br><span class="note">λθ 直接作用在參數上 → 每個參數都乘 (1 − ηλ)</span></div>
+      </div>
+      <p class="note">符號與前幾課一致：<i class="m">m<sub>t</sub></i>、<i class="m">v<sub>t</sub></i> 是 Adam 的一階矩、二階矩，<i class="m">m̂<sub>t</sub></i>、<i class="m">v̂<sub>t</sub></i> 是偏差修正後的估計；η 是學習率，λ 是權重衰減係數。</p>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub1">Hi！我是伊利亞・洛希洛夫（Ilya Loshchilov），AdamW 的作者之一。點我聽故事！</div><div class="av" id="av1"></div></div>
+  </div>
+  <div class="story">
+    <h3>📜 小故事：一個「看起來一樣」的錯誤</h3>
+    <p>很多人以為「L2 正則化」和「權重衰減」是同一件事。對 SGD 來說確實如此，但洛希洛夫和弗萊堡大學的<b>法蘭克・胡特（Frank Hutter）</b>發現：在 Adam 這類<b>自適應</b>方法裡，兩者<b>並不相等</b>。當時許多框架的 Adam 用 L2 來實作權重衰減，正則化的效果因此大打折扣。</p>
+    <p>他們的修正非常簡單：把權重衰減從梯度中<b>解耦</b>（decouple），直接作用在參數上。論文題目就叫 <span class="quote">Decoupled Weight Decay Regularization</span>。</p>
+    <div class="tl">
+      <div><b>2014</b>Kingma &amp; Ba 提出 Adam</div>
+      <div><b>2017</b>Loshchilov &amp; Hutter 在 arXiv 發表解耦權重衰減</div>
+      <div><b>2019</b>論文發表於 ICLR；AdamW 進入各大框架</div>
+      <div><b>今天</b>Transformer 與大型語言模型的標準優化器</div>
+    </div>
+  </div>
+</section>
+
+<!-- 1 -->
+<section class="card">
+  <h2><span class="num">1</span>權重衰減是什麼：每一步都把參數乘上 (1 − ηλ)</h2>
+  <div class="formula" style="text-align:center"><i class="m">θ<sub>t</sub></i> = <i class="m">θ</i><sub><i class="m">t</i>−1</sub> − η<i class="m">g<sub>t</sub></i> − ηλ<i class="m">θ</i><sub><i class="m">t</i>−1</sub> = <b class="aw">(1 − ηλ)</b><i class="m">θ</i><sub><i class="m">t</i>−1</sub> − η<i class="m">g<sub>t</sub></i></div>
+  <p style="margin-top:0">用 SGD（η = 0.1）訓練兩個權重：<b class="wa">有用的權重 w<sub>1</sub></b>，損失是 (<i class="m">w</i><sub>1</sub> − 2)²，梯度會把它撐在 2 附近；<b class="wb">沒用的權重 w<sub>2</sub></b>，對損失毫無貢獻，梯度永遠是 0。兩者都從 3 出發：</p>
+  <div class="two">
+    <div>
+      <div class="cvbox"><canvas id="c1"></canvas></div>
+      <div class="legend"><span><i style="background:var(--wa)"></i>有用的 w₁</span><span><i style="background:var(--wb)"></i>沒用的 w₂</span><span><i style="background:var(--mute)"></i>理論值（虛線）</span></div>
+    </div>
+    <div>
+      <label>權重衰減係數 λ = <b id="lam1v"></b><input id="lam1" type="range" min="0" max="0.5" step="0.01" value="0.1"></label>
+      <div class="stats">
+        <div><small>每步乘上 1 − ηλ</small><b id="s1f"></b></div>
+        <div><small class="wa">w₁ 最後停在 4/(2+λ)</small><b id="s1a" class="wa"></b></div>
+        <div><small class="wb">w₂ 第 100 步剩下</small><b id="s1b" class="wb"></b></div>
+      </div>
+      <div class="say" id="t1"></div>
+      <p class="note">💡 <b>對 SGD 而言，權重衰減等價於 L2 正則化</b>：在損失加上 <span class="frac"><span>λ</span><span>2</span></span>‖<i class="m">θ</i>‖²，梯度多出 λθ，代進 θ − η(∇f + λθ) 就得到上面的式子。所以大家常把兩個名詞混用——但在 Adam 裡就不行了（第 3 節）。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="card">
+  <h2><span class="num">2</span>為什麼需要權重衰減：防止過擬合</h2>
+  <p style="margin-top:0">用 9 次多項式 <i class="m">ŷ</i> = <i class="m">w</i><sub>0</sub> + <i class="m">w</i><sub>1</sub><i class="m">x</i> + ⋯ + <i class="m">w</i><sub>9</sub><i class="m">x</i>⁹ 擬合 12 個帶雜訊的點（真實函數是 sin πx）。最小化「誤差 ＋ λ‖w‖²」（w<sub>0</sub> 不懲罰），直接解正規方程式 (XᵀX + λI)w = Xᵀy：</p>
+  <div class="ctl">
+    <label>λ = <b id="lam2v"></b><input id="lam2" type="range" min="-8" max="1" step="0.25" value="-8"></label>
+    <div class="row"><button data-l2="-8">λ ≈ 0（沒有衰減）</button><button data-l2="-3">λ = 0.001（剛好）</button><button data-l2="1">λ = 10（太大）</button></div>
+  </div>
+  <div class="two" style="margin-top:12px">
+    <div>
+      <div class="cvbox"><canvas id="c2"></canvas></div>
+      <div class="legend"><span><i style="background:var(--cv)"></i>訓練資料</span><span><i style="background:var(--mute)"></i>真實函數 sin πx（虛線）</span><span><i style="background:var(--aw)"></i>擬合的多項式</span></div>
+    </div>
+    <div>
+      <div class="stats">
+        <div><small>訓練誤差（MSE）</small><b id="s2tr"></b></div>
+        <div><small>測試誤差（MSE）</small><b id="s2te"></b></div>
+        <div><small>最大的 |w<sub>k</sub>|</small><b id="s2w"></b></div>
+      </div>
+      <h3 style="margin-top:10px">誤差 vs. λ <span class="note">（對數刻度）</span></h3>
+      <div class="cvbox"><canvas id="c2b"></canvas></div>
+      <div class="legend"><span><i style="background:var(--cv)"></i>訓練誤差</span><span><i style="background:var(--l2)"></i>測試誤差</span></div>
+      <div class="say" id="t2"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="card">
+  <h2><span class="num">3</span>Adam ＋ L2 的問題：λθ 也被除以 √v̂</h2>
+  <p style="margin-top:0">兩個參數目前都是 <i class="m">θ</i> = 1，用同樣的 λ。差別只在<b>梯度通常多大</b>：A 的梯度很大，B 的梯度很小。這一步「被往 0 拉」多少？</p>
+  <div class="ctl">
+    <label>參數 A 的梯度大小 |g<sub>A</sub>| = <b id="gAv"></b><input id="gA" type="range" min="-2" max="2" step="0.5" value="1"></label>
+    <label>參數 B 的梯度大小 |g<sub>B</sub>| = <b id="gBv"></b><input id="gB" type="range" min="-2" max="2" step="0.5" value="-1"></label>
+    <label>λ = <b id="lam3v"></b><input id="lam3" type="range" min="0.01" max="1" step="0.01" value="0.1"></label>
+  </div>
+  <div class="two" style="margin-top:10px">
+    <div>
+      <h3 class="l2">Adam ＋ L2：衰減量 ≈ ηλθ / √v̂</h3>
+      <div class="bars" id="bL"></div>
+      <h3 class="aw" style="margin-top:14px">AdamW：衰減量 = ηλθ</h3>
+      <div class="bars" id="bW"></div>
+      <p class="note">以 η 為單位；長條是對數刻度（每格 10 倍）。√v̂ 取穩定時的近似 √(g² + (λθ)²)。</p>
+    </div>
+    <div>
+      <div class="formula" id="o3"></div>
+      <div class="say" id="t3"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="card">
+  <h2><span class="num">4</span>模擬：兩個「沒用的」權重，誰被公平地衰減？</h2>
+  <p style="margin-top:0">A、B 都對損失沒有貢獻（理想上應該衰減到 0），梯度只有雜訊：A 的雜訊很大、B 的很小。都從 <i class="m">θ</i> = 1 出發，η = 0.001、β<sub>1</sub> = 0.9、β<sub>2</sub> = 0.999，跑 3000 步：</p>
+  <div class="ctl">
+    <label>λ = <b id="lam4v"></b><input id="lam4" type="range" min="0.2" max="2" step="0.1" value="1"></label>
+    <label>A 的梯度雜訊 σ<sub>A</sub> = <b id="sAv"></b><input id="sA" type="range" min="1" max="30" step="1" value="10"></label>
+    <label>B 的梯度雜訊 σ<sub>B</sub> = <b id="sBv"></b><input id="sB" type="range" min="0.01" max="1" step="0.01" value="0.1"></label>
+  </div>
+  <div class="two" style="margin-top:12px">
+    <div>
+      <div class="cvbox"><canvas id="c4"></canvas></div>
+      <div class="legend"><span><i style="background:var(--wa)"></i>A（大雜訊）</span><span><i style="background:var(--wb)"></i>B（小雜訊）</span><span>細線＝Adam＋L2，粗線＝AdamW</span><span><i style="background:var(--mute)"></i>(1−ηλ)<sup>t</sup>（虛線）</span></div>
+    </div>
+    <div>
+      <div class="tbl"><table id="tb4"></table></div>
+      <div class="say" id="t4"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="card">
+  <h2><span class="num">5</span>AdamW 完整演算法與實務用法</h2>
+  <div class="two">
+    <div>
+      <div class="code" id="code5"></div>
+      <p class="note">綠色那行是 AdamW 的關鍵：λθ 不進入 m、v，而是在最後直接從參數減掉。紅色是 Adam＋L2 的寫法：λθ 混進梯度，之後會被 √v̂ 縮放。</p>
+    </div>
+    <div>
+      <div class="tbl"><table>
+        <tr><th>優化器</th><th>L2 正則化 vs. 權重衰減</th></tr>
+        <tr><td>SGD</td><td>兩者<b>等價</b></td></tr>
+        <tr><td>Adam ＋ L2</td><td><b class="l2">不等價</b>：λθ 被 √v̂ 縮放，梯度大的參數衰減得少</td></tr>
+        <tr><td>AdamW</td><td><b class="aw">解耦</b>：每個參數都乘 (1 − ηλ)</td></tr>
+      </table></div>
+      <h3 style="margin-top:12px">PyTorch 用法</h3>
+      <ul style="margin:4px 0;padding-left:1.2em">
+        <li><code>torch.optim.AdamW(params, lr=1e-3, weight_decay=0.01)</code>：解耦版，<code>weight_decay</code> 預設 0.01。</li>
+        <li>注意 <code>torch.optim.Adam(..., weight_decay=λ)</code> 是 <b>L2 版本</b>，不是 AdamW。</li>
+        <li>常見做法：<b>偏差 b、LayerNorm／BatchNorm 的參數不做衰減</b>，只衰減權重矩陣（用 param groups 分開設定）。</li>
+        <li>Transformer／大型語言模型常用 λ 在 0.01～0.1 之間；實際數值要依問題調整。</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 6 -->
+<section class="card">
+  <h2><span class="num">6</span>觀念小測驗</h2>
+  <div class="qgrid">
+    <div>
+      <div class="quiz" id="quiz"></div>
+      <div class="score" id="score"><span id="scoreTxt"></span><button id="retry" class="pri">再做一次</button></div>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub2">來考考你！答對我會笑，答錯我會皺眉喔。</div><div class="av" id="av2"></div></div>
+  </div>
+</section>
+
+<footer>AdamW 與權重衰減互動教學 ・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fr=(a,b)=>`<span class="frac"><span>${a}</span><span>${b}</span></span>`;
+const M=s=>`<i class="m">${s}</i>`;
+const fmt=(v,d=3)=>{if(!isFinite(v))return v>0?'∞':'−∞';if(Math.abs(v)<5e-10)v=0;if(Math.abs(v)>=1e5)return v.toExponential(2).replace('-','−');return v.toFixed(d).replace('-','−');};
+const fmtg=v=>{if(!isFinite(v))return '∞';v=+v.toPrecision(3);const a=Math.abs(v);if(a===0)return '0';if(a>=1e5||a<1e-3)return v.toExponential(1).replace('-','−').replace('e+','e');return String(v).replace('-','−');};
+function sizeCanvas(cv,ratio,maxH){
+  cv.style.width='0px';const w=cv.parentElement.clientWidth;cv.style.width='100%';
+  let h=Math.round(w*ratio);if(maxH)h=Math.min(h,maxH);
+  const dpr=window.devicePixelRatio||1;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+'px';
+  const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);return {c,w,h};
+}
+function niceStep(span){const raw=span/6,p=Math.pow(10,Math.floor(Math.log10(raw))),n=raw/p;return (n<1.5?1:n<3.5?2:n<7.5?5:10)*p;}
+function dot(c,x,y,col,r){c.fillStyle=col||'#111';c.strokeStyle=css('--card');c.lineWidth=2;c.beginPath();c.arc(x,y,r||6,0,7);c.fill();c.stroke();}
+function plot(cv,ratio,xr,yr,opt){
+  opt=opt||{};const {c,w,h}=sizeCanvas(cv,ratio,opt.maxH||420),L=opt.L||40,R=12,T=10,B=opt.B||28;
+  const X=x=>L+(x-xr[0])/(xr[1]-xr[0])*(w-L-R),Y=y=>T+(yr[1]-y)/(yr[1]-yr[0])*(h-T-B);
+  const sx=opt.sx||niceStep(xr[1]-xr[0]),sy=opt.sy||niceStep(yr[1]-yr[0]),fy=opt.fy||(y=>+y.toFixed(4)+''),fx=opt.fx||(x=>+x.toFixed(4)+'');
+  c.font='11px sans-serif';c.strokeStyle=css('--grid');c.fillStyle=css('--mute');c.lineWidth=1;c.textAlign='center';c.textBaseline='top';
+  for(let x=Math.ceil(xr[0]/sx-1e-9)*sx;x<=xr[1]+1e-9;x+=sx){c.beginPath();c.moveTo(X(x),T);c.lineTo(X(x),h-B);c.stroke();c.fillText(fx(x),X(x),h-B+4);}
+  c.textAlign='right';c.textBaseline='middle';
+  for(let y=Math.ceil(yr[0]/sy-1e-9)*sy;y<=yr[1]+1e-9;y+=sy){c.beginPath();c.moveTo(L,Y(y));c.lineTo(w-R,Y(y));c.stroke();c.fillText(fy(y),L-4,Y(y));}
+  c.strokeStyle=css('--axis');c.strokeRect(L,T,w-L-R,h-T-B);
+  if(opt.xl){c.textAlign='right';c.textBaseline='bottom';c.fillText(opt.xl,w-R-4,h-B-3);}
+  return {c,w,h,X,Y,L,R,T,B,clip(){c.save();c.beginPath();c.rect(L,T,w-L-R,h-T-B);c.clip();}};
+}
+function line(P,xs,ys,col,lw,dash){const c=P.c;c.strokeStyle=col;c.lineWidth=lw||2.5;c.setLineDash(dash||[]);c.beginPath();let st=false;
+  xs.forEach((x,i)=>{const y=ys[i];if(!isFinite(y))return;st?c.lineTo(P.X(x),P.Y(y)):c.moveTo(P.X(x),P.Y(y));st=true;});c.stroke();c.setLineDash([]);}
+function rng(seed){let s=seed>>>0;return ()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
+function gauss(r){const u=Math.max(1e-9,r()),v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+
+/* ---------- 1. 權重衰減 ---------- */
+const S1={lam:0.1},E1=0.1,N1=100;
+function draw1(){
+  const lam=S1.lam,ts=[],a=[],b=[],tb=[];let w1=3,w2=3;
+  for(let t=0;t<=N1;t++){ts.push(t);a.push(w1);b.push(w2);tb.push(3*Math.pow(1-E1*lam,t));w1=(1-E1*lam)*w1-E1*2*(w1-2);w2=(1-E1*lam)*w2;}
+  const P=plot($('c1'),0.62,[0,N1],[0,3.2],{xl:'步數 t',sx:20,sy:0.5,maxH:320});P.clip();
+  const eq=4/(2+lam);line(P,[0,N1],[eq,eq],css('--mute'),1.5,[6,4]);line(P,ts,tb,css('--mute'),1.5,[6,4]);
+  line(P,ts,a,css('--wa'),3);line(P,ts,b,css('--wb'),3);P.c.restore();
+  $('lam1v').textContent=lam.toFixed(2);$('s1f').textContent=fmt(1-E1*lam,3);$('s1a').textContent=fmt(eq,3);$('s1b').textContent=fmt(b[N1],3);
+  $('t1').innerHTML=lam===0?'📌 λ = 0：沒有權重衰減。沒用的 w₂ 永遠停在 3——它對損失沒貢獻，卻一直佔著一個很大的值。'
+    :`📌 <b class="wb">沒用的 w₂</b> 沒有梯度撐住，每步乘 ${fmt(1-E1*lam,3)}，按 (1−ηλ)<sup>t</sup> <b>指數衰減</b>到 0。<b class="wa">有用的 w₁</b> 被梯度撐住，只是從 2 稍微縮到 4/(2+λ) = ${fmt(eq,3)}。<br>權重衰減的效果：<b>只留下真正有用的權重</b>。`;
+}
+$('lam1').addEventListener('input',e=>{S1.lam=+e.target.value;draw1();});
+
+/* ---------- 2. 多項式擬合 ---------- */
+const D2=(()=>{const r=rng(2019),x=[];for(let i=0;i<12;i++)x.push(-0.95+1.9*r());x.sort((p,q)=>p-q);const y=x.map(v=>Math.sin(Math.PI*v)+0.25*gauss(r));return {x,y};})();
+const DEG=9,XT=Array.from({length:191},(_,i)=>-0.95+1.9*i/190);
+function solve(A,b){const n=b.length,M_=A.map((r,i)=>[...r,b[i]]);
+  for(let i=0;i<n;i++){let p=i;for(let k=i+1;k<n;k++)if(Math.abs(M_[k][i])>Math.abs(M_[p][i]))p=k;[M_[i],M_[p]]=[M_[p],M_[i]];
+    for(let k=i+1;k<n;k++){const f=M_[k][i]/M_[i][i];for(let j=i;j<=n;j++)M_[k][j]-=f*M_[i][j];}}
+  const x=Array(n).fill(0);for(let i=n-1;i>=0;i--){let s=M_[i][n];for(let j=i+1;j<n;j++)s-=M_[i][j]*x[j];x[i]=s/M_[i][i];}return x;}
+const pv=(w,x)=>{let s=0,p=1;for(const c of w){s+=c*p;p*=x;}return s;};
+function ridge(lam){const n=DEG+1,A=Array.from({length:n},()=>Array(n).fill(0)),b=Array(n).fill(0);
+  D2.x.forEach((x,i)=>{const f=[];let p=1;for(let k=0;k<n;k++){f.push(p);p*=x;}for(let r=0;r<n;r++){b[r]+=f[r]*D2.y[i];for(let c=0;c<n;c++)A[r][c]+=f[r]*f[c];}});
+  for(let k=1;k<n;k++)A[k][k]+=lam;const w=solve(A,b);
+  const tr=D2.x.reduce((s,x,i)=>s+(pv(w,x)-D2.y[i])**2,0)/D2.x.length,te=XT.reduce((s,x)=>s+(pv(w,x)-Math.sin(Math.PI*x))**2,0)/XT.length;
+  return {w,tr,te};}
+const CURVE2=(()=>{const a=[];for(let lg=-8;lg<=1.0001;lg+=0.25){const r=ridge(Math.pow(10,lg));a.push([lg,r.tr,r.te]);}return a;})();
+const S2={lg:-8};
+function draw2(){
+  const lam=Math.pow(10,S2.lg),R=ridge(lam);
+  let P=plot($('c2'),0.7,[-1,1],[-2.2,2.2],{xl:'x',sx:0.5,sy:1,maxH:360});P.clip();
+  const xs=Array.from({length:301},(_,i)=>-1+2*i/300);
+  line(P,xs,xs.map(x=>Math.sin(Math.PI*x)),css('--mute'),2,[6,4]);line(P,xs,xs.map(x=>pv(R.w,x)),css('--aw'),3);
+  D2.x.forEach((x,i)=>dot(P.c,P.X(x),P.Y(D2.y[i]),css('--cv'),5));P.c.restore();
+  const lgE=v=>Math.log10(Math.max(v,1e-4));
+  P=plot($('c2b'),0.5,[-8,1],[-4,2],{xl:'log₁₀ λ',sx:1,sy:1,fy:y=>({'2':'100','1':'10','0':'1','-1':'0.1','-2':'0.01','-3':'0.001','-4':'1e-4'})[String(Math.round(y))]||'',maxH:220});P.clip();
+  line(P,CURVE2.map(r=>r[0]),CURVE2.map(r=>lgE(r[1])),css('--cv'),2.5);line(P,CURVE2.map(r=>r[0]),CURVE2.map(r=>lgE(r[2])),css('--l2'),2.5);
+  dot(P.c,P.X(S2.lg),P.Y(lgE(R.tr)),css('--cv'),5);dot(P.c,P.X(S2.lg),P.Y(lgE(R.te)),css('--l2'),5);P.c.restore();
+  $('lam2v').textContent=lam<0.001?lam.toExponential(0).replace('-','−'):fmtg(lam);
+  $('s2tr').textContent=fmtg(R.tr);$('s2te').textContent=fmtg(R.te);$('s2w').textContent=fmtg(Math.max(...R.w.map(Math.abs)));
+  $('t2').innerHTML=S2.lg<=-5.5?'📌 <b>過擬合</b>：λ 幾乎是 0，曲線為了穿過每個點（連雜訊也照單全收）而劇烈彎曲，係數大到數十、數百。訓練誤差很小，<b class="l2">測試誤差卻很大</b>。'
+    :S2.lg<=-1.5?'📌 <b>剛剛好</b>：權重衰減把係數壓小，曲線變平滑，貼近真正的 sin πx。訓練誤差稍微變大，但<b class="aw">測試誤差最小</b>——這才是我們要的「泛化」。'
+    :'📌 <b>欠擬合</b>：λ 太大，係數被壓得太小，曲線變得太平，連訓練資料都抓不住。訓練誤差和測試誤差都變大。λ 也是需要調的超參數。';
+}
+$('lam2').addEventListener('input',e=>{S2.lg=+e.target.value;draw2();});
+document.querySelectorAll('[data-l2]').forEach(b=>b.onclick=()=>{S2.lg=+b.dataset.l2;$('lam2').value=S2.lg;draw2();});
+
+/* ---------- 3. 衰減量比較 ---------- */
+const S3={a:1,b:-1,lam:0.1};
+function bars(el,rows){const lo=-4,hi=1;el.innerHTML=rows.map(([lab,val,col])=>{const w=Math.max(1,(Math.log10(Math.max(val,1e-6))-lo)/(hi-lo)*100);
+  return `<span>${lab}</span><div><div class="bar" style="width:${Math.min(100,w)}%;background:${col}"></div></div><span class="val">${fmtg(val)} η</span>`;}).join('');}
+function draw3(){
+  const gA=Math.pow(10,S3.a),gB=Math.pow(10,S3.b),lam=S3.lam,th=1;
+  const vA=Math.sqrt(gA*gA+(lam*th)**2),vB=Math.sqrt(gB*gB+(lam*th)**2),dA=lam*th/vA,dB=lam*th/vB;
+  $('gAv').textContent=fmtg(gA);$('gBv').textContent=fmtg(gB);$('lam3v').textContent=lam.toFixed(2);
+  bars($('bL'),[['參數 A',dA,css('--wa')],['參數 B',dB,css('--wb')]]);
+  bars($('bW'),[['參數 A',lam*th,css('--wa')],['參數 B',lam*th,css('--wb')]]);
+  $('o3').innerHTML=`Adam＋L2：A 衰減 ${fr('λθ','√v̂<sub>A</sub>')} = ${fr(fmtg(lam*th),fmtg(vA))} = <b class="l2">${fmtg(dA)}</b> η，　B 衰減 ${fr(fmtg(lam*th),fmtg(vB))} = <b class="l2">${fmtg(dB)}</b> η<br>AdamW：A、B 都衰減 λθ = <b class="aw">${fmtg(lam*th)}</b> η`;
+  const r=dB/dA;
+  $('t3').innerHTML=Math.abs(S3.a-S3.b)<0.01?'📌 兩個參數的梯度一樣大，Adam＋L2 和 AdamW 都讓它們衰減得一樣多。把兩個滑桿拉開看看！'
+    :`📌 <b class="l2">Adam＋L2</b>：梯度小的參數 ${gA>gB?'B':'A'} 被往 0 拉的力道，是梯度大的參數 ${gA>gB?'A':'B'} 的 <b>${fmtg(Math.max(r,1/r))} 倍</b>。梯度越大的參數，√v̂ 越大，<b>衰減反而越少</b>——正則化變得不公平：梯度大的權重幾乎沒有被正則化。<br><b class="aw">AdamW</b>：λθ 不經過 √v̂，每個參數都按同樣比例 (1 − ηλ) 衰減，和 SGD 的權重衰減一樣。`;
+}
+$('gA').addEventListener('input',e=>{S3.a=+e.target.value;draw3();});
+$('gB').addEventListener('input',e=>{S3.b=+e.target.value;draw3();});
+$('lam3').addEventListener('input',e=>{S3.lam=+e.target.value;draw3();});
+
+/* ---------- 4. 模擬 ---------- */
+const S4={lam:1,sA:10,sB:0.1},N4=3000,E4=0.001,Z4=(()=>{const r=rng(1711),a=[];for(let i=0;i<2*N4;i++)a.push(gauss(r));return a;})();
+function sim4(dec){const th=[1,1],m=[0,0],v=[0,0],s=[S4.sA,S4.sB],out=[[1],[1]];
+  for(let t=1;t<=N4;t++){for(let i=0;i<2;i++){let g=s[i]*Z4[2*(t-1)+i];if(!dec)g+=S4.lam*th[i];
+      m[i]=0.9*m[i]+0.1*g;v[i]=0.999*v[i]+0.001*g*g;const st=(m[i]/(1-Math.pow(0.9,t)))/(Math.sqrt(v[i]/(1-Math.pow(0.999,t)))+1e-8);
+      th[i]=th[i]-E4*st-(dec?E4*S4.lam*th[i]:0);out[i].push(th[i]);}}
+  return out;}
+function draw4(){
+  const L=sim4(false),W=sim4(true),ts=Array.from({length:N4+1},(_,i)=>i);
+  const P=plot($('c4'),0.66,[0,N4],[-0.4,1.2],{xl:'步數 t',sx:500,sy:0.2,maxH:360});P.clip();
+  line(P,[0,N4],[0,0],css('--axis'),1);line(P,ts,ts.map(t=>Math.pow(1-E4*S4.lam,t)),css('--mute'),2,[6,4]);
+  line(P,ts,L[0],css('--wa'),1.5,[2,2]);line(P,ts,L[1],css('--wb'),1.5,[2,2]);line(P,ts,W[0],css('--wa'),3.2);line(P,ts,W[1],css('--wb'),3.2);P.c.restore();
+  $('lam4v').textContent=S4.lam.toFixed(1);$('sAv').textContent=S4.sA;$('sBv').textContent=S4.sB.toFixed(2);
+  const at=(a,t)=>fmt(a[t],3),th=t=>fmt(Math.pow(1-E4*S4.lam,t),3);
+  $('tb4').innerHTML=`<tr><th>步數 t</th><th class="l2">L2：A</th><th class="l2">L2：B</th><th class="aw">W：A</th><th class="aw">W：B</th><th>(1−ηλ)<sup>t</sup></th></tr>`+
+    [500,1000,2000,3000].map(t=>`<tr><td>${t}</td><td>${at(L[0],t)}</td><td>${at(L[1],t)}</td><td>${at(W[0],t)}</td><td>${at(W[1],t)}</td><td>${th(t)}</td></tr>`).join('');
+  $('t4').innerHTML=`📌 <b class="l2">Adam＋L2（細虛線）</b>：雜訊小的 B 很快被壓到 0；雜訊大的 A 因為 √v̂ 很大，λθ 被除得幾乎沒作用，3000 步後還有 ${fmt(L[0][N4],2)}。<b>同樣是沒用的權重，命運完全不同。</b><br><b class="aw">AdamW（粗線）</b>：A、B 都貼著虛線 (1−ηλ)<sup>t</sup> 一起衰減，不管梯度雜訊多大，<b>衰減速度都一樣</b>。`;
+}
+[['lam4','lam'],['sA','sA'],['sB','sB']].forEach(([id,k])=>$(id).addEventListener('input',e=>{S4[k]=+e.target.value;draw4();}));
+
+/* ---------- 5. 程式 ---------- */
+$('code5').innerHTML=[
+ ['<span class="k">for</span> t <span class="k">in</span> range(1, T+1):',''],
+ ['    g     = grad_f(theta)','<span class="c"># 只有損失的梯度</span>'],
+ ['  # g   = grad_f(theta) + lam*theta','<span class="c"># ✘ Adam＋L2 的寫法</span>','bad'],
+ ['    m     = beta1*m + (1-beta1)*g',''],
+ ['    v     = beta2*v + (1-beta2)*g*g',''],
+ ['    m_hat = m / (1 - beta1**t)',''],
+ ['    v_hat = v / (1 - beta2**t)',''],
+ ['    theta = theta - eta*lam*theta','<span class="c"># ✔ 解耦的權重衰減</span>','hl'],
+ ['    theta = theta - eta*m_hat/(sqrt(v_hat)+eps)','<span class="c"># Adam 的更新</span>']].map(r=>`<div class="${r[2]||''}">${r[0]}  ${r[1]}</div>`).join('');
+
+/* ---------- 洛希洛夫老師 ---------- */
+const LO_SVG=`<svg viewBox="0 0 200 230" aria-label="洛希洛夫老師動畫">
+ <g class="bodyg">
+  <path d="M10 232 Q16 176 100 164 Q184 176 190 232 Z" fill="#4f9b5d"/>
+  <path d="M100 172 L100 206" stroke="#3f8450" stroke-width="2"/>
+  <circle cx="100" cy="186" r="2.2" fill="#e8efe6"/><circle cx="100" cy="199" r="2.2" fill="#e8efe6"/>
+  <rect x="86" y="132" width="28" height="34" rx="10" fill="#e8bfa3"/>
+  <path d="M88 158 L100 172 L112 158 L112 166 L100 176 L88 166 Z" fill="#e8bfa3"/>
+  <path d="M84 150 L72 172 L100 172 Z M116 150 L128 172 L100 172 Z" fill="#5aab69" stroke="#3f8450" stroke-width="1.6" stroke-linejoin="round"/>
+  <ellipse cx="67" cy="106" rx="6.5" ry="11" fill="#e8bfa3"/><ellipse cx="133" cy="106" rx="6.5" ry="11" fill="#e8bfa3"/>
+  <ellipse cx="100" cy="104" rx="33" ry="41" fill="#f3d0b8"/>
+  <ellipse class="blush" cx="80" cy="120" rx="7" ry="4.5" fill="#f08080"/>
+  <ellipse class="blush" cx="120" cy="120" rx="7" ry="4.5" fill="#f08080"/>
+  <path d="M67 92 Q62 66 76 54 Q90 44 108 46 Q128 48 134 64 Q138 78 133 92 Q130 78 124 72 Q116 66 104 68 Q96 64 88 68 Q78 72 74 82 Z" fill="#9c7a55"/>
+  <path d="M78 60 Q92 52 108 54 M84 66 Q98 58 114 60 M96 52 Q112 50 126 60" stroke="#b8956b" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <g class="hairL"><path d="M68 82 Q63 90 64 98 Q66 100 68 96 Q68 90 71 86 Z" fill="#8a6a47"/></g>
+  <g class="hairR"><path d="M132 82 Q137 90 136 98 Q134 100 132 96 Q132 90 129 86 Z" fill="#8a6a47"/></g>
+  <path class="brow browL" d="M75 88 Q84 85 93 88" stroke="#8a6a47" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+  <path class="brow browR" d="M107 88 Q116 85 125 88" stroke="#8a6a47" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+  <g class="eyes"><ellipse cx="85" cy="98" rx="4.4" ry="3" fill="#fff"/><ellipse cx="115" cy="98" rx="4.4" ry="3" fill="#fff"/>
+   <circle cx="85.4" cy="98.3" r="2.4" fill="#4e6274"/><circle cx="115.4" cy="98.3" r="2.4" fill="#4e6274"/>
+   <circle cx="85.4" cy="98.3" r="1.1" fill="#1e2228"/><circle cx="115.4" cy="98.3" r="1.1" fill="#1e2228"/>
+   <circle cx="86.3" cy="97.3" r="0.8" fill="#fff"/><circle cx="116.3" cy="97.3" r="0.8" fill="#fff"/></g>
+  <path d="M79 102 Q85 104 91 102 M109 102 Q115 104 121 102" stroke="#e0b49c" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  <path d="M100 103 Q98 113 96 117 Q100 121 105 118" stroke="#c9967a" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path class="mo n" d="M90 129 Q100 133 110 128" stroke="#a5584a" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path class="mo s" d="M88 126 Q100 140 112 126 Q100 130 88 126 Z" fill="#fff" stroke="#a5584a" stroke-width="1.8" stroke-linejoin="round"/>
+  <path class="mo f" d="M90 133 Q100 126 110 133" stroke="#a5584a" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path class="sweat" d="M138 70 Q143 80 138 84 Q133 80 138 70 Z" fill="#7cc3f0"/>
+  <text class="spark" x="30" y="44" font-size="18" fill="#f0b400">✦</text>
+  <text class="spark" x="160" y="40" font-size="14" fill="#f0b400">✦</text>
+  <text class="spark" x="170" y="96" font-size="11" fill="#f0b400">✦</text>
+ </g></svg>`;
+function makeAvatar(el,bubble){
+  el.innerHTML=LO_SVG;let tm=null;
+  function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
+  return {mood(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
+    if(m==='smile'){el.classList.add('smile');restart('hop');}
+    if(m==='frown'){el.classList.add('frown');restart('shake');}
+    if(text!==undefined){bubble.innerHTML=text;bubble.className='bubble'+(m==='smile'?' good':m==='frown'?' bad':'');}
+    if(!hold)tm=setTimeout(()=>{el.classList.remove('smile','frown');bubble.className='bubble';},3200);}};
+}
+var AV1=makeAvatar($('av1'),$('bub1')),AV2=makeAvatar($('av2'),$('bub2'));
+const QUOTES=[
+ '2017 年，我和弗萊堡大學的法蘭克・胡特在 arXiv 發表〈Decoupled Weight Decay Regularization〉，2019 年發表於 ICLR。',
+ '我們指出：在 SGD 裡，L2 正則化和權重衰減是等價的；但在 Adam 這類自適應方法裡，兩者<b>並不相等</b>。',
+ '修正方法很簡單：把權重衰減從梯度裡「解耦」出來，直接作用在參數上——這就是 AdamW。',
+ '解耦還有一個好處：最佳的學習率和權重衰減係數比較不會互相牽動，調參變得更容易。',
+ '我和胡特還提出了 SGDR：帶「熱重啟」的餘弦退火學習率排程（ICLR 2017），現在也很常用。',
+ '後來 PyTorch 等框架都內建了 AdamW，它成了訓練 Transformer 和大型語言模型最常用的優化器。'];
+let qi=0;$('av1').onclick=()=>AV1.mood('smile',QUOTES[qi++%QUOTES.length]);
+
+/* ---------- 6. 小測驗 ---------- */
+const QZ=[
+ {q:'權重衰減在每一步對參數做什麼？',o:['乘上 (1 − ηλ)，把它往 0 拉一點','加上一個隨機數','把它乘以 2','把梯度設成 0'],a:0,
+  e:'θ<sub>t</sub> = (1 − ηλ)θ<sub>t−1</sub> − ηg<sub>t</sub>。',h:'回到第 1 節的公式框。'},
+ {q:'一個對損失「沒有幫助」的權重，在權重衰減下會怎樣？',o:['按 (1−ηλ)<sup>t</sup> 指數衰減到 0','保持不變','越來越大','立刻變成 0'],a:0,
+  e:'沒有梯度撐住，只剩每步乘 (1 − ηλ)。',h:'看第 1 節橘色的 w₂。'},
+ {q:'為什麼需要權重衰減？',o:['防止過擬合：讓權重小、函數平滑，泛化更好','讓訓練誤差變成 0','讓學習率變大','讓模型參數變多'],a:0,
+  e:'第 2 節：λ ≈ 0 時曲線為了穿過每個點而劇烈彎曲，測試誤差很大。',h:'第 2 節按「λ ≈ 0」和「剛好」比較。'},
+ {q:'λ 設得太大會怎樣？',o:['欠擬合：訓練和測試誤差都變大','一定過擬合','完全沒有影響','訓練誤差變成 0'],a:0,
+  e:'權重被壓得太小，模型太簡單，連訓練資料都抓不住。',h:'第 2 節按「λ = 10」。'},
+ {q:'對 SGD 而言，L2 正則化和權重衰減的關係是？',o:['等價','完全無關','L2 一定比較好','權重衰減會發散'],a:0,
+  e:'θ − η(∇f + λθ) = (1 − ηλ)θ − η∇f。',h:'把 L2 的梯度 λθ 代進 SGD 的更新式。'},
+ {q:'Adam＋L2 的問題是什麼？',o:['λθ 被除以 √v̂，梯度大的參數衰減得少','Adam 不能用 L2','λθ 被放大 100 倍','它會讓梯度變成 0'],a:0,
+  e:'衰減量 ≈ ηλθ/√v̂，√v̂ 越大，衰減越少，正則化不公平。',h:'第 3 節把 A 的梯度拉大。'},
+ {q:'AdamW 怎麼修正這個問題？',o:['把 λθ 從梯度中拿出來，直接從參數減去（解耦）','把 λ 設成 0','改用 SGD','把 β₂ 設成 0'],a:0,
+  e:'θ<sub>t</sub> = θ<sub>t−1</sub> − η(m̂<sub>t</sub>/(√v̂<sub>t</sub>+ε) + λθ<sub>t−1</sub>)，λθ 不進入 m、v。',h:'看第 5 節綠色那一行。'},
+ {q:'PyTorch 的 torch.optim.Adam(..., weight_decay=λ) 是哪一種？',o:['L2 版本（不是 AdamW）','解耦版（就是 AdamW）','不做任何衰減','只衰減偏差 b'],a:0,
+  e:'要用解耦版請用 torch.optim.AdamW。',h:'第 5 節的 PyTorch 用法。'}
+];
+const PRAISE=['Great！答對了 😄','Excellent！權重衰減得剛剛好！','Nice！你的模型泛化得很好！','Perfect！完全解耦！'];
+let sc=0,dn=0,streak=0;
+function shuffle(a){return a.map(v=>[Math.random(),v]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);}
+function buildQuiz(){sc=0;dn=0;streak=0;$('score').style.display='none';
+  $('quiz').innerHTML=QZ.map((z,i)=>{const ord=shuffle(z.o.map((t,j)=>j));
+    return `<div class="q"><div><b>Q${i+1}.</b> ${z.q}</div><div class="opts">${ord.map(j=>`<button data-q="${i}" data-o="${j}">${z.o[j]}</button>`).join('')}</div><div class="fb" id="fb${i}"></div></div>`;}).join('');}
+$('quiz').onclick=e=>{const b=e.target.closest('button');if(!b)return;const i=+b.dataset.q,j=+b.dataset.o,z=QZ[i],box=b.parentElement;if(box.dataset.done)return;box.dataset.done=1;dn++;
+  if(j===z.a){b.classList.add('right');sc++;streak++;$('fb'+i).innerHTML='✔ 正確！'+z.e;
+    AV2.mood('smile',streak>=3?`連對 ${streak} 題！你的知識一點都沒有衰減 🎉`:PRAISE[Math.floor(Math.random()*PRAISE.length)]);}
+  else{b.classList.add('wrong');streak=0;[...box.children].forEach(x=>{if(+x.dataset.o===z.a)x.classList.add('right');});$('fb'+i).innerHTML='✘ '+z.e;AV2.mood('frown',z.h);}
+  if(dn===QZ.length){$('scoreTxt').textContent=`得分：${sc} / ${QZ.length}`;$('score').style.display='flex';
+    setTimeout(()=>{if(sc===QZ.length)AV2.mood('smile','滿分！從動量到 AdamW，整個優化器家族你都掌握了 🏆',true);
+      else if(sc>=QZ.length-2)AV2.mood('smile',`${sc} 分，很不錯！錯的題目回到對應小節再玩一下。`,true);
+      else AV2.mood('frown','建議回到第 1 節看權重怎麼衰減，再看第 3 節為什麼要解耦！',true);},3300);}
+};
+$('retry').onclick=()=>{buildQuiz();AV2.mood('','新的一輪！選項順序都換過了喔。');};
+
+/* ---------- init ---------- */
+draw1();draw2();draw3();draw4();buildQuiz();
+function redrawAll(){draw1();draw2();draw3();draw4();}
+let rz=null;window.addEventListener('resize',()=>{cancelAnimationFrame(rz);rz=requestAnimationFrame(redrawAll);});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redrawAll);
+</script>
+</body>
+</html>

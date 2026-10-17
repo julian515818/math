@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ResNet 殘差網路互動教學</title>
+<style>
+:root{
+  --bg:#f7f6f2;--card:#fff;--ink:#1d2330;--mute:#667085;--line:#e3e1da;--ok:#1f9d6b;--bad:#d6334f;
+  --grid:#eceae4;--axis:#9aa0ab;--accent:#2f6fdb;--tint:#eaf1fc;
+  --cv:#2f6fdb;--tan:#8b45d6;--gd:#1f9d6b;--path:#e07a1f;--pt:#1d2330;--warn:#c98a00;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+    --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+    --cv:#6c9dff;--tan:#b98bff;--gd:#4fd19d;--path:#ffa552;--pt:#f4f5f8;--warn:#ffd166;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+  --cv:#6c9dff;--tan:#b98bff;--gd:#4fd19d;--path:#ffa552;--pt:#f4f5f8;--warn:#ffd166;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.9rem}
+header p{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:18px}
+.card h2{margin:0 0 12px;font-size:1.22rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:.9rem;flex:none}
+h3{margin:0 0 6px;font-size:1.05rem}
+.m{font-family:"Times New Roman","Cambria Math",serif;font-style:italic}
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 2px;line-height:1.15}
+.frac>span:first-child{padding:0 3px 1px;border-bottom:1.3px solid currentColor}
+.frac>span:last-child{padding:1px 3px 0}
+.def{font-size:1.2rem;text-align:center;padding:14px;border-radius:10px;background:var(--tint);line-height:2.1}
+.note{color:var(--mute);font-size:.92rem}
+.gd{color:var(--gd)}.path{color:var(--path)}.tan{color:var(--tan)}.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start}
+.two>*{min-width:0}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.three>div{border:2px solid var(--line);border-radius:12px;padding:10px 14px}
+.three b.t{display:block;color:var(--accent)}
+@media (max-width:860px){.two,.three{grid-template-columns:minmax(0,1fr)}}
+.cvbox{width:100%;min-width:0}
+.sq{max-width:460px;margin:0 auto}
+canvas{width:100%;display:block;border-radius:10px;background:var(--bg);touch-action:none}
+label{font-size:.92rem;color:var(--mute);display:block}
+label b{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 12px}
+select{width:100%}
+button{cursor:pointer}button:hover{border-color:var(--accent)}
+button.pri,button.on{background:var(--accent);color:#fff;border-color:transparent}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:12px 18px;align-items:end}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(120px,100%),1fr));gap:10px;margin-top:10px}
+.stats>div{padding:8px 12px;border-radius:10px;background:var(--bg)}
+.stats small{display:block;color:var(--mute);font-size:.82rem}
+.stats b{font-size:1.2rem;font-variant-numeric:tabular-nums}
+.say{margin-top:10px;padding:10px 14px;border-left:4px solid var(--ok);background:var(--bg);border-radius:8px}
+.formula{font-size:1.08rem;line-height:2.3;overflow-x:auto;padding:4px 2px}
+.stepbar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:10px 0 8px}
+.stepbar div{height:100%;background:var(--accent);transition:width .3s}
+.explain{padding:10px 14px;border-radius:10px;background:var(--tint);min-height:3.4em}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.85rem;color:var(--mute);margin-top:6px}
+.legend i{display:inline-block;width:18px;height:4px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.zone{display:inline-block;padding:2px 10px;border-radius:999px;font-weight:700;color:#fff}
+/* quiz */
+.quiz .q{padding:12px 0;border-bottom:1px solid var(--line)}
+.quiz .q:last-child{border:none}
+.opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.opts button.right{background:var(--ok);color:#fff;border-color:transparent}
+.opts button.wrong{background:var(--bad);color:#fff;border-color:transparent}
+.fb{font-size:.92rem;margin-top:6px;min-height:1.2em}
+.score{margin-top:12px;font-size:1.15rem;font-weight:700;display:none;align-items:center;gap:12px;flex-wrap:wrap}
+footer{color:var(--mute);font-size:.85rem;text-align:center;margin-top:30px}
+/* ---------- avatar ---------- */
+.avwrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.av{width:100%;max-width:220px;cursor:pointer;user-select:none}
+.av svg{width:100%;display:block;overflow:visible;background:none}
+.av .bodyg{animation:bob 3.2s ease-in-out infinite;transform-origin:100px 200px}
+.av .eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+.av .hairL{animation:sway 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:top center}
+.av .hairR{animation:sway 3.2s ease-in-out infinite reverse;transform-box:fill-box;transform-origin:top center}
+.av .brow{transition:transform .3s;transform-box:fill-box}
+.av .browL{transform-origin:right center}.av .browR{transform-origin:left center}
+.av .mo{opacity:0;transition:opacity .25s}.av .mo.n{opacity:1}
+.av .blush,.av .sweat,.av .spark{opacity:0;transition:opacity .3s}
+.av.smile .mo.n,.av.frown .mo.n{opacity:0}
+.av.smile .mo.s{opacity:1}.av.frown .mo.f{opacity:1}
+.av.smile .blush{opacity:.55}.av.smile .spark{opacity:1}.av.frown .sweat{opacity:.9}
+.av.smile .brow{transform:translateY(-3px)}
+.av.frown .browL{transform:rotate(14deg) translateY(2px)}.av.frown .browR{transform:rotate(-14deg) translateY(2px)}
+.av.hop svg{animation:hop .7s ease}
+.av.shake svg{animation:shake .55s ease}
+.av .spark{animation:twinkle 1s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}
+@keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+@keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.bubble{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.95rem;margin-bottom:10px;min-height:2.6em;max-width:260px;text-align:center;transition:border-color .3s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--line);border-bottom:0}
+.bubble.good{border-color:var(--ok)}.bubble.good::after{border-top-color:var(--ok)}
+.bubble.bad{border-color:var(--bad)}.bubble.bad::after{border-top-color:var(--bad)}
+.intro{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:center}
+.intro>*,.qgrid>*{min-width:0}
+.intro .avwrap{flex-direction:row;gap:10px}.intro .bubble{flex:1;margin:0}.intro .bubble::after{display:none}.intro .av{width:125px;flex:none}
+.qgrid{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:18px;align-items:start}
+.qgrid .avwrap{position:sticky;top:12px}
+@media (max-width:860px){.intro,.qgrid{grid-template-columns:minmax(0,1fr)}.intro .avwrap{flex-direction:column}.intro .bubble{margin-bottom:10px}.intro .bubble::after{display:block}.intro .av,.qgrid .av{width:auto;max-width:140px}.qgrid .avwrap{position:static;order:-1}}
+
+</style>
+<style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line,#e3e1da);border-radius:12px;background:var(--card,var(--surface,#fff));color:var(--ink,#1d2330);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+.pu-badge img{width:58px;height:58px;display:block}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute,var(--muted,#667085))}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+</style>
+</head>
+<body>
+<style>
+.blk{display:inline-flex;align-items:center;justify-content:center;border-radius:8px;padding:4px 8px;font-size:.85rem;border:2px solid var(--line);background:var(--bg)}
+.vec{display:flex;gap:6px;align-items:flex-end;height:120px;padding:6px 8px;border-radius:10px;background:var(--bg)}
+.vec .bar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;font-size:.75rem;color:var(--mute);height:100%}
+.vec .bar i{display:block;width:100%;border-radius:4px 4px 0 0;transition:height .35s,background .35s}
+.vec .bar i.neg{border-radius:0 0 4px 4px}
+.vecwrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr));gap:10px}
+.vecwrap h4{margin:0 0 4px;font-size:.9rem;color:var(--mute);font-weight:500}
+.vecwrap .act h4{color:var(--path);font-weight:700}
+.vecwrap .act .vec{outline:2px solid var(--path)}
+.dg{width:100%;max-width:420px;display:block;margin:0 auto}
+.dg text{font-family:inherit}
+.models{display:flex;gap:8px;flex-wrap:wrap}
+.stage{display:grid;grid-template-columns:96px minmax(0,1fr);gap:10px;align-items:center;margin:6px 0}
+.stage .lab{font-size:.82rem;color:var(--mute);line-height:1.3}
+.stage .lab b{color:var(--ink);display:block}
+.blocks{display:flex;flex-wrap:wrap;gap:4px 3px;padding-top:9px}
+.rb{position:relative;width:17px;height:15px;border-radius:3px}
+.rb::before{content:"";position:absolute;left:1px;right:1px;top:-8px;height:7px;border:1.6px solid var(--path);border-bottom:none;border-radius:8px 8px 0 0}
+.rb.proj::before{border-style:dashed;border-color:var(--bad)}
+.tblw{overflow-x:auto}
+table.t{border-collapse:collapse;width:100%;font-size:.9rem;min-width:560px}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:center}
+table.t th{color:var(--mute);font-weight:600}
+table.t td.l{text-align:left}
+.mat{display:inline-flex;flex-direction:column;border-left:1.5px solid currentColor;border-right:1.5px solid currentColor;border-radius:4px;padding:0 6px;line-height:1.35;vertical-align:middle;font-size:.85rem}
+.hl{background:var(--tint);border-radius:6px;padding:0 4px}
+</style>
+
+<div class="wrap">
+<header class="pu-hd">
+  <div class="pu-hd-main">
+  <h1>ResNet 殘差網路互動教學</h1>
+  <p>工程數學 ・ 互動教學：深度學習（Deep Learning）中的殘差學習（Residual Learning）——為什麼加一條「捷徑」就能訓練上百層的網路？</p>
+</div>
+  <div class="pu-badge"><img alt="靜宜大學校徽" src="data:image/webp;base64,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"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</header>
+
+<!-- 0 -->
+<section class="card">
+  <h2><span class="num">0</span>一句話：不要學「答案」，學「要改多少」</h2>
+  <div class="intro">
+    <div>
+      <div class="def">
+        一般的層要直接學出目標映射 <span class="m">H</span>(<span class="m">x</span>)；<br>
+        <b>殘差區塊</b>只學「差多少」：<span class="m">F</span>(<span class="m">x</span>) = <span class="m">H</span>(<span class="m">x</span>) − <span class="m">x</span>，再把輸入加回去<br>
+        <span style="font-size:1.35rem"><b><span class="m">y</span> = <span class="path"><span class="m">F</span>(<span class="m">x</span>)</span> + <span class="gd"><span class="m">x</span></span></b></span>
+      </div>
+      <p class="note" style="margin-top:10px">ResNet（Residual Network，殘差網路）由何凱明、張祥雨、任少卿、孫劍於 2015 年提出（論文〈Deep Residual Learning for Image Recognition〉）。那條把 <span class="m">x</span> 直接送到後面相加的線，叫做<b>捷徑連接（shortcut / skip connection）</b>；它不增加任何參數，卻讓 152 層的網路也訓練得動。</p>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub1">大家好！我是何凱明。這一頁帶你看懂 ResNet 的「捷徑」。點我聽故事！</div><div class="av" id="av1"></div></div>
+  </div>
+</section>
+
+<!-- 1 -->
+<section class="card">
+  <h2><span class="num">1</span>越深越好？「退化問題」（Degradation）</h2>
+  <div class="two">
+    <div>
+      <p>直覺上，網路越深、能力越強。但實驗發現：把一般的卷積網路（論文稱為 <b>plain 網路</b>）從 18 層加深到 34 層，<b>錯誤率反而上升</b>——而且連<b>訓練誤差</b>都變高，所以不是過擬合（overfitting），而是「深的網路比較難訓練」。</p>
+      <p><b>奇怪的地方</b>：34 層的網路其實可以「至少跟 18 層一樣好」——只要把前 18 層照抄，多出來的 16 層全部學成<b>恆等映射（identity）</b>，輸出就和 18 層一模一樣。可見問題出在：<span class="hl">一疊非線性層很難學會「什麼都不做」</span>。</p>
+      <div class="row" style="margin:8px 0">
+        <button data-m="plain" class="on">Plain 網路</button>
+        <button data-m="res">ResNet</button>
+        <button data-m="both">兩者比較</button>
+      </div>
+      <div class="say" id="say1"></div>
+    </div>
+    <div>
+      <canvas id="c1" height="300"></canvas>
+      <p class="note">資料：論文 Table 2，ImageNet 驗證集 top-1 錯誤率（%，10-crop 測試）。越低越好。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="card">
+  <h2><span class="num">2</span><span>殘差區塊：<span class="m">y</span> = <span class="m">F</span>(<span class="m">x</span>) + <span class="m">x</span></span></h2>
+  <div class="two">
+    <div>
+      <svg class="dg" id="dg2" viewBox="0 0 400 330" aria-label="殘差區塊示意圖"></svg>
+      <div class="row" style="justify-content:center;margin-top:6px">
+        <button id="sc2" class="on">捷徑：開</button>
+      </div>
+      <p class="note">左邊兩個「權重層」（論文中是 3×3 卷積＋BatchNorm）合起來就是 <span class="m">F</span>(<span class="m">x</span>)；右邊的弧線是捷徑，把 <span class="m">x</span> 原封不動送到 ⊕ 相加，最後再過 ReLU。關掉捷徑，就變回 plain 網路的兩層。</p>
+    </div>
+    <div>
+      <h3>數字走一遍（4 維向量，權重層用矩陣乘法代替卷積）</h3>
+      <div class="vecwrap" id="vw2"></div>
+      <div class="stepbar"><div id="pb2"></div></div>
+      <div class="row">
+        <button id="r2">⟲ 重來</button><button id="p2">◀ 上一步</button><button id="n2" class="pri">下一步 ▶</button><button id="a2">▶ 自動播放</button>
+      </div>
+      <div class="explain" id="ex2" style="margin-top:8px"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="card">
+  <h2><span class="num">3</span>為什麼「學殘差」比較容易？</h2>
+  <div class="two">
+    <div>
+      <p>假設這一層最理想的輸出 <span class="m">H</span>(<span class="m">x</span>) <b>很接近輸入本身</b>（深層網路裡常常如此：每一層只需要做一點點修正）。</p>
+      <p>訓練剛開始時權重都很小，各層的輸出接近 0：</p>
+      <ul>
+        <li><span style="color:var(--cv)"><b>Plain</b></span>：輸出 ≈ 0，離目標很遠，要從頭學出整個 <span class="m">H</span>(<span class="m">x</span>)。</li>
+        <li><span class="path"><b>殘差</b></span>：輸出 ≈ 0 + <span class="m">x</span> = <span class="m">x</span>，一開始就接近目標，只要再學一點點修正 <span class="m">F</span>(<span class="m">x</span>)。</li>
+      </ul>
+      <label>目標和恆等映射差多少 <span class="m">c</span>：<b id="cV"></b>　（<span class="m">H</span>(<span class="m">x</span>) = <span class="m">x</span> + <span class="m">c</span>·sin 1.5<span class="m">x</span>）
+        <input type="range" id="cS" min="0" max="1.5" step="0.05" value="0.3"></label>
+      <div class="stats">
+        <div><small>Plain 初始誤差（MSE）</small><b style="color:var(--cv)" id="e3p"></b></div>
+        <div><small>殘差 初始誤差（MSE）</small><b class="path" id="e3r"></b></div>
+        <div><small>殘差的誤差是 plain 的</small><b id="e3q"></b></div>
+      </div>
+      <div class="say" id="say3"></div>
+    </div>
+    <div>
+      <canvas id="c3a" height="250"></canvas>
+      <div class="legend"><span><i style="background:var(--pt)"></i>目標 H(x)</span><span><i style="background:var(--cv)"></i>Plain 初始輸出 ≈ 0</span><span><i style="background:var(--path)"></i>殘差初始輸出 = x</span></div>
+      <canvas id="c3b" height="170" style="margin-top:10px"></canvas>
+      <div class="legend"><span><i style="background:var(--cv)"></i>Plain 要學的：H(x)</span><span><i style="background:var(--path)"></i>殘差要學的：F(x) = H(x) − x</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="card">
+  <h2><span class="num">4</span>梯度的高速公路</h2>
+  <div class="two">
+    <div>
+      <p>反向傳播時，梯度要從最後一層一路乘回第一層（連鎖法則）：</p>
+      <div class="formula">
+        <b style="color:var(--cv)">Plain：</b>
+        <span class="frac"><span>∂<span class="m">L</span></span><span>∂<span class="m">x</span><sub>0</sub></span></span> =
+        <span class="frac"><span>∂<span class="m">L</span></span><span>∂<span class="m">x</span><sub><span class="m">L</span></sub></span></span> ·
+        <span class="frac"><span>∂<span class="m">f</span><sub><span class="m">L</span></sub></span><span>∂<span class="m">x</span></span></span> ⋯
+        <span class="frac"><span>∂<span class="m">f</span><sub>1</sub></span><span>∂<span class="m">x</span></span></span>
+        　← 很多小於 1 的數相乘 → 趨近 0（梯度消失）<br>
+        <b class="path">殘差：</b>
+        <span class="frac"><span>∂<span class="m">L</span></span><span>∂<span class="m">x</span><sub>0</sub></span></span> =
+        <span class="frac"><span>∂<span class="m">L</span></span><span>∂<span class="m">x</span><sub><span class="m">L</span></sub></span></span> ·
+        (1 + <span class="frac"><span>∂<span class="m">F</span><sub><span class="m">L</span></sub></span><span>∂<span class="m">x</span></span></span>) ⋯
+        (1 + <span class="frac"><span>∂<span class="m">F</span><sub>1</sub></span><span>∂<span class="m">x</span></span></span>)
+      </div>
+      <p>把兩個區塊乘開：(1 + <span class="m">F</span>′<sub>2</sub>)(1 + <span class="m">F</span>′<sub>1</sub>) = <b class="gd">1</b> + <span class="m">F</span>′<sub>1</sub> + <span class="m">F</span>′<sub>2</sub> + <span class="m">F</span>′<sub>2</sub><span class="m">F</span>′<sub>1</sub>。<br>不管疊多少層，展開後<b>永遠有一項是 1</b>——梯度可以沿著捷徑直接走回最前面。</p>
+      <div class="ctl">
+        <label>層數 <span class="m">L</span>：<b id="LV"></b><input type="range" id="LS" min="2" max="100" step="1" value="50"></label>
+        <label>權重初始化大小 σ：<b id="sV"></b><input type="range" id="sS" min="0.3" max="2" step="0.05" value="0.7"></label>
+      </div>
+      <div class="row" style="margin-top:8px"><button id="rs4">🎲 重新抽權重</button></div>
+      <div class="stats">
+        <div><small>Plain：第 1 層梯度大小</small><b style="color:var(--cv)" id="g4p"></b></div>
+        <div><small>殘差：第 1 層梯度大小</small><b class="path" id="g4r"></b></div>
+      </div>
+    </div>
+    <div>
+      <canvas id="c4" height="320"></canvas>
+      <div class="legend"><span><i style="background:var(--cv)"></i>Plain：h ← tanh(Wh)</span><span><i style="background:var(--path)"></i>殘差：h ← h + 0.5·tanh(Wh)</span></div>
+      <p class="note">這是在你的瀏覽器裡真的算出來的：寬度 16 的 tanh 網路，隨機權重，最後一層梯度大小設為 1，往回做反向傳播，畫出每一層的 ‖∂L/∂h‖（對數刻度）。真正的 ResNet 還有 BatchNorm 控制分支大小，這裡用 0.5 倍代替。試著改 σ：plain 只有在 σ 剛好合適時梯度才不會消失或爆炸，殘差則在很大範圍內都穩定。</p>
+      <div class="say" id="say4"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="card">
+  <h2><span class="num">5</span>ResNet 家族：18、34、50、101、152 層</h2>
+  <div class="models" id="mb5"></div>
+  <div class="stats" id="st5"></div>
+  <div style="margin-top:10px" id="vis5"></div>
+  <div class="legend"><span><i style="background:var(--path)"></i>恆等捷徑（直接相加）</span><span><i style="background:var(--bad)"></i>虛線：投影捷徑（1×1 卷積，用在通道數或尺寸改變的地方）</span></div>
+  <div class="tblw" style="margin-top:12px"><table class="t" id="tb5"></table></div>
+  <div class="two" style="margin-top:16px">
+    <div>
+      <h3>Basic block（ResNet-18 / 34）</h3>
+      <p>兩個 3×3 卷積。以 64 通道為例，權重數 = 3·3·64·64 × 2 = <b id="pbB"></b></p>
+    </div>
+    <div>
+      <h3>Bottleneck block（ResNet-50 / 101 / 152）</h3>
+      <p>1×1 先<b>降維</b>（256→64）、3×3 在低維度做卷積、1×1 再<b>升維</b>（64→256）。<br>權重數 = 1·1·256·64 + 3·3·64·64 + 1·1·64·256 = <b id="pbN"></b></p>
+    </div>
+  </div>
+  <p class="note">處理 4 倍通道（256），bottleneck 的權重數卻和 64 通道的 basic block 差不多——這就是 ResNet-50 以上能做得又深又不太貴的原因。參數總數由程式依架構計算（含 BatchNorm 與投影捷徑），和 PyTorch torchvision 的 resnet18～152 一致；FLOPs 取自論文 Table 1。</p>
+</section>
+
+<!-- 6 -->
+<section class="card quiz">
+  <h2><span class="num">6</span>小測驗</h2>
+  <div class="qgrid">
+    <div id="quiz"></div>
+    <div class="avwrap"><div class="bubble" id="bub2">來考考你！答對我會笑，答錯我會皺眉喔。</div><div class="av" id="av2"></div></div>
+  </div>
+  <div class="score" id="score"><span id="scoreT"></span><button id="again" class="pri">再做一次</button></div>
+</section>
+
+<footer>ResNet 殘差網路互動教學 ・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+function sizeCanvas(cv){const r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1,h=+cv.getAttribute('height');
+  cv.width=Math.max(10,r.width*d);cv.height=h*d;cv.style.height=h+'px';const c=cv.getContext('2d');c.setTransform(d,0,0,d,0,0);return {c,w:r.width,h};}
+const fmt=(x,n=2)=>x.toLocaleString('en-US',{maximumFractionDigits:n,minimumFractionDigits:n});
+
+/* ---------- 何凱明老師 頭像 ---------- */
+const HE_SVG=`<svg viewBox="0 0 200 230" aria-label="何凱明老師動畫">
+ <g class="bodyg">
+  <path d="M10 232 Q14 170 100 158 Q186 170 190 232 Z" fill="#8f9399"/>
+  <path d="M70 154 Q100 172 130 154 Q141 163 137 176 Q100 192 63 176 Q59 163 70 154 Z" fill="#a7abb1"/>
+  <path d="M86 158 L100 190 L114 158 Z" fill="#2c2f35"/>
+  <path d="M150 170 L170 176 L154 232 L134 232 Z" fill="#26282c"/>
+  <rect x="86" y="132" width="28" height="30" rx="10" fill="#e6bf9f"/>
+  <ellipse cx="68" cy="106" rx="6" ry="10" fill="#e6bf9f"/><ellipse cx="132" cy="106" rx="6" ry="10" fill="#e6bf9f"/>
+  <path d="M63 112 Q57 66 78 50 Q98 38 122 46 Q143 58 138 112 Q134 84 120 72 L80 72 Q66 84 63 112 Z" fill="#1c1a1d"/>
+  <ellipse cx="100" cy="104" rx="32" ry="39" fill="#f2d0b4"/>
+  <ellipse class="blush" cx="81" cy="120" rx="7" ry="4.5" fill="#f08080"/>
+  <ellipse class="blush" cx="119" cy="120" rx="7" ry="4.5" fill="#f08080"/>
+  <path d="M66 100 Q61 61 86 50 Q106 43 125 51 Q142 62 135 100 L131 87 L128 97 L122 81 L117 94 L111 79 L105 92 L98 77 L92 93 L87 80 L81 95 L77 84 L72 99 Z" fill="#1c1a1d"/>
+  <path d="M84 58 Q98 52 114 56 M78 66 Q92 60 104 62" stroke="#3a373d" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <g class="hairL"><path d="M67 84 Q59 96 62 115 L67 117 Q65 100 71 90 Z" fill="#1c1a1d"/></g>
+  <g class="hairR"><path d="M133 84 Q141 96 138 115 L133 117 Q135 100 129 90 Z" fill="#1c1a1d"/></g>
+  <path class="brow browL" d="M76 90 Q84 87 93 89" stroke="#1d1b1f" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+  <path class="brow browR" d="M107 89 Q116 87 124 90" stroke="#1d1b1f" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+  <g class="eyes"><ellipse cx="85" cy="99" rx="4.2" ry="2.8" fill="#fff"/><ellipse cx="115" cy="99" rx="4.2" ry="2.8" fill="#fff"/>
+   <circle cx="85.4" cy="99.2" r="2.3" fill="#231c19"/><circle cx="115.4" cy="99.2" r="2.3" fill="#231c19"/>
+   <circle cx="86.1" cy="98.3" r="0.8" fill="#fff"/><circle cx="116.1" cy="98.3" r="0.8" fill="#fff"/></g>
+  <rect x="73" y="92" width="24" height="15" rx="4" fill="rgba(210,225,240,.18)" stroke="#a9b2bc" stroke-width="1.4"/>
+  <rect x="103" y="92" width="24" height="15" rx="4" fill="rgba(210,225,240,.18)" stroke="#a9b2bc" stroke-width="1.4"/>
+  <path d="M97 97 Q100 95 103 97 M73 96 L67 97 M127 96 L133 97" stroke="#a9b2bc" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+  <path d="M100 106 Q98 115 96 118 Q100 121 105 119" stroke="#c9967a" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path class="mo n" d="M88 127 Q100 137 112 127 Q100 130 88 127 Z" fill="#fff" stroke="#8a4a3a" stroke-width="1.8" stroke-linejoin="round"/>
+  <path class="mo s" d="M86 125 Q100 143 114 125 Q100 130 86 125 Z" fill="#fff" stroke="#8a4a3a" stroke-width="1.8" stroke-linejoin="round"/>
+  <path class="mo f" d="M90 134 Q100 127 110 134" stroke="#8a4a3a" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <path class="sweat" d="M139 72 Q144 82 139 86 Q134 82 139 72 Z" fill="#7cc3f0"/>
+  <text class="spark" x="30" y="44" font-size="18" fill="#f0b400">✦</text>
+  <text class="spark" x="160" y="40" font-size="14" fill="#f0b400">✦</text>
+  <text class="spark" x="170" y="96" font-size="11" fill="#f0b400">✦</text>
+ </g></svg>`;
+function makeAvatar(el,bubble){
+  el.innerHTML=HE_SVG;let tm=null;
+  function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
+  return {mood(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
+    if(m==='smile'){el.classList.add('smile');restart('hop');}
+    if(m==='frown'){el.classList.add('frown');restart('shake');}
+    if(text!==undefined){bubble.innerHTML=text;bubble.className='bubble'+(m==='smile'?' good':m==='frown'?' bad':'');}
+    if(!hold)tm=setTimeout(()=>{el.classList.remove('smile','frown');bubble.className='bubble';},3200);}};
+}
+var AV1=makeAvatar($('av1'),$('bub1')),AV2=makeAvatar($('av2'),$('bub2'));
+const QUOTES=[
+ '2015 年，我和張祥雨、任少卿、孫劍在<b>微軟亞洲研究院</b>寫了〈Deep Residual Learning for Image Recognition〉。',
+ '那年的 <b>ImageNet（ILSVRC 2015）</b>分類比賽，我們用 <b>152 層</b>的 ResNet 拿下冠軍，top-5 錯誤率 3.57%。前一年的冠軍 GoogLeNet 只有 22 層。',
+ '同一年，ResNet 也拿下 ImageNet 的偵測、定位，以及 COCO 的偵測與分割冠軍——好的「骨幹網路」對每個任務都有幫助。',
+ '這篇論文得到 <b>CVPR 2016 最佳論文獎</b>，也是 21 世紀被引用次數最多的論文之一。',
+ '更早在 2009 年，我用「<b>暗通道先驗</b>」做影像去霧，那篇論文也拿到 CVPR 最佳論文獎。',
+ '我在清華大學念大學，到香港中文大學讀博士；後來去了 Facebook AI Research（FAIR），現在在 MIT 任教。',
+];
+let qi=0;$('av1').onclick=()=>AV1.mood('smile',QUOTES[qi++%QUOTES.length]);
+
+/* ---------- 1. 退化問題 ---------- */
+const T2={plain:[27.94,28.54],res:[27.88,25.03]};let m1='plain';
+function draw1(){const {c,w,h}=sizeCanvas($('c1'));const pad={l:44,r:12,t:14,b:46};
+  const lo=24,hi=29.5,Y=v=>pad.t+(hi-v)/(hi-lo)*(h-pad.t-pad.b);
+  c.strokeStyle=css('--grid');c.fillStyle=css('--mute');c.font='12px sans-serif';c.textAlign='right';
+  for(let v=24;v<=29;v++){c.beginPath();c.moveTo(pad.l,Y(v));c.lineTo(w-pad.r,Y(v));c.stroke();c.fillText(v+'%',pad.l-6,Y(v)+4);}
+  const show=m1==='both'?['plain','res']:[m1];const groups=['18 層','34 層'];
+  const gw=(w-pad.l-pad.r)/2,bw=Math.min(70,gw/(show.length+1.2));
+  groups.forEach((g,gi)=>{show.forEach((k,ki)=>{const v=T2[k][gi];const x=pad.l+gw*gi+gw/2-(show.length*bw)/2+ki*bw+4;
+    c.fillStyle=k==='plain'?css('--cv'):css('--path');c.fillRect(x,Y(v),bw-8,Y(lo)-Y(v));
+    c.fillStyle=css('--ink');c.textAlign='center';c.font='bold 13px sans-serif';c.fillText(v.toFixed(2),x+(bw-8)/2,Y(v)-6);});
+    c.fillStyle=css('--mute');c.font='13px sans-serif';c.textAlign='center';c.fillText(groups[gi],pad.l+gw*gi+gw/2,h-pad.b+20);});
+  if(m1==='both'){c.textAlign='left';c.font='12px sans-serif';c.fillStyle=css('--cv');c.fillText('■ Plain',pad.l+6,h-8);c.fillStyle=css('--path');c.fillText('■ ResNet',pad.l+70,h-8);}
+  const s={plain:`Plain：18 層 ${T2.plain[0]}% → 34 層 <b class="bad">${T2.plain[1]}%</b>，<b>更深反而更差</b>（+${(T2.plain[1]-T2.plain[0]).toFixed(2)}%）。這就是退化問題。`,
+    res:`ResNet：18 層 ${T2.res[0]}% → 34 層 <b class="ok">${T2.res[1]}%</b>，<b>更深就更好</b>（−${(T2.res[0]-T2.res[1]).toFixed(2)}%）。唯一的差別只是加了捷徑。`,
+    both:`同樣 34 層，加了捷徑後錯誤率從 ${T2.plain[1]}% 降到 ${T2.res[1]}%（少了 ${(T2.plain[1]-T2.res[1]).toFixed(2)}%）；18 層時兩者幾乎一樣（${T2.plain[0]}% vs ${T2.res[0]}%）——<b>網路越深，捷徑越重要</b>。`};
+  $('say1').innerHTML=s[m1];}
+document.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{m1=b.dataset.m;document.querySelectorAll('[data-m]').forEach(x=>x.classList.toggle('on',x===b));draw1();});
+
+/* ---------- 2. 殘差區塊 ---------- */
+let sc2=true;
+function drawDg(active){const s=$('dg2');const C=k=>css(k);const on=k=>active===k?C('--path'):C('--line');
+  const box=(y,t,k)=>`<rect x="110" y="${y}" width="150" height="36" rx="9" fill="${C('--card')}" stroke="${on(k)}" stroke-width="2.4"/><text x="185" y="${y+23}" text-anchor="middle" font-size="14" fill="${C('--ink')}">${t}</text>`;
+  const arrow=(y1,y2)=>`<line x1="185" y1="${y1}" x2="185" y2="${y2-6}" stroke="${C('--mute')}" stroke-width="1.8"/><path d="M180 ${y2-8} L185 ${y2} L190 ${y2-8} Z" fill="${C('--mute')}"/>`;
+  let g=`<text x="185" y="20" text-anchor="middle" font-size="15" fill="${C('--ink')}" font-style="italic" font-family="Times New Roman,serif">x</text>`+arrow(26,48)+
+   box(48,'權重層（W₁）','w1')+arrow(84,104)+box(104,'ReLU','r1')+arrow(140,160)+box(160,'權重層（W₂）','w2')+arrow(196,226);
+  g+=`<circle cx="185" cy="240" r="14" fill="${C('--card')}" stroke="${on('add')}" stroke-width="2.4"/><text x="185" y="246" text-anchor="middle" font-size="18" fill="${C('--ink')}">${sc2?'+':'·'}</text>`+arrow(254,276)+
+   `<rect x="110" y="276" width="150" height="34" rx="9" fill="${C('--card')}" stroke="${on('r2')}" stroke-width="2.4"/><text x="185" y="298" text-anchor="middle" font-size="14" fill="${C('--ink')}">ReLU → 輸出 y</text>`;
+  g+=`<text x="96" y="145" text-anchor="end" font-size="14" fill="${C('--path')}">F(x)</text><path d="M100 54 Q88 54 88 70 L88 180 Q88 196 100 196" stroke="${C('--path')}" stroke-width="1.6" fill="none"/>`;
+  if(sc2){g+=`<path d="M200 32 Q330 40 330 140 Q330 236 205 240" stroke="${active==='add'||active==='x'?C('--path'):C('--gd')}" stroke-width="3" fill="none"/><path d="M212 234 L200 240 L212 246 Z" fill="${C('--gd')}"/>
+   <text x="338" y="136" font-size="14" fill="${C('--gd')}">恆等捷徑</text><text x="338" y="156" font-size="14" fill="${C('--gd')}" font-style="italic" font-family="Times New Roman,serif">x</text>`;}
+  else g+=`<text x="300" y="140" font-size="13" fill="${C('--mute')}">（沒有捷徑：</text><text x="300" y="158" font-size="13" fill="${C('--mute')}">plain 兩層）</text>`;
+  s.innerHTML=g;}
+const X2=[1.0,-0.5,2.0,0.8];
+const W1=[[0.2,-0.1,0.1,0.0],[0.0,0.3,-0.2,0.1],[-0.1,0.0,0.2,0.3],[0.1,0.1,0.0,-0.2]];
+const W2=[[0.3,0.0,-0.1,0.2],[-0.2,0.1,0.0,0.1],[0.0,0.2,0.1,-0.1],[0.1,-0.3,0.2,0.0]];
+const mv=(W,v)=>W.map(r=>r.reduce((s,a,i)=>s+a*v[i],0));
+const relu=v=>v.map(a=>Math.max(0,a));
+function steps2(){const a=mv(W1,X2),b=relu(a),F=mv(W2,b),s=sc2?F.map((f,i)=>f+X2[i]):F,y=relu(s);
+  return [
+   {k:'x',vs:[['輸入 x',X2]],t:'輸入向量 <b>x</b> = ['+X2.join(', ')+']。'},
+   {k:'w1',vs:[['輸入 x',X2],['W₁x',a]],t:'第一個權重層：<b>W₁x</b>。權重很小，所以結果也很小。'},
+   {k:'r1',vs:[['輸入 x',X2],['ReLU(W₁x)',b]],t:'ReLU：負的變成 0。'},
+   {k:'w2',vs:[['輸入 x',X2],['F(x) = W₂·ReLU(W₁x)',F]],t:'第二個權重層得到殘差 <b>F(x)</b>——只是一點點「修正量」。'},
+   {k:'add',vs:[['輸入 x',X2],['F(x)',F],[sc2?'F(x) + x':'F(x)（沒有捷徑）',s]],t:sc2?'<b>捷徑把 x 加回來</b>：F(x) + x。輸出 ≈ 輸入＋小修正，原本的資訊完整保留。':'沒有捷徑：輸出只剩 F(x)，原本 x 的資訊幾乎全被小權重「壓扁」了。'},
+   {k:'r2',vs:[['輸入 x',X2],['輸出 y',y]],t:sc2?'最後 ReLU 得到 <b>y</b>。和 x 很像——殘差區塊預設就是「幾乎什麼都不做」，要改什麼再慢慢學。':'最後 ReLU 得到 y，和輸入 x 差很多。要讓 plain 兩層學成「什麼都不做」，權重必須剛好等於反矩陣——很難。'}];}
+let st2=0,tim2=null;
+function render2(){const S=steps2();st2=Math.max(0,Math.min(S.length-1,st2));const s=S[st2];
+  $('vw2').innerHTML=s.vs.map(([nm,v],i)=>`<div class="${i===s.vs.length-1&&st2>0?'act':''}"><h4>${nm}</h4><div class="vec">${v.map(a=>{const hpx=Math.min(48,Math.abs(a)*22);
+    return `<div class="bar"><div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;width:100%">${a>=0?`<i style="height:${hpx}px;background:${css('--path')}"></i>`:''}</div><div style="height:1px;width:100%;background:${css('--axis')}"></div><div style="flex:1;width:100%">${a<0?`<i class="neg" style="height:${hpx}px;background:${css('--cv')}"></i>`:''}</div><span>${a.toFixed(2)}</span></div>`;}).join('')}</div></div>`).join('');
+  $('ex2').innerHTML=`<b>步驟 ${st2+1} / ${S.length}</b>：${s.t}`;$('pb2').style.width=((st2+1)/S.length*100)+'%';drawDg(s.k);}
+$('n2').onclick=()=>{st2++;render2();};$('p2').onclick=()=>{st2--;render2();};$('r2').onclick=()=>{st2=0;render2();};
+$('a2').onclick=()=>{if(tim2){clearInterval(tim2);tim2=null;$('a2').textContent='▶ 自動播放';return;}
+  if(st2>=5)st2=0;render2();$('a2').textContent='⏸ 暫停';tim2=setInterval(()=>{if(st2>=5){clearInterval(tim2);tim2=null;$('a2').textContent='▶ 自動播放';return;}st2++;render2();},1300);};
+$('sc2').onclick=()=>{sc2=!sc2;$('sc2').textContent='捷徑：'+(sc2?'開':'關');$('sc2').classList.toggle('on',sc2);render2();};
+
+/* ---------- 3. 學殘差比較容易 ---------- */
+function draw3(){const cc=+$('cS').value;$('cV').textContent=cc.toFixed(2);
+  const H=x=>x+cc*Math.sin(1.5*x),N=301,xs=[...Array(N)].map((_,i)=>-3+6*i/(N-1));
+  const mseP=xs.reduce((s,x)=>s+H(x)**2,0)/N,mseR=xs.reduce((s,x)=>s+(H(x)-x)**2,0)/N;
+  $('e3p').textContent=fmt(mseP,3);$('e3r').textContent=fmt(mseR,3);$('e3q').textContent=(mseR/mseP*100).toFixed(1)+'%';
+  $('say3').innerHTML=cc<0.05?'c = 0：目標就是恆等映射。殘差區塊<b>一開始就完全答對</b>（F = 0 即可），plain 卻要學出整條 y = x。'
+    :`c = ${cc.toFixed(2)}：殘差一開始的誤差只有 plain 的 ${(mseR/mseP*100).toFixed(1)}%。目標越接近恆等（c 越小），殘差的優勢越大。`;
+  const plot=(cv,fns,lo,hi)=>{const {c,w,h}=sizeCanvas(cv);const pl=36,pr=10,pt=10,pb=22;const X=x=>pl+(x+3)/6*(w-pl-pr),Y=y=>pt+(hi-y)/(hi-lo)*(h-pt-pb);
+    c.strokeStyle=css('--grid');c.fillStyle=css('--mute');c.font='11px sans-serif';c.textAlign='right';
+    for(let v=Math.ceil(lo);v<=hi;v++){c.beginPath();c.moveTo(pl,Y(v));c.lineTo(w-pr,Y(v));c.stroke();c.fillText(v,pl-5,Y(v)+4);}
+    c.strokeStyle=css('--axis');c.beginPath();c.moveTo(pl,Y(0));c.lineTo(w-pr,Y(0));c.moveTo(X(0),pt);c.lineTo(X(0),h-pb);c.stroke();
+    c.textAlign='center';for(let v=-3;v<=3;v++)c.fillText(v,X(v),h-6);
+    fns.forEach(([f,col,wd,dash])=>{c.strokeStyle=col;c.lineWidth=wd;c.setLineDash(dash||[]);c.beginPath();xs.forEach((x,i)=>i?c.lineTo(X(x),Y(f(x))):c.moveTo(X(x),Y(f(x))));c.stroke();});c.setLineDash([]);c.lineWidth=1;};
+  const top=Math.max(4,3+cc+0.5);
+  plot($('c3a'),[[x=>0,css('--cv'),3,[7,5]],[x=>x,css('--path'),3,[7,5]],[H,css('--pt'),2.4]],-top,top);
+  plot($('c3b'),[[H,css('--cv'),2.6],[x=>H(x)-x,css('--path'),2.6]],-top,top);}
+$('cS').oninput=draw3;
+
+/* ---------- 4. 梯度高速公路 ---------- */
+let seed4=7;
+function rng(s){return function(){s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function gradNorms(L,sig,res,sd){const W=16,R=rng(sd),g=()=>{let u=R()||1e-9,v=R();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);};
+  const Ws=[];for(let l=0;l<L;l++){const M=[];for(let i=0;i<W;i++){const r=[];for(let j=0;j<W;j++)r.push(g()*sig/Math.sqrt(W));M.push(r);}Ws.push(M);}
+  let h=[...Array(W)].map(()=>g());const Z=[];
+  for(let l=0;l<L;l++){const z=Ws[l].map(r=>r.reduce((s,a,j)=>s+a*h[j],0));Z.push(z);const f=z.map(Math.tanh);h=res?h.map((a,i)=>a+0.5*f[i]):f;}
+  let gr=[...Array(W)].map(()=>1/Math.sqrt(W));const out=[1];
+  for(let l=L-1;l>=0;l--){const d=Z[l].map((z,i)=>gr[i]*(1-Math.tanh(z)**2));const gf=[...Array(W)].map((_,j)=>Ws[l].reduce((s,r,i)=>s+r[j]*d[i],0));
+    gr=res?gr.map((a,j)=>a+0.5*gf[j]):gf;out.push(Math.hypot(...gr));}
+  return out.reverse();} // index 0 = 第 1 層（最前面）
+function draw4(){const L=+$('LS').value,sg=+$('sS').value;$('LV').textContent=L;$('sV').textContent=sg.toFixed(2);
+  const P=gradNorms(L,sg,false,seed4),R=gradNorms(L,sg,true,seed4);
+  const e=v=>v<1e-3||v>1e3?v.toExponential(1):v.toPrecision(3);
+  $('g4p').textContent=e(P[0]);$('g4r').textContent=e(R[0]);
+  const {c,w,h}=sizeCanvas($('c4'));const pl=46,pr=10,pt=12,pb=28;
+  const lg=a=>Math.log10(Math.max(a,1e-40));const all=[...P,...R].map(lg);let lo=Math.floor(Math.min(...all,-1)),hi=Math.ceil(Math.max(...all,1));if(hi-lo<2)hi=lo+2;
+  const X=i=>pl+i/L*(w-pl-pr),Y=v=>pt+(hi-v)/(hi-lo)*(h-pt-pb);
+  c.font='11px sans-serif';const stp=Math.max(1,Math.ceil((hi-lo)/8));
+  for(let v=lo;v<=hi;v+=stp){c.strokeStyle=css('--grid');c.beginPath();c.moveTo(pl,Y(v));c.lineTo(w-pr,Y(v));c.stroke();c.fillStyle=css('--mute');c.textAlign='right';c.fillText('1e'+v,pl-5,Y(v)+4);}
+  c.strokeStyle=css('--axis');c.beginPath();c.moveTo(pl,Y(0));c.lineTo(w-pr,Y(0));c.stroke();
+  c.textAlign='center';c.fillStyle=css('--mute');c.fillText('第 1 層（前）',pl+30,h-8);c.fillText('第 '+L+' 層（後）',w-pr-34,h-8);
+  [[P,css('--cv')],[R,css('--path')]].forEach(([A,col])=>{c.strokeStyle=col;c.lineWidth=2.6;c.beginPath();A.forEach((a,i)=>i?c.lineTo(X(i),Y(lg(a))):c.moveTo(X(i),Y(lg(a))));c.stroke();});c.lineWidth=1;
+  const pv=P[0];$('say4').innerHTML=pv<1e-3?`Plain 的梯度傳到第 1 層只剩 <b class="bad">${e(pv)}</b>——<b>梯度消失</b>，前面的層幾乎學不到東西；殘差網路仍有 <b class="ok">${e(R[0])}</b>。`
+    :pv>1e3?`Plain 的梯度在第 1 層變成 <b class="bad">${e(pv)}</b>——<b>梯度爆炸</b>；殘差網路則是 <b class="ok">${e(R[0])}</b>。`
+    :`這組設定下 plain 的梯度 ${e(pv)} 還算正常——但只要 σ 或層數稍微一變，它就會消失或爆炸。殘差網路的梯度是 ${e(R[0])}。`;}
+$('LS').oninput=draw4;$('sS').oninput=draw4;$('rs4').onclick=()=>{seed4=Math.floor(Math.random()*1e6);draw4();};
+
+/* ---------- 5. ResNet 家族 ---------- */
+const MODELS={18:{k:'basic',b:[2,2,2,2],fl:1.8},34:{k:'basic',b:[3,4,6,3],fl:3.6},50:{k:'bottle',b:[3,4,6,3],fl:3.8},101:{k:'bottle',b:[3,4,23,3],fl:7.6},152:{k:'bottle',b:[3,8,36,3],fl:11.3}};
+const WID=[64,128,256,512],SZ=['56×56','28×28','14×14','7×7'],SCOL=['#3b82c4','#1f9d6b','#c98a00','#b5489a'];
+function params(m){const cv=(a,b,k)=>a*b*k*k,bn=c=>2*c;let p=cv(3,64,7)+bn(64),cin=64;
+  m.b.forEach((nb,s)=>{const w=WID[s];for(let i=0;i<nb;i++){const stride=(s>0&&i===0)?2:1;let cout;
+    if(m.k==='basic'){cout=w;p+=cv(cin,w,3)+bn(w)+cv(w,w,3)+bn(w);}else{cout=4*w;p+=cv(cin,w,1)+bn(w)+cv(w,w,3)+bn(w)+cv(w,cout,1)+bn(cout);}
+    if(stride!==1||cin!==cout)p+=cv(cin,cout,1)+bn(cout);cin=cout;}});
+  return p+cin*1000+1000;}
+let cur5='34';
+function render5(){const m=MODELS[cur5],per=m.k==='basic'?2:3,nb=m.b.reduce((a,b)=>a+b,0),layers=1+per*nb+1,P=params(m);
+  $('mb5').innerHTML=Object.keys(MODELS).map(k=>`<button data-r="${k}" class="${k===cur5?'on':''}">ResNet-${k}</button>`).join('');
+  document.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{cur5=b.dataset.r;render5();});
+  $('st5').innerHTML=`<div><small>權重層數</small><b>${layers}</b></div><div><small>殘差區塊數</small><b>${nb}</b></div><div><small>區塊種類</small><b>${m.k==='basic'?'Basic':'Bottleneck'}</b></div><div><small>參數總數</small><b>${(P/1e6).toFixed(2)} M</b></div><div><small>FLOPs（論文）</small><b>${m.fl}×10⁹</b></div>`;
+  let v=`<div class="stage"><div class="lab"><b>conv1</b>7×7, 64, stride 2<br>＋3×3 max pool</div><div class="note">224×224 → 112×112 → 56×56</div></div>`;
+  m.b.forEach((n,s)=>{v+=`<div class="stage"><div class="lab"><b>conv${s+2}_x</b>${SZ[s]}，×${n}</div><div class="blocks">${[...Array(n)].map((_,i)=>`<span class="rb${s>0&&i===0||(s===0&&i===0&&m.k==='bottle')?' proj':''}" style="background:${SCOL[s]}" title="conv${s+2}_x 第 ${i+1} 個區塊"></span>`).join('')}</div></div>`;});
+  v+=`<div class="stage"><div class="lab"><b>輸出</b></div><div class="note">平均池化 → 全連接 1000 類 → softmax</div></div>`;$('vis5').innerHTML=v;
+  const blk=s=>m.k==='basic'?`<span class="mat"><span>3×3, ${WID[s]}</span><span>3×3, ${WID[s]}</span></span>`:`<span class="mat"><span>1×1, ${WID[s]}</span><span>3×3, ${WID[s]}</span><span>1×1, ${WID[s]*4}</span></span>`;
+  $('tb5').innerHTML=`<tr><th>階段</th><th>輸出大小</th><th>每個區塊</th><th>區塊數</th><th>輸出通道</th></tr>
+   <tr><td>conv1</td><td>112×112</td><td>7×7, 64, stride 2</td><td>–</td><td>64</td></tr>`+
+   m.b.map((n,s)=>`<tr><td>conv${s+2}_x</td><td>${SZ[s]}</td><td>${blk(s)}</td><td>× ${n}</td><td>${m.k==='basic'?WID[s]:WID[s]*4}</td></tr>`).join('')+
+   `<tr><td>輸出</td><td>1×1</td><td>平均池化、1000 類全連接</td><td>–</td><td>1000</td></tr>`;}
+$('pbB').textContent=(3*3*64*64*2).toLocaleString('en-US');
+$('pbN').textContent=(256*64+9*64*64+64*256).toLocaleString('en-US');
+
+/* ---------- 6. 小測驗 ---------- */
+const QZ=[
+ {q:'殘差區塊的輸出是什麼？',o:['y = F(x) + x','y = F(x) · x','y = F(x)','y = x − F(x)'],a:0,e:'捷徑把輸入 x 直接加到 F(x) 上：y = F(x) + x。',h:'想想那條捷徑把 x 送到哪裡、做什麼運算？'},
+ {q:'「退化問題」指的是什麼？',o:['更深的 plain 網路連「訓練誤差」都比較高','更深的網路過擬合，只有測試誤差變高','參數太多，記憶體不夠用'],a:0,e:'訓練誤差也變高，代表不是過擬合，而是深的網路比較難最佳化。',h:'關鍵是：連訓練資料都學得比較差喔。'},
+ {q:'如果某一層最理想的映射接近恆等映射，殘差區塊只要把 F(x) 學成？',o:['接近 0','接近 x','接近 1'],a:0,e:'H(x) ≈ x 時，F(x) = H(x) − x ≈ 0；把權重推向 0 比讓一疊非線性層學成恆等容易得多。',h:'F(x) = H(x) − x，代入 H(x) ≈ x 看看。'},
+ {q:'捷徑為什麼能幫助梯度傳回前面的層？',o:['每個區塊的導數是 1 + F′，展開後永遠有一項 1','捷徑讓梯度變成 0，就不會爆炸','捷徑增加很多參數，讓網路更強'],a:0,e:'(1+F′ₗ)⋯(1+F′₁) 展開後含有常數 1，梯度可以沿捷徑直接回到前面，不會被一連串小數字乘到消失。',h:'回去看第 4 節把 (1+F′₂)(1+F′₁) 乘開的結果。'},
+ {q:'Bottleneck 區塊裡兩個 1×1 卷積的作用是？',o:['先降維、再升維，讓 3×3 卷積在低維度做，省計算','放大影像的解析度','取代 ReLU 當激勵函數'],a:0,e:'256→64 降維、3×3 在 64 通道做、再 64→256 升維；權重數和 64 通道的 basic block 差不多。',h:'看看第 5 節 256→64→256 的通道數變化。'},
+ {q:'捷徑兩端的形狀不同（通道加倍、尺寸減半）時，怎麼辦？',o:['用 1×1 卷積（stride 2）把 x 投影成相同形狀再相加','不同形狀也可以直接相加','把那個區塊的捷徑拿掉'],a:0,e:'這種「投影捷徑」只用在每個階段的第一個區塊（第 5 節圖中的紅色虛線），其餘都是不需參數的恆等捷徑。',h:'形狀不同的張量不能直接相加，要先把 x 變成一樣的形狀。'},
+];
+let ans=0,correct=0,streak=0;
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function buildQuiz(){ans=0;correct=0;streak=0;$('score').style.display='none';
+  $('quiz').innerHTML=QZ.map((z,i)=>`<div class="q"><b>${i+1}. ${z.q}</b><div class="opts">${shuffle(z.o.map((t,k)=>({t,k}))).map(o=>`<button data-q="${i}" data-k="${o.k}">${o.t}</button>`).join('')}</div><div class="fb" id="fb${i}"></div></div>`).join('');
+  document.querySelectorAll('#quiz button').forEach(b=>b.onclick=()=>{const i=+b.dataset.q,z=QZ[i],box=b.parentNode;if(box.dataset.done)return;box.dataset.done=1;ans++;
+    const ok=+b.dataset.k===z.a;box.querySelectorAll('button').forEach(x=>{if(+x.dataset.k===z.a)x.classList.add('right');});
+    if(ok){correct++;streak++;$('fb'+i).innerHTML='<span class="ok">✔ 正確！</span>'+z.e;
+      AV2.mood('smile',streak>=3?`連對 ${streak} 題！你的梯度一路暢通 🚀`:['答對了！','很好，就是這樣！','沒錯！捷徑走得很順。','完全正確！'][Math.floor(Math.random()*4)]);}
+    else{streak=0;b.classList.add('wrong');$('fb'+i).innerHTML='<span class="bad">✘ </span>'+z.e;AV2.mood('frown',z.h);}
+    if(ans===QZ.length){$('scoreT').textContent=`得分：${correct} / ${QZ.length}`;$('score').style.display='flex';
+      setTimeout(()=>{AV2.mood(correct>=5?'smile':correct>=3?'':'frown',correct===QZ.length?'全對！你已經懂 ResNet 了，可以去讀原論文了 📄':correct>=5?'很棒！殘差學習的核心你都掌握了。':correct>=3?'不錯！建議回去看看第 3、4 節，再試一次。':'沒關係，從第 1 節的退化問題重新看起，再挑戰一次！',true);},3300);}
+  });}
+$('again').onclick=()=>{buildQuiz();AV2.mood('','新的一輪！選項順序重新洗過了。');window.scrollTo({top:$('quiz').getBoundingClientRect().top+scrollY-80,behavior:'smooth'});};
+
+/* ---------- init ---------- */
+function all(){draw1();render2();draw3();draw4();render5();}
+buildQuiz();all();
+let rt=null;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(all,120);});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',all);
+</script>
+
+</body>
+</html>

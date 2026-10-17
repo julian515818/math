@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mini-batch SGD 與 Momentum</title>
+<style>
+:root{color-scheme:dark;--bg:#070b17;--card:#111a2e;--blue:#4db8ff;--orange:#ff9d3b;--muted:#a9b7d2}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 20% 0,#193256,#070b17 56%);color:#edf4ff;font:15px system-ui,"Noto Sans TC",sans-serif}
+.wrap{max-width:1400px;margin:auto;padding:24px}
+h1{margin:0 0 6px;font-size:26px}
+h2{margin:0 0 10px;font-size:17px}
+h3{margin:16px 0 6px;font-size:14px;color:#dce9ff}
+p{color:var(--muted);line-height:1.6}
+.grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(340px,.75fr);gap:16px}
+.card{background:#0d1425cc;border:1px solid #263655;border-radius:16px;padding:16px;box-shadow:0 15px 45px #0004}
+canvas{display:block;width:100%;height:min(66vh,680px);border-radius:12px;background:#07111e;cursor:crosshair}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.control{background:#091120;border-radius:10px;padding:10px}
+.control label{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.control .hint{margin-top:6px;font-size:11.5px;color:#7f8fb0;line-height:1.5}
+input{width:100%;accent-color:var(--blue)}
+button{border:1px solid #3a4b6b;background:#17233c;color:white;padding:9px 13px;border-radius:9px;cursor:pointer;font-size:13px}
+button:hover{background:#243653}
+.buttons{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
+.blue{background:var(--blue)}
+.orange{background:var(--orange)}
+code{color:#dce9ff;background:#08101e;padding:2px 5px;border-radius:4px}
+.eq{font-family:ui-monospace,monospace;background:#08101e;border-left:3px solid var(--orange);padding:10px;line-height:1.8;border-radius:6px;font-size:13.5px}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.stat div{background:#091120;padding:9px;border-radius:8px;color:var(--muted)}
+strong{color:white}
+.note{border-left:3px solid #ffcb55;padding-left:10px;color:#d9e4fb}
+.small{font-size:13px}
+.chart{width:100%;height:175px;background:#091120;border-radius:10px}
+.blueText{color:var(--blue)}
+.orangeText{color:var(--orange)}
+.intro{background:linear-gradient(135deg,#132038,#0d1524);border:1px solid #2a3c60;border-radius:14px;padding:14px 16px;margin-bottom:14px}
+.intro h2{margin-bottom:8px;font-size:15px;color:#ffd58a}
+.intro ul{margin:0;padding-left:20px;color:#d9e4fb;line-height:1.75;font-size:13.5px}
+.intro b{color:#fff}
+.tips{background:#0d1a12;border:1px solid #2c4a33;border-radius:10px;padding:10px 12px;margin-top:14px}
+.tips h3{color:#9fe6ad;margin-top:0}
+.tips ul{margin:6px 0 0;padding-left:18px;color:#c8e6cf;font-size:13px;line-height:1.7}
+.badge{display:inline-block;background:#1c2b47;border:1px solid #35507e;color:#bcd4ff;border-radius:999px;padding:2px 9px;font-size:12px;margin-left:6px}
+.surfacePicker{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.surfacePicker button{flex:1;min-width:130px;text-align:left;padding:10px 12px}
+.surfacePicker button .t{display:block;font-weight:600;font-size:13.5px}
+.surfacePicker button .d{display:block;font-size:11px;color:var(--muted);margin-top:2px;font-family:ui-monospace,monospace}
+.surfacePicker button.active{background:linear-gradient(135deg,#2a4a86,#1c3560);border-color:#5b86d6;color:#fff}
+.surfacePicker button.active .d{color:#cfe0ff}
+.diverge{color:#ff6b6b;font-weight:600}
+@media(max-width:850px){.grid{grid-template-columns:1fr}.controls{grid-template-columns:1fr}canvas{height:480px}}
+</style>
+<style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line,#e3e1da);border-radius:12px;background:var(--card,var(--surface,#fff));color:var(--ink,#1d2330);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+.pu-badge img{width:58px;height:58px;display:block}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute,var(--muted,#667085))}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+</style>
+<style id="pu-badge-dark">.pu-badge{--card:#0d1425cc;--line:#263655;--ink:#edf4ff;--mute:#a9b7d2;box-shadow:0 10px 30px #0004}.pu-badge img{background:#fff;border-radius:50%;padding:3px}</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="pu-hd"><div class="pu-hd-main"><h1>真正 Mini-batch SGD：震盪 vs. Momentum</h1>
+  <p>選一個地形，兩個方法會用同一個起點與同一串 mini-batch 梯度雜訊互相比較。藍線每一步只相信當前 mini-batch；橘線累積其方向趨勢。</p></div><div class="pu-badge"><img alt="靜宜大學校徽" src="data:image/webp;base64,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"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div></div>
+
+  <div class="intro">
+    <h2>🔎 新手導覽：你正在看什麼？</h2>
+    <ul>
+      <li><b style="color:var(--blue)">藍色 = Mini-batch SGD</b>：每一步只用「這次抽到的一小批資料」估計梯度方向，估計值帶有雜訊，所以路徑會抖動、走鋸齒。</li>
+      <li><b style="color:var(--orange)">橘色 = Momentum SGD</b>：把過去每一步的梯度用「指數加權平均」累積成一個「速度」，能把隨機雜訊互相抵消掉，走得更穩、更直接。</li>
+      <li><b>白色標記</b> = 這個地形的關鍵點（山谷/香蕉谷是最小值；鞍點地形則是鞍點本身，不是終點）。</li>
+    </ul>
+  </div>
+
+  <section class="grid">
+    <div class="card">
+      <div class="surfacePicker" id="surfacePicker"></div>
+      <canvas id="map"></canvas>
+      <div class="legend">
+        <span><i class="dot blue"></i>Mini-batch SGD（當前雜訊造成鋸齒）</span>
+        <span><i class="dot orange"></i>Momentum SGD（累積方向）</span>
+        <span>白色標記：<span id="optimumLabel">最佳解</span></span>
+      </div>
+      <div class="buttons">
+        <button id="play">播放</button>
+        <button id="step">單步</button>
+        <button id="ten">10 步</button>
+        <button id="reset">重置</button>
+      </div>
+    </div>
+
+    <aside class="card">
+      <h2>設定與即時狀態</h2>
+      <div class="controls">
+        <div class="control">
+          <label>SGD learning rate <b id="sgdV"></b></label>
+          <input id="sgdLR" type="range">
+          <div class="hint">每一步移動的比例。越大步伐越大，越容易在陡峭方向震盪、甚至跳過谷底。<b>換地形時範圍會自動調整</b>，因為每個地形的曲率不同。</div>
+        </div>
+        <div class="control">
+          <label>Momentum learning rate <b id="momV"></b></label>
+          <input id="momLR" type="range">
+          <div class="hint">動量法自己的步伐大小。通常要比 SGD 的學習率小，因為動量累積後「有效步伐」會被放大。</div>
+        </div>
+        <div class="control">
+          <label>Momentum μ <b id="muV"></b></label>
+          <input id="mu" type="range" min="0" max="0.95" step="0.05" value="0.60">
+          <div class="hint" id="muHint">「記得過去梯度」的權重，越接近 1 記得越久、越平滑，但反應新方向也越慢。</div>
+        </div>
+        <div class="control">
+          <label>Mini-batch 雜訊 σ <b id="noiseV"></b></label>
+          <input id="noise" type="range" min="0" max="1.20" step="0.05" value="0.45">
+          <div class="hint">模擬「只用一小批資料估計梯度」的隨機誤差大小。σ=0 時就等於用完整資料集的真梯度（沒有雜訊的 GD）。</div>
+        </div>
+        <div class="control">
+          <label>播放速度 <b id="speedV"></b></label>
+          <input id="speed" type="range" min="1" max="30" step="1" value="10">
+          <div class="hint">每秒跑幾步（與螢幕更新率無關，換裝置播放速度也一致）。</div>
+        </div>
+      </div>
+
+      <div class="stat">
+        <div>步數<br><strong id="epoch"></strong></div>
+        <div>目標函數<br><strong id="fxy"></strong></div>
+        <div><span class="blueText">SGD loss</span><br><strong id="lossS"></strong></div>
+        <div><span class="orangeText">Momentum loss</span><br><strong id="lossM"></strong></div>
+      </div>
+
+      <h3>正確的 mini-batch SGD 公式</h3>
+      <div class="eq">ĝ<sub>t</sub> = ∇f(θ<sub>t</sub>) + ε<sub>t</sub><br>θ<sub>t+1</sub> = θ<sub>t</sub> − ηĝ<sub>t</sub></div>
+      <p class="small">白話翻譯：ĝ<sub>t</sub> 是「這次抽到的資料」算出來的梯度估計值，跟「用全部資料算出來的真梯度」差了一個隨機誤差 ε<sub>t</sub>。這就是為什麼要叫 SGD（隨機梯度下降），而不是只有解析梯度的 GD（梯度下降）。</p>
+
+      <h3>Momentum SGD（標準未正規化累積式）</h3>
+      <div class="eq">v<sub>t+1</sub> = μv<sub>t</sub> + ĝ<sub>t</sub><br>θ<sub>t+1</sub> = θ<sub>t</sub> − η<sub>m</sub>v<sub>t+1</sub></div>
+      <p class="small">白話翻譯：v 就像一顆球累積的「速度」。每一步把新的梯度加進去，但同時把舊速度打個折扣（乘上 μ）。μ 越大，球的慣性越強，越不容易被單一步的雜訊帶偏。</p>
+
+      <p class="note small">為公平呈現「穩定調參後」的效果，Momentum 可使用不同的 η<sub>m</sub>。μ 增大時，它的長期有效步長約為 η<sub>m</sub>/(1−μ)，不可直接以相同數值 learning rate 判斷優劣。</p>
+
+      <div class="tips">
+        <h3>🧪 試試看</h3>
+        <ul>
+          <li>把 <b>雜訊 σ</b> 調到 0：兩條線幾乎會變成一樣平滑，因為沒有雜訊時 Momentum 的優勢就不明顯了。</li>
+          <li>把 <b>μ</b> 調到 0：橘線會退化成跟藍線幾乎一樣（動量消失，等於沒有累積）。</li>
+          <li>切到 <b>Rosenbrock 香蕉谷</b>：注意它的學習率範圍自動變得非常小——曲率差異極大的地形，步伐一大就直接發散。</li>
+          <li>切到 <b>鞍點地形</b>，把 σ 調到 0：起點剛好卡在鞍點的稜線正上方，兩個方法都會滑進去卡住、永遠出不來。再把 σ 調高，看它們多快被雜訊「踢」出鞍點、一路滑走。</li>
+        </ul>
+      </div>
+
+      <canvas id="chart" class="chart"></canvas>
+    </aside>
+  </section>
+</main>
+
+<script>
+const map = document.querySelector('#map'), ctx = map.getContext('2d');
+const chart = document.querySelector('#chart'), cc = chart.getContext('2d');
+const $ = s => document.querySelector(s);
+
+// ---------------------------------------------------------------
+// Target function library. Each surface defines its own loss f(),
+// analytic gradient, viewport bounds, a sensible starting point,
+// SAFE slider ranges for the two learning rates (curvature differs
+// wildly between surfaces, so one shared range would either be too
+// slow for the valley or blow up on Rosenbrock), a noise scale, and
+// where its "key point" is (a true minimum, or — for the saddle — a
+// point that is explicitly NOT a minimum).
+// ---------------------------------------------------------------
+const SURFACES = {
+  valley: {
+    label: '窄長山谷', short: 'f = 0.06x² + 3y²',
+    formula: 'f(x,y) = 0.06x² + 3y²',
+    bounds: { xMin: -5, xMax: 5, yMin: -5, yMax: 5 },
+    start: { x: 3.7, y: 2.1 },
+    optimum: { x: 0, y: 0 }, optimumLabel: '最佳解',
+    f: p => 0.06 * p.x * p.x + 3 * p.y * p.y,
+    grad: p => ({ x: 0.12 * p.x, y: 6 * p.y }),
+    sgdRange: { min: 0.05, max: 0.35, step: 0.01, def: 0.30 },
+    momRange: { min: 0.01, max: 0.22, step: 0.01, def: 0.14 },
+    noiseScale: { x: 0.18, y: 2 },
+  },
+  rosenbrock: {
+    label: 'Rosenbrock 香蕉谷', short: 'f = (1−x)² + 10(y−x²)²',
+    formula: 'f(x,y) = (1−x)² + 10(y−x²)²',
+    bounds: { xMin: -2, xMax: 2, yMin: -1, yMax: 3 },
+    start: { x: -1.2, y: 1.6 },
+    optimum: { x: 1, y: 1 }, optimumLabel: '最佳解',
+    f: p => { const a = 1 - p.x, b = p.y - p.x * p.x; return a * a + 10 * b * b; },
+    grad: p => { const b = p.y - p.x * p.x; return { x: -2 * (1 - p.x) - 40 * p.x * b, y: 20 * b }; },
+    // Curvature near the walls of the "banana" is extremely high, so this needs a
+    // MUCH smaller learning rate than the valley or it overflows in a couple of steps.
+    sgdRange: { min: 0.0005, max: 0.02, step: 0.0005, def: 0.006 },
+    momRange: { min: 0.0005, max: 0.02, step: 0.0005, def: 0.006 },
+    noiseScale: { x: 0.6, y: 0.6 },
+  },
+  saddle: {
+    label: '鞍點地形', short: 'f = 0.4x² − 0.3y²',
+    formula: 'f(x,y) = 0.4x² − 0.3y²',
+    bounds: { xMin: -4, xMax: 4, yMin: -4, yMax: 4 },
+    // Start EXACTLY on the ridge (y=0). With no cross-term, grad_y = -0.6*0 = 0 there,
+    // so with zero noise BOTH methods just glide along x and settle into the saddle and
+    // stay stuck — they never discover the escape direction on their own. Only mini-batch
+    // noise nudges y away from exactly 0, after which the negative curvature takes over.
+    start: { x: 2.6, y: 0 },
+    optimum: { x: 0, y: 0 }, optimumLabel: '鞍點（不是最小值！）',
+    f: p => 0.4 * p.x * p.x - 0.3 * p.y * p.y,
+    grad: p => ({ x: 0.8 * p.x, y: -0.6 * p.y }),
+    sgdRange: { min: 0.05, max: 0.35, step: 0.01, def: 0.25 },
+    momRange: { min: 0.01, max: 0.22, step: 0.01, def: 0.12 },
+    noiseScale: { x: 0.3, y: 0.3 },
+  },
+};
+const SURFACE_ORDER = ['valley', 'rosenbrock', 'saddle'];
+
+let surfaceKey = 'valley';
+function curSurf() { return SURFACES[surfaceKey]; }
+function f(p) { return curSurf().f(p); }
+function grad(p) { return curSurf().grad(p); }
+
+let running = false;
+let start = { ...curSurf().start };
+let S, M, v, t = 0;
+let history = [];           // loss values for the chart: {s, m}
+let pathS = [], pathM = []; // position history for drawing the trajectories
+let divergedS = false, divergedM = false;
+const HIST_CAP = 260;
+const DIVERGE_LIMIT = 30;   // well outside every surface's viewport — treat as "flew off to infinity"
+
+let bgCache = null, bgW = 0, bgH = 0, bgSurface = null; // cached background heatmap
+let contourSegs = [], contourSurface = null;            // cached contour line segments (in DATA space)
+
+function val(id) { return +$(id).value; }
+
+// Deterministic pseudo-random sequence: both optimizers get the SAME mini-batch noise at step k,
+// so any difference in their paths is purely due to the algorithm, not luck.
+function rand(k, a) {
+  k = k % 100000; // keep the input bounded so precision doesn't degrade on very long runs
+  let z = Math.sin(k * 127.1 + a * 311.7) * 43758.5453123;
+  return z - Math.floor(z);
+}
+function batchNoise(k) {
+  let q = val('#noise'), sc = curSurf().noiseScale;
+  return { x: (rand(k, 1) - .5) * sc.x * q, y: (rand(k, 2) - .5) * sc.y * q };
+}
+
+function updateMuHint() {
+  const mu = val('#mu');
+  const win = 1 / (1 - mu);
+  $('#muHint').textContent = mu >= 0.99
+    ? '幾乎記住所有歷史梯度，反應會非常遲鈍。'
+    : `目前 μ=${mu.toFixed(2)} → 大約會把最近 ${win.toFixed(1)} 步的梯度平均起來。`;
+}
+
+function reset() {
+  S = { ...start };
+  M = { ...start };
+  v = { x: 0, y: 0 };
+  t = 0;
+  divergedS = false; divergedM = false;
+  history = [{ s: f(S), m: f(M) }];
+  pathS = [{ ...S }];
+  pathM = [{ ...M }];
+  updateMuHint();
+  draw();
+}
+
+// ---- pure state update: does ONE optimization step for both methods, no drawing ----
+function step() {
+  const e = batchNoise(t);
+  const a = val('#sgdLR'), b = val('#momLR'), mu = val('#mu');
+
+  if (!divergedS) {
+    const gs = grad(S);
+    const nx = S.x - a * (gs.x + e.x), ny = S.y - a * (gs.y + e.y);
+    if (!isFinite(nx) || !isFinite(ny) || Math.abs(nx) > DIVERGE_LIMIT || Math.abs(ny) > DIVERGE_LIMIT) {
+      divergedS = true; // freeze in place instead of running away to Infinity/NaN
+    } else {
+      S = { x: nx, y: ny };
+    }
+  }
+  if (!divergedM) {
+    const gm = grad(M);
+    const nv = { x: mu * v.x + gm.x + e.x, y: mu * v.y + gm.y + e.y };
+    const nx = M.x - b * nv.x, ny = M.y - b * nv.y;
+    if (!isFinite(nx) || !isFinite(ny) || Math.abs(nx) > DIVERGE_LIMIT || Math.abs(ny) > DIVERGE_LIMIT) {
+      divergedM = true;
+    } else {
+      v = nv; M = { x: nx, y: ny };
+    }
+  }
+  t++;
+
+  history.push({ s: f(S), m: f(M) });
+  pathS.push({ ...S });
+  pathM.push({ ...M });
+  if (history.length > HIST_CAP) { history.shift(); pathS.shift(); pathM.shift(); }
+}
+
+// ---- coordinate mapping (bounds-aware: each surface has its own viewport) ----
+function xy(p, w, h) {
+  const b = curSurf().bounds;
+  return { x: (p.x - b.xMin) / (b.xMax - b.xMin) * w, y: (b.yMax - p.y) / (b.yMax - b.yMin) * h };
+}
+function invXY(px, py, w, h) {
+  const b = curSurf().bounds;
+  return { x: b.xMin + px / w * (b.xMax - b.xMin), y: b.yMax - py / h * (b.yMax - b.yMin) };
+}
+function resize(c) {
+  let r = c.getBoundingClientRect(), d = devicePixelRatio || 1;
+  c.width = r.width * d; c.height = r.height * d;
+  let x = c.getContext('2d'); x.setTransform(d, 0, 0, d, 0, 0);
+  return r;
+}
+
+function drawPath(points, color, w, h, diverged) {
+  if (!points.length) return;
+  ctx.beginPath();
+  points.forEach((p, i) => { let q = xy(p, w, h); i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); });
+  ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.shadowColor = color; ctx.shadowBlur = 10;
+  ctx.stroke(); ctx.shadowBlur = 0;
+  let q = xy(points.at(-1), w, h);
+  ctx.fillStyle = diverged ? '#ff6b6b' : color;
+  ctx.beginPath(); ctx.arc(q.x, q.y, diverged ? 7 : 6, 0, 7); ctx.fill();
+}
+
+function buildBackground(w, h) {
+  const b = curSurf().bounds;
+  const image = ctx.createImageData(w, h);
+  // Normalize by the loss value actually seen at the viewport corners so the
+  // gradient looks reasonable across very different function scales.
+  const corner = Math.max(
+    f({ x: b.xMin, y: b.yMin }), f({ x: b.xMax, y: b.yMin }),
+    f({ x: b.xMin, y: b.yMax }), f({ x: b.xMax, y: b.yMax }), 1e-6
+  );
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    let x = b.xMin + i / w * (b.xMax - b.xMin), y = b.yMax - j / h * (b.yMax - b.yMin);
+    let z = Math.min(1, Math.max(0, f({ x, y }) / corner)), k = (j * w + i) * 4;
+    image.data[k] = 7 + 18 * z;
+    image.data[k + 1] = 23 + 74 * (1 - z);
+    image.data[k + 2] = 35 + 78 * (1 - z);
+    image.data[k + 3] = 255;
+  }
+  return image;
+}
+
+// ---- general-purpose contour lines (marching squares) — works for ANY f, not just quadratics ----
+function buildContours() {
+  const s = curSurf(), b = s.bounds;
+  const N = 70; // grid resolution
+  const grid = [];
+  for (let j = 0; j <= N; j++) {
+    grid[j] = [];
+    const y = b.yMax - j / N * (b.yMax - b.yMin);
+    for (let i = 0; i <= N; i++) {
+      const x = b.xMin + i / N * (b.xMax - b.xMin);
+      grid[j][i] = s.f({ x, y });
+    }
+  }
+  let allVals = [];
+  for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) allVals.push(grid[j][i]);
+  allVals.sort((a, z) => a - z);
+  const levels = [];
+  for (let k = 1; k <= 9; k++) levels.push(allVals[Math.floor(allVals.length * k / 10)]);
+
+  const segs = [];
+  function lerp(pa, pb, va, vb, L) {
+    const t = Math.abs(vb - va) < 1e-12 ? 0.5 : (L - va) / (vb - va);
+    return { x: pa.x + (pb.x - pa.x) * t, y: pa.y + (pb.y - pa.y) * t };
+  }
+  for (const L of levels) {
+    for (let j = 0; j < N; j++) {
+      for (let i = 0; i < N; i++) {
+        const x0 = b.xMin + i / N * (b.xMax - b.xMin), x1 = b.xMin + (i + 1) / N * (b.xMax - b.xMin);
+        const y0 = b.yMax - j / N * (b.yMax - b.yMin), y1 = b.yMax - (j + 1) / N * (b.yMax - b.yMin);
+        const v0 = grid[j][i], v1 = grid[j][i + 1], v2 = grid[j + 1][i + 1], v3 = grid[j + 1][i];
+        let idx = 0;
+        if (v0 > L) idx |= 1; if (v1 > L) idx |= 2; if (v2 > L) idx |= 4; if (v3 > L) idx |= 8;
+        if (idx === 0 || idx === 15) continue;
+        const pTL = { x: x0, y: y0 }, pTR = { x: x1, y: y0 }, pBR = { x: x1, y: y1 }, pBL = { x: x0, y: y1 };
+        const eTop = () => lerp(pTL, pTR, v0, v1, L);
+        const eRight = () => lerp(pTR, pBR, v1, v2, L);
+        const eBottom = () => lerp(pBL, pBR, v3, v2, L);
+        const eLeft = () => lerp(pTL, pBL, v0, v3, L);
+        const table = {
+          1: [eLeft, eBottom], 2: [eBottom, eRight], 3: [eLeft, eRight],
+          4: [eTop, eRight], 5: [[eLeft, eTop], [eBottom, eRight]],
+          6: [eTop, eBottom], 7: [eLeft, eTop],
+          8: [eLeft, eTop], 9: [eTop, eBottom],
+          10: [[eLeft, eBottom], [eTop, eRight]], 11: [eTop, eRight],
+          12: [eLeft, eRight], 13: [eBottom, eRight],
+          14: [eLeft, eBottom],
+        };
+        const entry = table[idx];
+        if (!entry) continue;
+        if (Array.isArray(entry[0])) {
+          for (const pair of entry) segs.push([pair[0](), pair[1]()]);
+        } else {
+          segs.push([entry[0](), entry[1]()]);
+        }
+      }
+    }
+  }
+  return segs;
+}
+
+function ensureCaches(w, h) {
+  if (contourSurface !== surfaceKey) { contourSegs = buildContours(); contourSurface = surfaceKey; }
+  if (!bgCache || bgW !== w || bgH !== h || bgSurface !== surfaceKey) {
+    bgCache = buildBackground(w, h); bgW = w; bgH = h; bgSurface = surfaceKey;
+  }
+}
+
+function draw() {
+  let r = resize(map), w = r.width, h = r.height;
+  ctx.clearRect(0, 0, w, h);
+
+  ensureCaches(w, h);
+  ctx.putImageData(bgCache, 0, 0);
+
+  ctx.strokeStyle = 'rgba(255,255,255,.16)'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (const [pa, pb] of contourSegs) {
+    const qa = xy(pa, w, h), qb = xy(pb, w, h);
+    ctx.moveTo(qa.x, qa.y); ctx.lineTo(qb.x, qb.y);
+  }
+  ctx.stroke();
+
+  drawPath(pathS, '#4db8ff', w, h, divergedS);
+  drawPath(pathM, '#ff9d3b', w, h, divergedM);
+
+  const opt = xy(curSurf().optimum, w, h);
+  ctx.strokeStyle = 'white'; ctx.setLineDash([5, 5]);
+  ctx.beginPath(); ctx.arc(opt.x, opt.y, 9, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+
+  $('#epoch').textContent = t;
+  $('#fxy').textContent = curSurf().formula;
+  $('#optimumLabel').textContent = curSurf().optimumLabel;
+  $('#lossS').innerHTML = divergedS ? '<span class="diverge">已發散（超出範圍）</span>' : f(S).toExponential(2);
+  $('#lossM').innerHTML = divergedM ? '<span class="diverge">已發散（超出範圍）</span>' : f(M).toExponential(2);
+  const labelFor = { sgdLR: 'sgdV', momLR: 'momV', mu: 'muV', noise: 'noiseV' };
+  Object.entries(labelFor).forEach(([id, labelId]) => $('#' + labelId).textContent = val('#' + id).toFixed(id === 'sgdLR' || id === 'momLR' ? 4 : 2));
+  drawChart();
+}
+
+function drawChart() {
+  let r = resize(chart), w = r.width, h = r.height;
+  cc.clearRect(0, 0, w, h); cc.fillStyle = '#091120'; cc.fillRect(0, 0, w, h);
+  let maxV = Math.max(...history.flatMap(x => [x.s, x.m]), 1), minV = 1e-6;
+  function line(key, color) {
+    cc.beginPath();
+    history.forEach((z, i) => {
+      let yv = Math.log10(Math.max(minV, z[key]));
+      let yy = (Math.log10(maxV) - yv) / (Math.log10(maxV) - Math.log10(minV)) * (h - 22) + 8;
+      let xx = i / Math.max(1, history.length - 1) * (w - 12) + 6;
+      i ? cc.lineTo(xx, yy) : cc.moveTo(xx, yy);
+    });
+    cc.strokeStyle = color; cc.lineWidth = 2; cc.stroke();
+  }
+  line('s', '#4db8ff'); line('m', '#ff9d3b');
+  cc.fillStyle = '#a9b7d2'; cc.font = '11px system-ui';
+  cc.fillText('loss（對數尺度，越低代表越接近最佳解）', 8, 14);
+}
+
+// ---- surface picker UI ----
+function applySliderRanges() {
+  const s = curSurf();
+  const elS = $('#sgdLR'); elS.min = s.sgdRange.min; elS.max = s.sgdRange.max; elS.step = s.sgdRange.step; elS.value = s.sgdRange.def;
+  const elM = $('#momLR'); elM.min = s.momRange.min; elM.max = s.momRange.max; elM.step = s.momRange.step; elM.value = s.momRange.def;
+}
+function renderSurfacePicker() {
+  const el = $('#surfacePicker');
+  el.innerHTML = '';
+  SURFACE_ORDER.forEach(key => {
+    const s = SURFACES[key];
+    const btn = document.createElement('button');
+    btn.className = key === surfaceKey ? 'active' : '';
+    btn.innerHTML = `<span class="t">${s.label}</span><span class="d">${s.short}</span>`;
+    btn.onclick = () => switchSurface(key);
+    el.appendChild(btn);
+  });
+}
+function switchSurface(key) {
+  if (key === surfaceKey) return;
+  surfaceKey = key;
+  applySliderRanges();
+  start = { ...curSurf().start };
+  renderSurfacePicker();
+  reset(); // rebuilds contours/background too, since ensureCaches() checks surfaceKey
+}
+
+// ---- interaction ----
+map.addEventListener('pointerdown', e => {
+  let r = map.getBoundingClientRect();
+  start = invXY(e.offsetX, e.offsetY, r.width, r.height);
+  reset();
+});
+// Changing any of these four re-runs the comparison from scratch so it stays a fair, apples-to-apples test.
+['sgdLR', 'momLR', 'mu', 'noise'].forEach(id => $('#' + id).addEventListener('input', reset));
+
+// Playback speed is a UI setting, not a model parameter — it must NOT reset progress.
+$('#speed').addEventListener('input', () => { $('#speedV').textContent = val('#speed') + ' 步/秒'; });
+$('#speedV').textContent = val('#speed') + ' 步/秒';
+
+$('#play').onclick = () => { running = !running; $('#play').textContent = running ? '暫停' : '播放'; };
+$('#step').onclick = () => { step(); draw(); };
+// Batch all 10 steps first, then draw ONCE — this is what fixes the "10 步" lag.
+$('#ten').onclick = () => { for (let i = 0; i < 10; i++) step(); draw(); };
+$('#reset').onclick = reset;
+
+window.addEventListener('resize', () => { bgCache = null; draw(); });
+
+// Fixed-rate simulation loop: steps advance at a constant real-world rate (set by the speed
+// slider) instead of once per monitor refresh, so playback speed no longer depends on the device.
+let lastTick = 0;
+function loop(ts) {
+  const interval = 1000 / val('#speed');
+  if (running && ts - lastTick >= interval) { step(); draw(); lastTick = ts; }
+  requestAnimationFrame(loop);
+}
+
+applySliderRanges();
+renderSurfacePicker();
+reset();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

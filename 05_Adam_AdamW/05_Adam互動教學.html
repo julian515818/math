@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adam互動教學</title>
+<style>
+:root{
+  --bg:#f7f6f2;--card:#fff;--ink:#1d2330;--mute:#667085;--line:#e3e1da;--ok:#1f9d6b;--bad:#d6334f;
+  --grid:#eceae4;--axis:#9aa0ab;--accent:#2f6fdb;--tint:#eaf1fc;
+  --cv:#2f6fdb;--tan:#8b45d6;--gd:#1f9d6b;--path:#e07a1f;--pt:#1d2330;--warn:#c98a00;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+    --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+    --cv:#6c9dff;--tan:#b98bff;--gd:#4fd19d;--path:#ffa552;--pt:#f4f5f8;--warn:#ffd166;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+  --cv:#6c9dff;--tan:#b98bff;--gd:#4fd19d;--path:#ffa552;--pt:#f4f5f8;--warn:#ffd166;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.9rem}
+header p{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:18px}
+.card h2{margin:0 0 12px;font-size:1.22rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:.9rem;flex:none}
+h3{margin:0 0 6px;font-size:1.05rem}
+.m{font-family:"Times New Roman","Cambria Math",serif;font-style:italic}
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 2px;line-height:1.15}
+.frac>span:first-child{padding:0 3px 1px;border-bottom:1.3px solid currentColor}
+.frac>span:last-child{padding:1px 3px 0}
+.def{font-size:1.2rem;text-align:center;padding:14px;border-radius:10px;background:var(--tint);line-height:2.1}
+.note{color:var(--mute);font-size:.92rem}
+.gd{color:var(--gd)}.path{color:var(--path)}.tan{color:var(--tan)}.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start}
+.two>*{min-width:0}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.three>div{border:2px solid var(--line);border-radius:12px;padding:10px 14px}
+.three b.t{display:block;color:var(--accent)}
+@media (max-width:860px){.two,.three{grid-template-columns:minmax(0,1fr)}}
+.cvbox{width:100%;min-width:0}
+.sq{max-width:460px;margin:0 auto}
+canvas{width:100%;display:block;border-radius:10px;background:var(--bg);touch-action:none}
+label{font-size:.92rem;color:var(--mute);display:block}
+label b{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 12px}
+select{width:100%}
+button{cursor:pointer}button:hover{border-color:var(--accent)}
+button.pri,button.on{background:var(--accent);color:#fff;border-color:transparent}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:12px 18px;align-items:end}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(120px,100%),1fr));gap:10px;margin-top:10px}
+.stats>div{padding:8px 12px;border-radius:10px;background:var(--bg)}
+.stats small{display:block;color:var(--mute);font-size:.82rem}
+.stats b{font-size:1.2rem;font-variant-numeric:tabular-nums}
+.say{margin-top:10px;padding:10px 14px;border-left:4px solid var(--ok);background:var(--bg);border-radius:8px}
+.formula{font-size:1.08rem;line-height:2.3;overflow-x:auto;padding:4px 2px}
+.stepbar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:10px 0 8px}
+.stepbar div{height:100%;background:var(--accent);transition:width .3s}
+.explain{padding:10px 14px;border-radius:10px;background:var(--tint);min-height:3.4em}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.85rem;color:var(--mute);margin-top:6px}
+.legend i{display:inline-block;width:18px;height:4px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.zone{display:inline-block;padding:2px 10px;border-radius:999px;font-weight:700;color:#fff}
+/* quiz */
+.quiz .q{padding:12px 0;border-bottom:1px solid var(--line)}
+.quiz .q:last-child{border:none}
+.opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.opts button.right{background:var(--ok);color:#fff;border-color:transparent}
+.opts button.wrong{background:var(--bad);color:#fff;border-color:transparent}
+.fb{font-size:.92rem;margin-top:6px;min-height:1.2em}
+.score{margin-top:12px;font-size:1.15rem;font-weight:700;display:none;align-items:center;gap:12px;flex-wrap:wrap}
+footer{color:var(--mute);font-size:.85rem;text-align:center;margin-top:30px}
+/* ---------- avatar ---------- */
+.avwrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.av{width:100%;max-width:220px;cursor:pointer;user-select:none}
+.av svg{width:100%;display:block;overflow:visible;background:none}
+.av .bodyg{animation:bob 3.2s ease-in-out infinite;transform-origin:100px 200px}
+.av .eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+.av .hairL{animation:sway 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:top center}
+.av .hairR{animation:sway 3.2s ease-in-out infinite reverse;transform-box:fill-box;transform-origin:top center}
+.av .brow{transition:transform .3s;transform-box:fill-box}
+.av .browL{transform-origin:right center}.av .browR{transform-origin:left center}
+.av .mo{opacity:0;transition:opacity .25s}.av .mo.n{opacity:1}
+.av .blush,.av .sweat,.av .spark{opacity:0;transition:opacity .3s}
+.av.smile .mo.n,.av.frown .mo.n{opacity:0}
+.av.smile .mo.s{opacity:1}.av.frown .mo.f{opacity:1}
+.av.smile .blush{opacity:.55}.av.smile .spark{opacity:1}.av.frown .sweat{opacity:.9}
+.av.smile .brow{transform:translateY(-3px)}
+.av.frown .browL{transform:rotate(14deg) translateY(2px)}.av.frown .browR{transform:rotate(-14deg) translateY(2px)}
+.av.hop svg{animation:hop .7s ease}
+.av.shake svg{animation:shake .55s ease}
+.av .spark{animation:twinkle 1s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}
+@keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+@keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.bubble{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.95rem;margin-bottom:10px;min-height:2.6em;max-width:260px;text-align:center;transition:border-color .3s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--line);border-bottom:0}
+.bubble.good{border-color:var(--ok)}.bubble.good::after{border-top-color:var(--ok)}
+.bubble.bad{border-color:var(--bad)}.bubble.bad::after{border-top-color:var(--bad)}
+.intro{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:center}
+.intro>*,.qgrid>*{min-width:0}
+.intro .avwrap{flex-direction:row;gap:10px}.intro .bubble{flex:1;margin:0}.intro .bubble::after{display:none}.intro .av{width:125px;flex:none}
+.qgrid{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:18px;align-items:start}
+.qgrid .avwrap{position:sticky;top:12px}
+@media (max-width:860px){.intro,.qgrid{grid-template-columns:minmax(0,1fr)}.intro .avwrap{flex-direction:column}.intro .bubble{margin-bottom:10px}.intro .bubble::after{display:block}.intro .av,.qgrid .av{width:auto;max-width:140px}.qgrid .avwrap{position:static;order:-1}}
+</style>
+<style>
+:root{--sgd:#d63384;--mom:#e07a1f;--rms:#0a8fb8;--adam:#6f42c1;--m1:#127f86;--v2:#e46b17}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--sgd:#ff6fb5;--mom:#ffa552;--rms:#4fd0ff;--adam:#b794ff;--m1:#4fd1c5;--v2:#ffa552}}
+:root[data-theme="dark"]{--sgd:#ff6fb5;--mom:#ffa552;--rms:#4fd0ff;--adam:#b794ff;--m1:#4fd1c5;--v2:#ffa552}
+.sgd{color:var(--sgd)}.mom{color:var(--mom)}.rms{color:var(--rms)}.adam{color:var(--adam)}.m1{color:var(--m1)}.v2{color:var(--v2)}
+.vs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(230px,100%),1fr));gap:12px;margin-top:10px}
+.vs>div{border:2px solid var(--line);border-radius:12px;padding:10px 14px;min-width:0}
+.vs>div.a{border-color:var(--sgd)}.vs>div.b{border-color:var(--mom)}.vs>div.c{border-color:var(--rms)}.vs>div.d{border-color:var(--adam)}
+.vs>div.e{border-color:var(--m1)}.vs>div.f{border-color:var(--v2)}
+.vs b.t{display:block}
+.chk{display:inline-flex;gap:6px;align-items:center;color:var(--ink);font-size:.92rem;margin-right:10px}
+.story{margin-top:16px;padding:14px 18px;border-radius:12px;border:1px dashed var(--line);background:var(--bg)}
+.story h3{margin:0 0 6px}.story p{margin:6px 0}
+.story .tl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:10px}
+.story .tl>div{border-left:4px solid var(--adam);padding:4px 10px;background:var(--card);border-radius:6px;font-size:.92rem;min-width:0}
+.story .tl b{display:block;color:var(--adam)}
+@media (max-width:860px){.story .tl{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.code{background:#1e2230;color:#e8eaf0;border-radius:10px;padding:8px 0;font-family:Consolas,"Courier New",monospace;font-size:.88rem;overflow-x:auto;line-height:1.75}
+.code div{padding:0 14px;white-space:pre;border-left:4px solid transparent}
+.code div.on{background:rgba(255,165,82,.18);border-left-color:#ffa552}
+.code .c{color:#8a93a8}.code .k{color:#ff9bd2}
+.tbl{overflow-x:auto;margin-top:10px}
+.tbl table{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numeric:tabular-nums}
+.tbl th,.tbl td{border-bottom:1px solid var(--line);padding:4px 8px;text-align:right;white-space:nowrap}
+.tbl th{color:var(--mute);font-weight:600}
+.tbl tr.cur td{background:var(--tint)}
+.tbl td.new{color:var(--adam);font-weight:700}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:none;border-radius:0;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:none}
+.quote{font-style:italic;color:var(--mute)}
+</style>
+<style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line,#e3e1da);border-radius:12px;background:var(--card,var(--surface,#fff));color:var(--ink,#1d2330);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+.pu-badge img{width:58px;height:58px;display:block}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute,var(--muted,#667085))}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="pu-hd">
+  <div class="pu-hd-main">
+  <h1>Adam 最佳化器互動教學</h1>
+  <p>工程數學 ・ 互動教學：一階矩（動量）決定方向，二階矩決定尺度，偏差修正讓起步正確</p>
+</div>
+  <div class="pu-badge"><img alt="靜宜大學校徽" src="data:image/webp;base64,UklGRp4NAABXRUJQVlA4IJINAABQLwCdASpkAGQAPpE8lkglo6IhNDhMcLASCWwAyJAJkoayxKYH9n30f7b/zF+c96Kf85vvvoAdMnXmnbN5u+ID1f7let9j/tP+rz73zJ7yfiZqBOo+SvoEe233Xv2f770F+uX/O9wD8vvKq8CLyr9afgC/ln9v/5X+C9ff/s/0/n3+kf/X/m/gK/Wz/q+vB7Pv3G9nD9qHFLDlY7viCW1/x/jRblVR/R3XoZS2XKu0cqedDpp3BGWkYNMzYdRkjmQnRE55yD4o50+qWmStkNkZhsI9Zo3VypJ62c71sQoWGxkmmsEAS4b1MFr82ULQBw7NEmQZ6G/Z35mWquOa2a1qiJsBP80y6mZb5zwYcVZyLDNEPnwFy2JgpQKDmz3TMMshOdquwEOcy/oHrRx/yt9zNyo/e/Kzrz7E0gD0/jrvnK+jtphdBC7c+QSA4gHi2wr12ekIUU44ga4VxjSpb4dT6kRhYj3wAX/ryYxW22D6F8xOs08XqIbsehEpS9KQb9ENWqAA/v9dAW0liceKq+YH0mRfu1vrWFByLR89d7VQsjuxClxIRffyOM1vXt+aazxaL7o1EM6cbazY3CksDSQ08EUyLFwACckGP2eRoZ5+Tu6xVk/ODdvdo+RJrIdNvdBSFr0QeDRz/5qinU2EKBkrcrZzcbk68o2ZPWIxSelUtHRpOsAuU4QQWhyPDIi2y+ZPGu6SjMfTgdungbpxguwdcsNK0BYRztV+jfNcVVQ9n6IWjA6aLKEBXneSX/ZQ7+vhJyEwgOQtEN2nM24mXuNs5X716YBv1qdmt9afYpjnoejTOQA2YPaKJJdJCOf8tBRjFF8lmf3JOIphtNfdUNxB4l1WaTQ0p2BaTuuK/cf0YXsSCoyzVHwF8AzF1SSM0mu7I/OFv/0B2yeX+Nai/LWKRxOND2qDVQkNIvrgvJ19vDRReS4R2UfaqQNCw0Td67pinRSLbeaT2MArke3jA31vHxLWFxyukzgT11ipse3hYXtdHDPuJILC3Jf+WyhnzrbECxWlekXGZHvfCq4byZgFC4EF006FVPkTG4mD8wLWCNRw1+amvRzIJpP10lX3IeIBV8tFoguMCTa6jKR67qhrroz6PVV6n4jYQJlEZU9uBMjgxGaBSpgajd0fGKC5DM7BWdoEYxj4cJqaAt0+vAqeW8C4pPZvpSxAupuVT6kjPiY+Glpm+Z2c29VdrPBCrujf4Oua77+elnYJlstt/ZzHe78Ca4+MCu+DgggtLIfzUSmISvQbVg6fU5PhowLwmU4I2OfCzFVzIrPhXZclWluD6cJbSQ5rPUqUCseByBFGIHsxNGxVCngn2q3kRPTzCq/Jrgtlhs9S5bLfeUN7jVYJmfKqQYQvmTwKT6bfyIx50R1fobx40eSAevQWahInd3Bwb9FPB1udcvOnF6KLTgJzPWGR4gExOTRE2XHm4SC55Jt4vo0K44Mk0mayLGynvlwaU2ghoRE8Oal8FDH026NyQFvN8iBVWVZgYceNoxO/WGWY0Gmy3zOck1Ysv/lLK021wwXY14Nm4aTWrEveonV/0h30SUOvc4VfCqlc5MQXaxQlZzOlgks4DqKWDUNlh0dCxJG4ASnAsg4kv5OnSoKJF9kD5lVf9goDmc9mUJ8Pmrohf/iS/Y3yWHkMUijVp2CifVfBohGu3dh1TS8CxfksZi+gYOrEvLAsIQgqmRBPeYLfgtoZgmfoLvYccjHfP7tpWO7zfp/N2ZbiOeVuN7JgLTup04o+LgleesjgSv5ovAV/C2/aMIg+h8ND/i+lHlqxlZZu8e/2zQCgpocgWGzeT1C67SQHW5CoYOQIjnV1sgDM9SP695ubjsaTTK3cYc2xLQryttnjYzliXC4moearYZsYStCrSsf/u1htDfIEQo5n9KFzGY0F0pgid0RBcab+EqWDPLM1jVwgcVAUZ3mWpTA+MnPmN22uov3pLDSQRUkJNxFddPnCcZz8zTtH3mwfYx+BAehlbkKKkpbOmVfJykW1dCLJpuJBRTMOeqWUionyxochrDNlcMYnYYD00SDhaH6FvRX8fg1TWW+SCq1+A2rb8u5CXHcwiMzbZXM/Sf8ajIj2+Bw+UvkXAhZuRArzT56c5KeAsRFRPb3y0jRI3vJKd4LDRtKNPiP6blJM7lqnQ14FugOOMKd0OPYnPC5Zjj+lFDAWJRLYa4345zRrwt6wmcuXIG0p3ZpyaK2AEzzWTDUQwfofDzsgZOue0GW+Kusk4B0jjVPhInfoAk7A2B+tTk9/rrr9b0ycHn4tQfk1GFkWs213SVfK0Pa+yIULFkzVUdkodXT923Qlf3rket2T/fEAPZ2wDrV+0LsG6PwkA2CKdrt3oXOmFQdjH8Ezb/JzDcnvhNIsp6iGQgN4erY0i2NJVSTzWXvnm1VCq2U9eXFRBmEqIxdJ9eqntQT+UeTpy8beiZYqbCLmXhMTZf9aebr/bDz96T2HRvchccO/WwanBicoCSkCGZlm6Iw+Xh/kHyXeIMmuON4WqTyVPbffFmmQ8F6ipQJP1oCNXmwU/8ad9PjLU5yLneujliwL7gREgSsQpVFagPkmh7ud8KAQmsHZMwpKM7KSJiGfS3bhSgwQ1q2GMk8J6v1Ph+j4YJmdeZV3SFZJLb9PHHM5n4/jDmOtDu1l8pFZQhVtW1TihZJHnvYqsNKro+SGABmKjFn1yfuqRcrRJJ/MyfTzDKMQf8nNxPfv7OvJbEJWTBysH1D1pLg/yLstx7lPDottqJnKXNcdMEfSf9QRVrloR6zEGM4GtkCOETrSDLojdVymcGRP6kH9yNdMcucGly1uv2B1GR6iYYuiyMv5JeOm8pZ8M9j+7y+AvDkwM+d5BwLMgFA6xtfCiDD7r/fD/mWRIOOb8EdNtWgxgOYd/ueerPaG+vp8X4uzt12Yxc2nEvVoji2UuicAjqRu0lSGZpsb6H/z/Wgzb4F3YCkw+0DdoJEdO+N8aiOdeeqYjfKQvWRY/vMG4CZDRMvIOLJP8J6X3FtkF/9rO7DS45YszN62iluqndrbOt3dmfB4JLd3Zm/8wRIPsCSTl7X36KcPizCylvV1jX9gZ6DUJICft8LRdjngvbac2b2xHFDXwXmaNcaEQetz4LfvwRviIbs4EKVFx+h2+hy/Et8LimVIVWe0xea5X7GBVaCTxxxikeLT6Rl+YhMKeMyFQCE0M/+6E2j+H5lpb3PI9etwBYbAK5eNjpqzksxqSTTezfrx23r/HbaU2rtC3zpKnM6FdkxCX+XKRtfx8hIqUOD8HxImKS7GNTSA9VzsqSu4PDtJZ4Bj94DBCTHwz20CyZYcw2SaS+uuAcbdia50Zja07Jnw8db16URDljnVYsfvw81dD4Dq+6yY4qg38d4yYGjMNgun1rZJpCz7rnSbRSofo1R/I5jrVqDIY7anl90txbq+4589jJ/puZPjRmKgGhVQjZnM6BtqJ0JO1YAsd4NxqR76VsPck95vhqd05c4jXhgens6sBBAWap4s7x7VdBqEqwvSweJm64eiU92CIosEGzRgj23O+eZjjIkHLY+US0HT7jjAJ1V+RO0VHN+MCbvFfhJQGg1u0Lw4ebRuaqBNlL1Epg0Ih09l4skDcaOdjT6LAHvmoRRphx2GScPwXBM05rWic/Pb06Tztmu0jFypGL1L7SCWUtoBtYtwuNuPx+By5M1AJnBdMqzmDabbnwZuXUHhbZSH7T8xj8j7SI88xd6zBPzAGSu7jefemLava/cMkvVLWfYnXbY7vGFQzYaGhUZ8ZSXWutIK33AY7Swt35FrdIFFfHOrmo7v4gbTpPA/oAFHnenV/r2TV1J/GD8MWaAUNO1cr2ruaE528x7mJcdyR38nu7n+mnkhRfhMTRurzmgqX+Lf4u3cDAXxmi/17ZUyl8FlPTG1+wGR2TGSKroKuC1QbAkBPa3NIymuy2QV9trQSG8wfZ+ilCfwWC53h22me8Kc7EDflDFFBeBlNtQQgXZTCdT6qTGKdNabKfvEMlYbuTBEsOy+j5Mpzr91/JrvFR5jGy0nqwgXlhBeu8KDWHtzhp7GO2WlXQ5/oXM2g0RVeFZEOWT8VonUsIC7JJeXy4LYs9YgYJXItv320So10IiCoQoyHrvrZrgxa3xM/3xENs+VWC4Ct45r4TdadVFPvV1MhvwcBTP8L/Hwt+z0HW82oEUHgxliaFSLCUyMaZk0NYwMQ5jfamJBiduhM86DBlu2ONEqF9NJlIA8Y8/d6utk/69Knq/u+QjxtVKO6gak8QlSwf3Rv7mj9wcZaQ1bwRPbLRuMcN/fbcycATWoKAmJsaVGHKmJWkv0qKuZMORw9WYnLb32vbRxUOCZTfFQ6q4hLdsOoEhqEDatFqaqKNRa4enJuHgrospFv7USi1Cnk76jLFmPch22vTPAlmnwL1oDVysXkFPMrgIS/Fpm+IJgxdL6N8DaNYraZJdek94iUE67yBbhh+Bn22N/T308LxI+f3OhLK2S9eSL+SUB3SY3URkvWtOQdI4ABVJRaC9J1Q6EUMJy+/atlQmZyAjLSvJRmYlnGSrxL53XIZbC92uU/Iw/zOeftQrSkuBpfze+tn7crQlLX6xHIsQBhQX/UFD7WFKsKS0xikAtyrWAAAAAAAA="><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</header>
+
+<!-- 0 -->
+<section class="card">
+  <h2><span class="num">0</span>一句話直覺：Adam ＝ 動量 ＋ RMSProp ＋ 偏差修正</h2>
+  <div class="intro">
+    <div>
+      <div class="def">
+        <i class="m">θ<sub>t</sub></i> = <i class="m">θ</i><sub><i class="m">t</i>−1</sub> − η · <span class="frac"><span><b class="m1"><i class="m">m̂<sub>t</sub></i></b></span><span>√<b class="v2"><i class="m">v̂<sub>t</sub></i></b> + ε</span></span>
+        　　<span style="font-size:1rem">（<b class="m1">一階矩</b>給方向，<b class="v2">二階矩</b>調尺度）</span>
+      </div>
+      <div class="three">
+        <div><b class="t m1">① 一階矩 m（動量）</b><i class="m">m<sub>t</sub></i> = β<sub>1</sub><i class="m">m</i><sub><i class="m">t</i>−1</sub> + (1−β<sub>1</sub>)<i class="m">g<sub>t</sub></i><br>梯度的指數移動平均：<b>平均往哪走</b>，雜訊互相抵消。來自 Polyak 的動量。</div>
+        <div><b class="t v2">② 二階矩 v（RMSProp）</b><i class="m">v<sub>t</sub></i> = β<sub>2</sub><i class="m">v</i><sub><i class="m">t</i>−1</sub> + (1−β<sub>2</sub>)<i class="m">g<sub>t</sub></i>²<br>梯度平方的指數移動平均：<b>梯度通常多大</b>。來自辛頓的 RMSProp。</div>
+        <div><b class="t adam">③ 偏差修正</b><i class="m">m̂<sub>t</sub></i> = <span class="frac"><span><i class="m">m<sub>t</sub></i></span><span>1−β<sub>1</sub><sup><i class="m">t</i></sup></span></span>，<i class="m">v̂<sub>t</sub></i> = <span class="frac"><span><i class="m">v<sub>t</sub></i></span><span>1−β<sub>2</sub><sup><i class="m">t</i></sup></span></span><br><i class="m">m</i><sub>0</sub> = <i class="m">v</i><sub>0</sub> = 0，初期估計偏向 0，要放大回來。</div>
+      </div>
+      <p class="note">符號：步數 <i class="m">t</i> = 1, 2, …；梯度 <i class="m">g<sub>t</sub></i> = ∇<i class="m">f</i>(<i class="m">θ</i><sub><i class="m">t</i>−1</sub>)；平方、開根號、除法都是<b>逐元素</b>計算。論文建議的預設值：η = 0.001、β<sub>1</sub> = 0.9、β<sub>2</sub> = 0.999、ε = 10<sup>−8</sup>（論文把學習率寫成 α，本系列統一用 η）。</p>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub1">Hi！我是吉米・巴（Jimmy Ba），Adam 的作者之一。點我聽故事！</div><div class="av" id="av1"></div></div>
+  </div>
+  <div class="story">
+    <h3>📜 小故事：兩位實習生的優化器</h3>
+    <p>2014 年夏天，辛頓的博士生<b>吉米・巴</b>和剛提出變分自編碼器（VAE）的<b>迪德里克・金馬（Diederik Kingma）</b>在倫敦的 DeepMind 實習。VAE 的訓練要隨機取樣，梯度充滿雜訊，金馬需要一個更穩、更不必反覆調參的優化器。</p>
+    <p>他們把動量的<b>一階矩</b>和 RMSProp 的<b>二階矩</b>結合起來，再加上關鍵的<b>偏差修正</b>。名字 Adam 不是縮寫，而是來自 <span class="quote">adaptive moment estimation</span>（自適應矩估計）。</p>
+    <div class="tl">
+      <div><b>1964</b>Polyak：動量（一階矩）</div>
+      <div><b>2012</b>辛頓：RMSProp（二階矩）</div>
+      <div><b>2014/12</b>Kingma &amp; Ba：Adam 上傳 arXiv；2015 年發表於 ICLR</div>
+      <div><b>2025</b>Adam 獲 ICLR「時間考驗獎」</div>
+    </div>
+  </div>
+</section>
+
+<!-- 1 -->
+<section class="card">
+  <h2><span class="num">1</span>一步一步算 Adam：每一行程式在做什麼？</h2>
+  <p style="margin-top:0">最小化 <i class="m">f</i>(<i class="m">θ</i>) = (<i class="m">θ</i> − 3)²，從 <i class="m">θ</i><sub>0</sub> = 0 出發，η = 0.1、β<sub>1</sub> = 0.9、β<sub>2</sub> = 0.999、ε = 10<sup>−8</sup>。每按一次「下一步」執行一行：</p>
+  <div class="two">
+    <div>
+      <div class="code" id="code1"></div>
+      <div class="row" style="margin-top:10px"><button id="r1">⟲ 重來</button><button id="p1">◀ 上一步</button><button id="n1" class="pri">下一步 ▶</button><button id="a1">▶ 自動播放</button></div>
+      <div class="stepbar"><div id="bar1"></div></div>
+      <div class="explain" id="t1"></div>
+      <div class="formula" id="o1"></div>
+    </div>
+    <div>
+      <div class="cvbox"><canvas id="c1"></canvas></div>
+      <div class="legend"><span><i style="background:var(--cv)"></i>f(θ) = (θ − 3)²</span><span><i style="background:var(--adam)"></i>Adam 走過的位置</span></div>
+      <div class="tbl"><table id="tb1"></table></div>
+      <p class="note">觀察 Δθ 欄：梯度從 −6 一路變小，Adam 的步長卻一直維持<b>約 η = 0.1</b>。因為 <i class="m">m̂</i> ≈ <i class="m">g</i>、√<i class="m">v̂</i> ≈ |<i class="m">g</i>|，兩者相除只剩方向。同樣的 η，SGD 第一步會走 η·|<i class="m">g</i>| = 0.6。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="card">
+  <h2><span class="num">2</span><span>偏差修正：為什麼要除以 1 − β<sup><i class="m">t</i></sup>？</span></h2>
+  <p style="margin-top:0">假設梯度一直是 <i class="m">g</i> = 1。因為 <i class="m">m</i><sub>0</sub> = <i class="m">v</i><sub>0</sub> = 0，展開等比級數可得 <i class="m">m<sub>t</sub></i> = (1 − β<sub>1</sub><sup><i class="m">t</i></sup>)·<i class="m">g</i>、<i class="m">v<sub>t</sub></i> = (1 − β<sub>2</sub><sup><i class="m">t</i></sup>)·<i class="m">g</i>²：<b>剛開始都偏向 0</b>，除以 1 − β<sup><i class="m">t</i></sup> 剛好把它還原。</p>
+  <div class="ctl">
+    <label>β<sub>1</sub> = <b id="b21v"></b><input id="b21" type="range" min="0.5" max="0.99" step="0.01" value="0.9"></label>
+    <label>β<sub>2</sub> = <b id="b22v"></b><input id="b22" type="range" min="0.9" max="0.9999" step="0.0001" value="0.999"></label>
+    <label>觀察到第 <b id="t2v"></b> 步<input id="t2" type="range" min="1" max="300" step="1" value="10"></label>
+  </div>
+  <div class="two" style="margin-top:12px">
+    <div>
+      <h3>估計值：修正前 vs. 修正後</h3>
+      <div class="cvbox"><canvas id="c2a"></canvas></div>
+      <div class="legend"><span><i style="background:var(--m1)"></i>m̂（修正後）</span><span><i style="background:var(--m1);opacity:.45"></i>m（修正前，虛線）</span><span><i style="background:var(--v2)"></i>√v̂（修正後）</span><span><i style="background:var(--v2);opacity:.45"></i>√v（修正前，虛線）</span></div>
+    </div>
+    <div>
+      <h3>每一步走多遠（以 η 為單位）</h3>
+      <div class="cvbox"><canvas id="c2b"></canvas></div>
+      <div class="legend"><span><i style="background:var(--bad)"></i>沒有偏差修正 m/√v</span><span><i style="background:var(--adam)"></i>有偏差修正 m̂/√v̂</span></div>
+      <div class="stats">
+        <div><small>第 t 步沒修正</small><b id="s2u" class="bad"></b></div>
+        <div><small>第 t 步有修正</small><b id="s2c" class="adam"></b></div>
+      </div>
+    </div>
+  </div>
+  <div class="formula" id="o2"></div>
+  <div class="say">📌 沒有修正時，分子 <i class="m">m</i> 約 10 步就追上，分母 √<i class="m">v</i> 卻要上千步才追上（β<sub>2</sub> = 0.999 記得約 1000 步）。結果前幾百步的步長是 η 的好幾倍，訓練一開始就可能衝過頭。這正是 RMSProp 加動量時沒處理的問題，也是 Adam 的關鍵改良。</div>
+</section>
+
+<!-- 3 -->
+<section class="card">
+  <h2><span class="num">3</span><span>步長的性質：<span class="frac"><span>m̂</span><span>√v̂</span></span> 像「訊號雜訊比」，雜訊大就自動煞車</span></h2>
+  <p style="margin-top:0">讓梯度 = 平均 μ ＋ 雜訊（標準差 σ），跑 300 步 Adam（β<sub>1</sub> = 0.9、β<sub>2</sub> = 0.999）。因為 <i class="m">m̂</i> ≈ μ、<i class="m">v̂</i> ≈ E[<i class="m">g</i>²] = μ² + σ²：</p>
+  <div class="formula" style="text-align:center">每步走 ≈ η · <span class="frac"><span>|μ|</span><span>√(μ² + σ²)</span></span>　≤ η</div>
+  <div class="ctl">
+    <label>平均 μ（訊號）= <b id="mu3v"></b><input id="mu3" type="range" min="-2" max="2" step="0.1" value="1"></label>
+    <label>雜訊 σ = <b id="sg3v"></b><input id="sg3" type="range" min="0" max="5" step="0.1" value="1"></label>
+    <div class="row"><button data-p3="1,0">沒有雜訊</button><button data-p3="1,1">訊號 = 雜訊</button><button data-p3="0.2,3">雜訊主導</button><button data-p3="0,2">只有雜訊</button></div>
+  </div>
+  <div class="two" style="margin-top:12px">
+    <div>
+      <div class="cvbox"><canvas id="c3"></canvas></div>
+      <div class="legend"><span><i style="background:var(--mute);opacity:.5"></i>梯度 g<sub>t</sub>÷√(μ²+σ²)</span><span><i style="background:var(--adam)"></i>Adam 的 m̂<sub>t</sub>/√v̂<sub>t</sub></span><span><i style="background:var(--ok)"></i>理論值 μ/√(μ²+σ²)</span></div>
+    </div>
+    <div>
+      <div class="stats">
+        <div><small>理論 μ/√(μ²+σ²)</small><b id="s3th" class="ok"></b></div>
+        <div><small>後 150 步平均 m̂/√v̂</small><b id="s3av" class="adam"></b></div>
+      </div>
+      <div class="say" id="t3"></div>
+      <p class="note">這也說明 η 的意義：在 Adam 裡，η 大約就是<b>每一步參數最多移動多少</b>。不管梯度是 0.001 還是 1000，步長都在 η 左右，所以同一組預設值能用在很多不同的問題上。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="card">
+  <h2><span class="num">4</span>四種方法大比較：雜訊與尺度的考驗</h2>
+  <div class="vs" style="margin-top:0">
+    <div class="a"><b class="t sgd">● SGD</b>η = 0.475</div>
+    <div class="b"><b class="t mom">■ Momentum</b>η = 0.475、β = 0.6</div>
+    <div class="c"><b class="t rms">▲ RMSProp</b>η = 0.1、β<sub>2</sub> = 0.9</div>
+    <div class="d"><b class="t adam">◆ Adam</b>η<sub>A</sub>、β<sub>1</sub>、β<sub>2</sub> 可調</div>
+  </div>
+  <p class="note" style="margin:6px 0 0">SGD、Momentum、RMSProp 的參數沿用前兩課調好的值，它們在「沒有雜訊、尺度 ×1」時都表現得不錯。</p>
+  <div class="ctl" style="margin-top:12px">
+    <label>地形<select id="f4"></select></label>
+    <div><span class="note">f 的縮放倍數（梯度也跟著放大）</span><br><span class="seg" id="sc4"><button data-s="0.01">×0.01</button><button data-s="1" class="on">×1</button><button data-s="100">×100</button></span></div>
+    <label>梯度雜訊 σ = <b id="nz4v"></b><input id="nz4" type="range" min="0" max="2" step="0.1" value="0.6"></label>
+    <label>Adam 的 η<sub>A</sub> = <b id="ea4v"></b><input id="ea4" type="range" min="0.02" max="0.5" step="0.01" value="0.2"></label>
+    <label>Adam 的 β<sub>1</sub> = <b id="b14v"></b><input id="b14" type="range" min="0" max="0.99" step="0.01" value="0.9"></label>
+    <label>Adam 的 β<sub>2</sub> = <b id="b24v"></b><input id="b24" type="range" min="0.9" max="0.999" step="0.001" value="0.999"></label>
+  </div>
+  <div style="margin-top:8px"><label class="chk"><input type="checkbox" id="sh0" checked> SGD</label><label class="chk"><input type="checkbox" id="sh1" checked> Momentum</label><label class="chk"><input type="checkbox" id="sh2" checked> RMSProp</label><label class="chk"><input type="checkbox" id="sh3" checked> Adam</label><span class="note">👆 點地圖可以換起點</span></div>
+  <div class="two" style="margin-top:12px">
+    <div><div class="cvbox sq"><canvas id="c4"></canvas></div>
+      <div class="legend"><span><i style="background:var(--sgd)"></i>SGD</span><span><i style="background:var(--mom)"></i>Momentum</span><span><i style="background:var(--rms)"></i>RMSProp</span><span><i style="background:var(--adam)"></i>Adam</span></div></div>
+    <div>
+      <div class="row"><button id="r4">⟲ 重來</button><button id="p4">◀ 上一步</button><button id="n4" class="pri">下一步 ▶</button><button id="a4">▶ 自動播放</button><button id="end4">⏩ 直接看結果</button></div>
+      <div class="stepbar"><div id="bar4"></div></div>
+      <div class="tbl"><table id="tb4"></table></div>
+      <h3 style="margin-top:10px">f 隨步數的變化 <span class="note">（顯示 ×1 地形上的 f，方便比較）</span></h3>
+      <div class="cvbox"><canvas id="c4L"></canvas></div>
+    </div>
+  </div>
+  <div class="say" id="say4"></div>
+</section>
+
+<!-- 5 -->
+<section class="card">
+  <h2><span class="num">5</span>觀念小測驗</h2>
+  <div class="qgrid">
+    <div>
+      <div class="quiz" id="quiz"></div>
+      <div class="score" id="score"><span id="scoreTxt"></span><button id="retry" class="pri">再做一次</button></div>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub2">來考考你！答對我會笑，答錯我會皺眉喔。</div><div class="av" id="av2"></div></div>
+  </div>
+</section>
+
+<footer>Adam 最佳化器互動教學 ・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fr=(a,b)=>`<span class="frac"><span>${a}</span><span>${b}</span></span>`;
+const M=s=>`<i class="m">${s}</i>`;
+const fmt=(v,d=3)=>{if(!isFinite(v))return v>0?'∞':'−∞';if(Math.abs(v)<5e-10)v=0;if(Math.abs(v)>=1e5)return v.toExponential(2).replace('-','−');return v.toFixed(d).replace('-','−');};
+const fmtg=v=>{if(!isFinite(v))return '∞';v=+v.toPrecision(4);const a=Math.abs(v);if(a===0)return '0';if(a>=1e6||a<1e-3)return v.toExponential(2).replace('-','−').replace('e+','e');return String(+v.toPrecision(4)).replace('-','−');};
+function sizeCanvas(cv,ratio,maxH){
+  cv.style.width='0px';const w=cv.parentElement.clientWidth;cv.style.width='100%';
+  let h=Math.round(w*ratio);if(maxH)h=Math.min(h,maxH);
+  const dpr=window.devicePixelRatio||1;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+'px';
+  const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);return {c,w,h};
+}
+function niceStep(span){const raw=span/6,p=Math.pow(10,Math.floor(Math.log10(raw))),n=raw/p;return (n<1.5?1:n<3.5?2:n<7.5?5:10)*p;}
+function dot(c,x,y,col,r){c.fillStyle=col||'#111';c.strokeStyle=css('--card');c.lineWidth=2;c.beginPath();c.arc(x,y,r||6,0,7);c.fill();c.stroke();}
+function mark(c,x,y,col,shape,r){r=r||7;c.fillStyle=col;c.strokeStyle=css('--card');c.lineWidth=2;c.beginPath();
+  if(shape==='s')c.rect(x-r*0.85,y-r*0.85,r*1.7,r*1.7);else if(shape==='t'){c.moveTo(x,y-r);c.lineTo(x+r*0.95,y+r*0.75);c.lineTo(x-r*0.95,y+r*0.75);c.closePath();}
+  else if(shape==='d'){c.moveTo(x,y-r*1.1);c.lineTo(x+r,y);c.lineTo(x,y+r*1.1);c.lineTo(x-r,y);c.closePath();}else c.arc(x,y,r,0,7);c.fill();c.stroke();}
+function plot(cv,ratio,xr,yr,opt){
+  opt=opt||{};const {c,w,h}=sizeCanvas(cv,ratio,opt.maxH||420),L=opt.L||40,R=12,T=10,B=opt.B||28;
+  const X=x=>L+(x-xr[0])/(xr[1]-xr[0])*(w-L-R),Y=y=>T+(yr[1]-y)/(yr[1]-yr[0])*(h-T-B);
+  const sx=opt.sx||niceStep(xr[1]-xr[0]),sy=opt.sy||niceStep(yr[1]-yr[0]),fy=opt.fy||(y=>+y.toFixed(4)+'');
+  c.font='11px sans-serif';c.strokeStyle=css('--grid');c.fillStyle=css('--mute');c.lineWidth=1;c.textAlign='center';c.textBaseline='top';
+  for(let x=Math.ceil(xr[0]/sx-1e-9)*sx;x<=xr[1]+1e-9;x+=sx){c.beginPath();c.moveTo(X(x),T);c.lineTo(X(x),h-B);c.stroke();c.fillText(+x.toFixed(4)+'',X(x),h-B+4);}
+  c.textAlign='right';c.textBaseline='middle';
+  for(let y=Math.ceil(yr[0]/sy-1e-9)*sy;y<=yr[1]+1e-9;y+=sy){c.beginPath();c.moveTo(L,Y(y));c.lineTo(w-R,Y(y));c.stroke();c.fillText(fy(y),L-4,Y(y));}
+  c.strokeStyle=css('--axis');c.strokeRect(L,T,w-L-R,h-T-B);
+  if(opt.xl){c.textAlign='right';c.textBaseline='bottom';c.fillText(opt.xl,w-R-4,h-B-3);}
+  return {c,w,h,X,Y,L,R,T,B,clip(){c.save();c.beginPath();c.rect(L,T,w-L-R,h-T-B);c.clip();}};
+}
+function line(P,xs,ys,col,lw,dash){const c=P.c;c.strokeStyle=col;c.lineWidth=lw||2.5;c.setLineDash(dash||[]);c.beginPath();let st=false;
+  xs.forEach((x,i)=>{const y=ys[i];if(!isFinite(y))return;st?c.lineTo(P.X(x),P.Y(y)):c.moveTo(P.X(x),P.Y(y));st=true;});c.stroke();c.setLineDash([]);}
+function onClick(cv,cb){cv.addEventListener('pointerdown',e=>{const b=cv.getBoundingClientRect();cb(e.clientX-b.left,e.clientY-b.top);});}
+function stepper(ids,getN,setK,getK,ms){
+  let T=null;const stop=()=>{clearInterval(T);T=null;$(ids[3]).textContent='▶ 自動播放';};
+  $(ids[0]).onclick=()=>{stop();setK(0);};
+  if(ids[1])$(ids[1]).onclick=()=>{stop();setK(getK()-1);};
+  $(ids[2]).onclick=()=>{stop();setK(getK()+1);};
+  $(ids[3]).onclick=()=>{if(T){stop();return;}if(getK()>=getN())setK(0);$(ids[3]).textContent='⏸ 暫停';
+    T=setInterval(()=>{if(getK()>=getN()){stop();return;}setK(getK()+1);},ms||1100);};
+  return stop;
+}
+function rng(seed){let s=seed>>>0;return ()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
+function gauss(r){const u=Math.max(1e-9,r()),v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+
+/* ---------- 1. 逐行計算 ---------- */
+const E1=0.1,B1=0.9,B2=0.999,EP=1e-8,T1=10;
+const CODE=[
+ ['<span class="k">for</span> t <span class="k">in</span> range(1, T+1):',''],
+ ['    g     = 2*(theta - 3)','<span class="c"># ① 梯度 g_t</span>'],
+ ['    m     = beta1*m + (1-beta1)*g','<span class="c"># ② 一階矩</span>'],
+ ['    v     = beta2*v + (1-beta2)*g*g','<span class="c"># ③ 二階矩</span>'],
+ ['    m_hat = m / (1 - beta1**t)','<span class="c"># ④ 偏差修正</span>'],
+ ['    v_hat = v / (1 - beta2**t)','<span class="c"># ⑤ 偏差修正</span>'],
+ ['    theta = theta - eta*m_hat/(sqrt(v_hat)+eps)','<span class="c"># ⑥ 更新</span>']];
+const R1=[];(function(){let th=0,m=0,v=0;for(let t=1;t<=T1;t++){const g=2*(th-3),m0=m,v0=v,th0=th;m=B1*m+(1-B1)*g;v=B2*v+(1-B2)*g*g;
+  const mh=m/(1-Math.pow(B1,t)),vh=v/(1-Math.pow(B2,t)),d=-E1*mh/(Math.sqrt(vh)+EP);th=th+d;R1.push({t,th0,g,m0,v0,m,v,mh,vh,d,th});}})();
+let K1=0;const N1=T1*6;
+function draw1(){
+  const k=K1,t=k===0?0:Math.ceil(k/6),l=k===0?0:((k-1)%6)+1,r=t?R1[t-1]:null;
+  $('code1').innerHTML=CODE.map((c,i)=>`<div class="${i===l?'on':''}">${c[0]}  ${c[1]}</div>`).join('');
+  $('bar1').style.width=(k/N1*100)+'%';
+  const th=!r?0:(l>=6?r.th:r.th0);
+  const P=plot($('c1'),0.55,[-0.5,3.6],[0,12.5],{xl:'θ',sx:0.5,maxH:280}),c=P.c;P.clip();
+  const xs=[],ys=[];for(let i=0;i<=200;i++){const x=-0.5+4.1*i/200;xs.push(x);ys.push((x-3)**2);}line(P,xs,ys,css('--cv'),3);
+  const done=R1.filter(q=>q.t<t||(q.t===t&&l>=6));[0,...done.map(q=>q.th)].forEach(x=>{c.fillStyle=css('--adam');c.globalAlpha=.35;c.beginPath();c.arc(P.X(x),P.Y((x-3)**2),4,0,7);c.fill();});c.globalAlpha=1;
+  c.fillStyle=css('--warn');c.font='bold 16px sans-serif';c.textAlign='center';c.fillText('★',P.X(3),P.Y(0)-8);
+  mark(c,P.X(th),P.Y((th-3)**2),css('--adam'),'d',8);c.restore();
+  // table
+  const H=['t','g<sub>t</sub>','m<sub>t</sub>','v<sub>t</sub>','m̂<sub>t</sub>','v̂<sub>t</sub>','Δθ','θ<sub>t</sub>'];
+  let rows='';R1.forEach(q=>{if(q.t>t)return;const cur=q.t===t,lim=cur?l:7;const cell=(i,val)=>i<=lim?`<td class="${cur&&i===lim?'new':''}">${val}</td>`:'<td>—</td>';
+    rows+=`<tr class="${cur?'cur':''}"><td>${q.t}</td>${cell(1,fmt(q.g,3))}${cell(2,fmt(q.m,4))}${cell(3,fmt(q.v,4))}${cell(4,fmt(q.mh,3))}${cell(5,fmt(q.vh,3))}${cell(6,fmt(q.d,4))}${cell(6,fmt(q.th,4))}</tr>`;});
+  $('tb1').innerHTML=`<tr>${H.map(h=>`<th>${h}</th>`).join('')}</tr>`+rows;
+  if(!r){$('t1').innerHTML='<b>起點</b>：θ<sub>0</sub> = 0，m<sub>0</sub> = 0，v<sub>0</sub> = 0。按「下一步」開始執行第 1 輪（t = 1）。';$('o1').innerHTML='';return;}
+  const b1t=Math.pow(B1,t),b2t=Math.pow(B2,t);
+  const ex=[null,
+   [`<b>t = ${t}，① 計算梯度</b>：在目前位置 θ<sub>${t-1}</sub> = ${fmt(r.th0,4)} 算斜率。`,`${M('g')}<sub>${t}</sub> = 2(${M('θ')}<sub>${t-1}</sub> − 3) = 2(${fmt(r.th0,4)} − 3) = <b class="adam">${fmt(r.g,4)}</b>`],
+   [`<b>② 一階矩</b>：把新梯度加進「方向的平均」，舊的保留 β<sub>1</sub> = 0.9。`,`${M('m')}<sub>${t}</sub> = 0.9 × ${fmt(r.m0,4)} + 0.1 × (${fmt(r.g,4)}) = <b class="m1">${fmt(r.m,4)}</b>`],
+   [`<b>③ 二階矩</b>：把梯度<b>平方</b>加進「大小的平均」，舊的保留 β<sub>2</sub> = 0.999。`,`${M('v')}<sub>${t}</sub> = 0.999 × ${fmt(r.v0,4)} + 0.001 × (${fmt(r.g,4)})² = <b class="v2">${fmt(r.v,4)}</b>`],
+   [`<b>④ 偏差修正 m</b>：前幾步 m 偏小，除以 1 − β<sub>1</sub><sup>${t}</sup> = ${fmt(1-b1t,4)} 放大回來。`,`${M('m̂')}<sub>${t}</sub> = ${fmt(r.m,4)} ÷ ${fmt(1-b1t,4)} = <b class="m1">${fmt(r.mh,4)}</b>`+(t===1?'　（第 1 步剛好等於 g<sub>1</sub>）':'')],
+   [`<b>⑤ 偏差修正 v</b>：除以 1 − β<sub>2</sub><sup>${t}</sup> = ${fmt(1-b2t,4)}。這個數很小，所以 v 被放大很多倍。`,`${M('v̂')}<sub>${t}</sub> = ${fmt(r.v,4)} ÷ ${fmt(1-b2t,4)} = <b class="v2">${fmt(r.vh,4)}</b>，√${M('v̂')}<sub>${t}</sub> = ${fmt(Math.sqrt(r.vh),4)}`],
+   [`<b>⑥ 更新參數</b>：方向看 m̂，尺度除以 √v̂。這一步走了 ${fmt(Math.abs(r.d),4)}，大約就是 η = 0.1。`,`${M('θ')}<sub>${t}</sub> = ${fmt(r.th0,4)} − 0.1 × ${fr(fmt(r.mh,4),fmt(Math.sqrt(r.vh),4)+' + ε')} = <b class="adam">${fmt(r.th,4)}</b>`]];
+  $('t1').innerHTML=ex[l][0];$('o1').innerHTML=ex[l][1];
+}
+const set1=k=>{K1=Math.max(0,Math.min(N1,k));draw1();};
+stepper(['r1','p1','n1','a1'],()=>N1,set1,()=>K1,1200);
+
+/* ---------- 2. 偏差修正 ---------- */
+const S2={b1:0.9,b2:0.999,t:10},N2=300;
+function draw2(){
+  const {b1,b2,t}=S2,ts=[],m=[],mh=[],sv=[],svh=[],u=[],c1=[];
+  for(let k=1;k<=N2;k++){const mk=1-Math.pow(b1,k),vk=1-Math.pow(b2,k);ts.push(k);m.push(mk);mh.push(1);sv.push(Math.sqrt(vk));svh.push(1);u.push(mk/Math.sqrt(vk));c1.push(1);}
+  let P=plot($('c2a'),0.6,[0,N2],[0,1.15],{xl:'t',sx:50,maxH:280});P.clip();
+  line(P,ts,m,css('--m1'),2.5,[6,4]);line(P,ts,sv,css('--v2'),2.5,[6,4]);line(P,ts,mh,css('--m1'),3);line(P,ts,svh.map(x=>x-0.015),css('--v2'),3);
+  P.c.strokeStyle=css('--ink');P.c.setLineDash([2,3]);P.c.beginPath();P.c.moveTo(P.X(t),P.Y(0));P.c.lineTo(P.X(t),P.Y(1.15));P.c.stroke();P.c.setLineDash([]);P.c.restore();
+  const top=Math.max(4,Math.ceil(Math.max(...u)*1.1));
+  P=plot($('c2b'),0.6,[0,N2],[0,top],{xl:'t',sx:50,maxH:280});P.clip();
+  line(P,ts,u,css('--bad'),3);line(P,ts,c1,css('--adam'),3);
+  P.c.strokeStyle=css('--ink');P.c.setLineDash([2,3]);P.c.beginPath();P.c.moveTo(P.X(t),P.Y(0));P.c.lineTo(P.X(t),P.Y(top));P.c.stroke();P.c.setLineDash([]);
+  dot(P.c,P.X(t),P.Y(u[t-1]),css('--bad'),5);P.c.restore();
+  $('b21v').textContent=b1.toFixed(2);$('b22v').textContent=b2.toFixed(4);$('t2v').textContent=t;
+  $('s2u').textContent=fmt(u[t-1],2)+' η';$('s2c').textContent='1.00 η';
+  const mt=1-Math.pow(b1,t),vt=1-Math.pow(b2,t);
+  $('o2').innerHTML=`第 ${t} 步（g = 1）：${M('m')}<sub>${t}</sub> = 1 − ${b1.toFixed(2)}<sup>${t}</sup> = ${fmt(mt,4)}，${M('v')}<sub>${t}</sub> = 1 − ${b2.toFixed(4)}<sup>${t}</sup> = ${fmt(vt,4)}<br>沒修正：${fr(M('m')+'<sub>'+t+'</sub>','√'+M('v')+'<sub>'+t+'</sub>')} = ${fr(fmt(mt,4),fmt(Math.sqrt(vt),4))} = <b class="bad">${fmt(mt/Math.sqrt(vt),3)}</b>　　有修正：${fr(M('m̂')+'<sub>'+t+'</sub>','√'+M('v̂')+'<sub>'+t+'</sub>')} = ${fr('1','1')} = <b class="adam">1</b>`;
+}
+$('b21').addEventListener('input',e=>{S2.b1=+e.target.value;draw2();});
+$('b22').addEventListener('input',e=>{S2.b2=+e.target.value;draw2();});
+$('t2').addEventListener('input',e=>{S2.t=+e.target.value;draw2();});
+
+/* ---------- 3. 訊號雜訊比 ---------- */
+const S3={mu:1,sg:1},N3=300,Z3=(()=>{const r=rng(31415),a=[];for(let i=0;i<N3;i++)a.push(gauss(r));return a;})();
+function draw3(){
+  const {mu,sg}=S3,sc=Math.sqrt(mu*mu+sg*sg)||1,ts=[],gs=[],rs=[];let m=0,v=0;
+  for(let t=1;t<=N3;t++){const g=mu+sg*Z3[t-1];m=0.9*m+0.1*g;v=0.999*v+0.001*g*g;const r=(m/(1-Math.pow(0.9,t)))/(Math.sqrt(v/(1-Math.pow(0.999,t)))+1e-8);ts.push(t);gs.push(g/sc);rs.push(r);}
+  const P=plot($('c3'),0.62,[0,N3],[-3,3],{xl:'t',sx:50,sy:1,maxH:320}),c=P.c;P.clip();
+  c.fillStyle=css('--mute');c.globalAlpha=.35;ts.forEach((t,i)=>{c.beginPath();c.arc(P.X(t),P.Y(Math.max(-3,Math.min(3,gs[i]))),1.8,0,7);c.fill();});c.globalAlpha=1;
+  [1,-1].forEach(y=>{c.strokeStyle=css('--axis');c.setLineDash([4,4]);c.beginPath();c.moveTo(P.X(0),P.Y(y));c.lineTo(P.X(N3),P.Y(y));c.stroke();});c.setLineDash([]);
+  const th=sc?mu/sc:0;line(P,[0,N3],[th,th],css('--ok'),2.5,[8,5]);line(P,ts,rs,css('--adam'),2.6);
+  c.fillStyle=css('--mute');c.font='11px sans-serif';c.textAlign='left';c.fillText('±1（步長上限 η）',P.X(4),P.Y(1)-7);c.restore();
+  const av=rs.slice(150).reduce((a,b)=>a+b,0)/150;
+  $('mu3v').textContent=mu.toFixed(1);$('sg3v').textContent=sg.toFixed(1);$('s3th').textContent=fmt(th,2);$('s3av').textContent=fmt(av,2);
+  const a=Math.abs(th);
+  $('t3').innerHTML=sg===0?'📌 沒有雜訊：m̂/√v̂ ≈ ±1，每一步都走滿 η。方向很確定，Adam 就放心大步走。'
+   :a>0.7?`📌 訊號比雜訊強：平均每步約走 <b>${fmt(a,2)} η</b>。方向大致可信，步伐稍微保守。`
+   :a>0.15?`📌 雜訊主導：平均每步只走約 <b>${fmt(a,2)} η</b>。Adam 不確定方向對不對，就<b>自動放慢</b>——像在濃霧中開車會自己減速。`
+   :'📌 只有雜訊：m̂ 在 0 附近晃，平均步長接近 0。梯度只是在亂跳，Adam 幾乎不移動，避免被雜訊帶著亂走。';
+}
+$('mu3').addEventListener('input',e=>{S3.mu=+e.target.value;draw3();});
+$('sg3').addEventListener('input',e=>{S3.sg=+e.target.value;draw3();});
+document.querySelectorAll('[data-p3]').forEach(b=>b.onclick=()=>{const [m,s]=b.dataset.p3.split(',').map(Number);S3.mu=m;S3.sg=s;$('mu3').value=m;$('sg3').value=s;draw3();});
+
+/* ---------- 4. 四種方法 ---------- */
+const R2=Math.SQRT1_2;
+const FN4={
+ ravine:{lab:'狹長峽谷  f = 0.03x² + 2y²',r:4,s:[-2.8,1.2],f:(x,y)=>0.03*x*x+2*y*y,fx:(x,y)=>0.06*x,fy:(x,y)=>4*y},
+ tilt:{lab:'斜的峽谷（旋轉 45°）',r:4,s:[-2.6,-1.4],f:(x,y)=>{const u=(x+y)*R2,w=(x-y)*R2;return 0.03*u*u+2*w*w;},
+   fx:(x,y)=>{const u=(x+y)*R2,w=(x-y)*R2;return (0.06*u+4*w)*R2;},fy:(x,y)=>{const u=(x+y)*R2,w=(x-y)*R2;return (0.06*u-4*w)*R2;}},
+ bowl:{lab:'圓碗  f = x² + y²',r:2,s:[-1.7,1.3],f:(x,y)=>x*x+y*y,fx:(x,y)=>2*x,fy:(x,y)=>2*y}
+};
+const PAL=[[68,1,84],[59,82,139],[33,145,140],[94,201,98],[253,231,37]];
+function pal(t){t=Math.max(0,Math.min(1,t))*(PAL.length-1);const i=Math.min(PAL.length-2,Math.floor(t)),u=t-i;return PAL[i].map((a,k)=>a+(PAL[i+1][k]-a)*u);}
+const INFO={},MAPC={};
+function info(k){if(INFO[k])return INFO[k];const F=FN4[k],r=F.r;let lo=1e9,hi=-1e9;
+  for(let i=0;i<=60;i++)for(let j=0;j<=60;j++){const v=F.f(-r+2*r*i/60,-r+2*r*j/60);lo=Math.min(lo,v);hi=Math.max(hi,v);}return INFO[k]={lo,hi};}
+function mapImage(k,w,h){const key=k+'|'+w+'|'+h;if(MAPC[key])return MAPC[key];
+  const F=FN4[k],r=F.r,I=info(k),nb=16,cell=3,dpr=window.devicePixelRatio||1;
+  const off=document.createElement('canvas');off.width=Math.round(w*dpr);off.height=Math.round(h*dpr);const c=off.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);
+  const nx=Math.ceil(w/cell),ny=Math.ceil(h/cell),B=[];
+  for(let j=0;j<ny;j++){B[j]=[];for(let i=0;i<nx;i++){const x=-r+2*r*(i+.5)*cell/w,y=r-2*r*(j+.5)*cell/h;
+    B[j][i]=Math.max(0,Math.min(nb-1,Math.floor(Math.sqrt((F.f(x,y)-I.lo)/(I.hi-I.lo||1))*nb)));}}
+  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const col=pal((B[j][i]+.5)/nb);c.fillStyle=`rgb(${col.map(v=>Math.round(v*.7+60))})`;c.fillRect(i*cell,j*cell,cell+.5,cell+.5);}
+  c.fillStyle='rgba(255,255,255,.75)';
+  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){if(i+1<nx&&B[j][i]!==B[j][i+1])c.fillRect((i+1)*cell-.6,j*cell,1.2,cell);if(j+1<ny&&B[j][i]!==B[j+1][i])c.fillRect(i*cell,(j+1)*cell-.6,cell,1.2);}
+  c.fillStyle='rgba(255,255,255,.95)';c.font='12px sans-serif';c.textAlign='right';c.textBaseline='bottom';c.fillText('x →',w-6,h-4);c.textAlign='left';c.textBaseline='top';c.fillText('↑ y',6,6);
+  return MAPC[key]=off;}
+const N4=80,NZ4=(()=>{const r=rng(20141222),a=[];for(let i=0;i<2*N4;i++)a.push(gauss(r));return a;})();
+const S4={fn:'ravine',x:-2.8,y:1.2,scale:1,sig:0.6,eA:0.2,b1:0.9,b2:0.999,k:0,show:[1,1,1,1],paths:[],div:[]};
+const METH=[{n:'SGD',col:'--sgd',sh:'c'},{n:'Momentum',col:'--mom',sh:'s'},{n:'RMSProp',col:'--rms',sh:'t'},{n:'Adam',col:'--adam',sh:'d'}];
+function run4(){const F=FN4[S4.fn],sc=S4.scale;S4.paths=[];S4.div=[];
+  for(let mi=0;mi<4;mi++){let x=S4.x,y=S4.y,m=[0,0],v=[0,0];const P=[[x,y]];let dv=-1;
+    for(let t=1;t<=N4;t++){const g=[sc*F.fx(x,y)+S4.sig*NZ4[2*t-2],sc*F.fy(x,y)+S4.sig*NZ4[2*t-1]],d=[0,0];
+      for(let i=0;i<2;i++){
+        if(mi===0)d[i]=0.475*g[i];
+        else if(mi===1){m[i]=0.6*m[i]+g[i];d[i]=0.475*m[i];}
+        else if(mi===2){v[i]=0.9*v[i]+0.1*g[i]*g[i];d[i]=0.1*g[i]/(Math.sqrt(v[i])+1e-8);}
+        else{m[i]=S4.b1*m[i]+(1-S4.b1)*g[i];v[i]=S4.b2*v[i]+(1-S4.b2)*g[i]*g[i];d[i]=S4.eA*(m[i]/(1-Math.pow(S4.b1,t)))/(Math.sqrt(v[i]/(1-Math.pow(S4.b2,t)))+1e-8);}}
+      const nx=x-d[0],ny=y-d[1];
+      if(dv<0&&!(isFinite(nx)&&isFinite(ny)&&Math.abs(nx)<1e4&&Math.abs(ny)<1e4))dv=t;
+      if(dv<0){x=nx;y=ny;}P.push([x,y]);}
+    S4.paths.push(P);S4.div.push(dv);}
+}
+function drawPath(c,X,Y,path,k,col,shape){
+  c.lineJoin='round';
+  c.strokeStyle='rgba(0,0,0,.45)';c.lineWidth=4.5;c.beginPath();for(let i=0;i<=k;i++){const [x,y]=path[i];i?c.lineTo(X(x),Y(y)):c.moveTo(X(x),Y(y));}c.stroke();
+  c.strokeStyle=col;c.lineWidth=2.3;c.beginPath();for(let i=0;i<=k;i++){const [x,y]=path[i];i?c.lineTo(X(x),Y(y)):c.moveTo(X(x),Y(y));}c.stroke();
+}
+function draw4(){
+  const F=FN4[S4.fn],r=F.r,{c,w,h}=sizeCanvas($('c4'),1);if(!w||!h)return;c.drawImage(mapImage(S4.fn,w,h),0,0,w,h);
+  const X=x=>(x+r)/(2*r)*w,Y=y=>h-(y+r)/(2*r)*h,k=S4.k;
+  c.save();c.beginPath();c.rect(0,0,w,h);c.clip();
+  c.fillStyle='#ffd166';c.font='bold 18px sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('★',X(0),Y(0));
+  METH.forEach((M_,i)=>{if(S4.show[i])drawPath(c,X,Y,S4.paths[i],k,css(M_.col));});
+  METH.forEach((M_,i)=>{if(!S4.show[i])return;const [x,y]=S4.paths[i][k];mark(c,X(x),Y(y),css(M_.col),M_.sh,7);});
+  c.restore();
+  const fv=S4.paths.map(P=>P.map(p=>F.f(...p))),top=F.f(S4.x,S4.y)*1.6+0.2;
+  const P=plot($('c4L'),0.42,[0,N4],[0,top],{maxH:200,xl:'步數',sx:10});P.clip();
+  METH.forEach((M_,i)=>{if(!S4.show[i])return;const v=fv[i].slice(0,k+1);line(P,v.map((_,j)=>j),v.map(y=>Math.min(y,top*1.3)),css(M_.col),2.4);});P.c.restore();
+  const hitf=a=>{for(let i=0;i<a.length;i++)if(a[i]<0.01)return i;return -1;};
+  $('tb4').innerHTML='<tr><th style="text-align:left">方法</th><th>目前 f</th><th>後 20 步平均 f</th><th>到 f &lt; 0.01</th></tr>'+METH.map((M_,i)=>{
+    const dv=S4.div[i]>0,avg=fv[i].slice(N4-19).reduce((a,b)=>a+b,0)/20,hh=hitf(fv[i]);
+    return `<tr><td style="text-align:left;color:var(${M_.col});font-weight:700">${M_.n}</td><td>${dv&&k>=S4.div[i]?'—':fmtg(fv[i][k])}</td><td>${dv?'<b class="bad">發散</b>':fmtg(avg)}</td><td>${dv?'—':hh<0?'沒做到':hh+' 步'}</td></tr>`;}).join('');
+  $('nz4v').textContent=S4.sig.toFixed(1);$('ea4v').textContent=S4.eA.toFixed(2);$('b14v').textContent=S4.b1.toFixed(2);$('b24v').textContent=S4.b2.toFixed(3);$('bar4').style.width=(k/N4*100)+'%';
+  let t;
+  if(S4.scale===100)t='📌 <b>f 放大 100 倍</b>：梯度也放大 100 倍。SGD 和 Momentum 用原本的 η 立刻<b class="bad">發散</b>（要重新把 η 調小 100 倍）；RMSProp 和 Adam 除以 √v，尺度剛好抵銷，<b>路徑和 ×1 時幾乎一模一樣</b>。這就是「不用為每個問題重新調 η」的原因。';
+  else if(S4.scale===0.01)t='📌 <b>f 縮小成 0.01 倍</b>：梯度變得很小，SGD 和 Momentum 幾乎不動；RMSProp 和 Adam 照樣每步走約 η，路徑不受影響。';
+  else if(S4.sig>0)t=`📌 <b>梯度有雜訊時（σ = ${S4.sig.toFixed(1)}）</b>：SGD 和 Momentum 被雜訊推得到處亂跑（看表格的「後 20 步平均 f」）。RMSProp 和 Adam 都穩得多：<b class="v2">v</b> 在雜訊大時自動縮小步伐；Adam 還多了 <b class="m1">m</b> 把雜訊平均掉，通常停得最靠近 ★。真實的神經網路訓練用小批次（mini-batch）梯度，雜訊一直存在——這正是 Adam 被廣泛使用的原因。`;
+  else t='📌 <b>沒有雜訊、尺度 ×1</b>：這是對 SGD 和 Momentum 最有利的情況（η 已經為這個地形調好）。在乾淨的二次峽谷，<b>調好的 Momentum 一點也不輸 Adam</b>（斜的峽谷裡甚至更快）。Adam 的價值不在「永遠最快」，而在「不必細調也穩」——試試把雜訊打開，或把 f 放大 100 倍。';
+  $('say4').innerHTML=t;
+}
+const set4=k=>{S4.k=Math.max(0,Math.min(N4,k));draw4();};
+const stop4=stepper(['r4','p4','n4','a4'],()=>N4,set4,()=>S4.k,150);
+$('end4').onclick=()=>{stop4();set4(N4);};
+const sel4=$('f4');Object.entries(FN4).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=v.lab;sel4.appendChild(o);});
+sel4.onchange=()=>{stop4();S4.fn=sel4.value;[S4.x,S4.y]=FN4[S4.fn].s;run4();set4(0);};
+document.querySelectorAll('#sc4 button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#sc4 button').forEach(x=>x.classList.remove('on'));b.classList.add('on');S4.scale=+b.dataset.s;run4();draw4();});
+[['nz4','sig'],['ea4','eA'],['b14','b1'],['b24','b2']].forEach(([id,key])=>$(id).addEventListener('input',e=>{S4[key]=+e.target.value;run4();draw4();}));
+[0,1,2,3].forEach(i=>$('sh'+i).onchange=e=>{S4.show[i]=e.target.checked?1:0;draw4();});
+onClick($('c4'),(px,py)=>{const cv=$('c4'),r=FN4[S4.fn].r,w=cv.clientWidth,h=cv.clientHeight;stop4();S4.x=Math.round((px/w*2*r-r)*20)/20;S4.y=Math.round((r-py/h*2*r)*20)/20;run4();set4(0);});
+
+/* ---------- 吉米・巴老師 ---------- */
+const BA_SVG=`<svg viewBox="0 0 200 230" aria-label="吉米・巴老師動畫">
+ <g class="bodyg">
+  <path d="M10 232 Q16 176 100 164 Q184 176 190 232 Z" fill="#e9edf2"/>
+  <path d="M100 172 L100 232" stroke="#cdd5de" stroke-width="1.6"/>
+  <circle cx="100" cy="190" r="2" fill="#c3ccd6"/><circle cx="100" cy="212" r="2" fill="#c3ccd6"/>
+  <rect x="86" y="132" width="28" height="34" rx="10" fill="#e8c2a6"/>
+  <path d="M86 156 L100 176 L114 156 L114 164 L100 180 L86 164 Z" fill="#e8c2a6"/>
+  <path d="M82 152 L78 176 L100 178 Z M118 152 L122 176 L100 178 Z" fill="#f6f8fb" stroke="#c7d0da" stroke-width="1.4" stroke-linejoin="round"/>
+  <ellipse cx="67" cy="106" rx="6" ry="10" fill="#e8c2a6"/><ellipse cx="133" cy="106" rx="6" ry="10" fill="#e8c2a6"/>
+  <ellipse cx="100" cy="104" rx="33" ry="40" fill="#f3d3ba"/>
+  <ellipse class="blush" cx="80" cy="120" rx="7" ry="4.5" fill="#f08080"/>
+  <ellipse class="blush" cx="120" cy="120" rx="7" ry="4.5" fill="#f08080"/>
+  <path d="M65 100 Q56 72 70 54 Q82 38 104 38 Q128 38 138 56 Q146 72 136 100 Q134 84 128 76 Q124 70 116 70 Q120 78 112 80 Q108 72 98 72 Q100 80 90 80 Q86 74 80 76 Q72 82 70 92 Z" fill="#1f1c1b"/>
+  <path d="M74 54 Q86 44 102 46 M104 44 Q120 44 132 56 M80 64 Q92 56 106 58" stroke="#3b3634" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <g class="hairL"><path d="M66 82 Q58 92 60 104 Q62 110 66 108 Q65 98 70 90 Z" fill="#1f1c1b"/></g>
+  <g class="hairR"><path d="M134 82 Q142 92 140 104 Q138 110 134 108 Q135 98 130 90 Z" fill="#1f1c1b"/></g>
+  <path class="brow browL" d="M75 87 Q84 82 93 86" stroke="#1f1c1b" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+  <path class="brow browR" d="M107 86 Q116 82 125 87" stroke="#1f1c1b" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+  <g class="eyes"><ellipse cx="85" cy="98" rx="4.2" ry="3" fill="#fff"/><ellipse cx="115" cy="98" rx="4.2" ry="3" fill="#fff"/>
+   <circle cx="85.4" cy="98.3" r="2.4" fill="#2a211d"/><circle cx="115.4" cy="98.3" r="2.4" fill="#2a211d"/>
+   <circle cx="86.2" cy="97.3" r="0.8" fill="#fff"/><circle cx="116.2" cy="97.3" r="0.8" fill="#fff"/></g>
+  <circle cx="85" cy="98" r="11" fill="rgba(200,220,240,.15)" stroke="#9aa3ad" stroke-width="1.4"/>
+  <circle cx="115" cy="98" r="11" fill="rgba(200,220,240,.15)" stroke="#9aa3ad" stroke-width="1.4"/>
+  <path d="M74 95 Q76 86 85 86 Q94 86 96 94 M104 94 Q106 86 115 86 Q124 86 126 95" stroke="#222" stroke-width="3.6" fill="none" stroke-linecap="round"/>
+  <path d="M96 93 Q100 90 104 93 M74 94 L67 96 M126 94 L133 96" stroke="#222" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+  <path d="M100 104 Q98 114 96 117 Q100 121 105 118" stroke="#c9967a" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M89 125 Q95 122 100 124 Q105 122 111 125" stroke="#2a2422" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+  <path class="mo n" d="M89 128 Q100 138 111 128 Q100 131 89 128 Z" fill="#fff" stroke="#8a4a3a" stroke-width="1.8" stroke-linejoin="round"/>
+  <path class="mo s" d="M87 127 Q100 144 113 127 Q100 131 87 127 Z" fill="#fff" stroke="#8a4a3a" stroke-width="1.8" stroke-linejoin="round"/>
+  <path class="mo f" d="M90 135 Q100 128 110 135" stroke="#8a4a3a" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <path d="M97 140 Q100 144 103 140" stroke="#2a2422" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path class="sweat" d="M138 70 Q143 80 138 84 Q133 80 138 70 Z" fill="#7cc3f0"/>
+  <text class="spark" x="30" y="44" font-size="18" fill="#f0b400">✦</text>
+  <text class="spark" x="160" y="40" font-size="14" fill="#f0b400">✦</text>
+  <text class="spark" x="170" y="96" font-size="11" fill="#f0b400">✦</text>
+ </g></svg>`;
+function makeAvatar(el,bubble){
+  el.innerHTML=BA_SVG;let tm=null;
+  function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
+  return {mood(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
+    if(m==='smile'){el.classList.add('smile');restart('hop');}
+    if(m==='frown'){el.classList.add('frown');restart('shake');}
+    if(text!==undefined){bubble.innerHTML=text;bubble.className='bubble'+(m==='smile'?' good':m==='frown'?' bad':'');}
+    if(!hold)tm=setTimeout(()=>{el.classList.remove('smile','frown');bubble.className='bubble';},3200);}};
+}
+var AV1=makeAvatar($('av1'),$('bub1')),AV2=makeAvatar($('av2'),$('bub2'));
+const QUOTES=[
+ 'Adam 不是縮寫喔！它來自 <b>adaptive moment estimation</b>——自適應的「矩」估計。',
+ '2014 年夏天，我和金馬都在倫敦的 DeepMind 實習，Adam 的初稿就是那時候寫出來的。',
+ '我在多倫多大學念博士，辛頓是我的指導教授之一。Adam 裡的二階矩 v，就是他 RMSProp 的想法。',
+ '偏差修正是 Adam 和「RMSProp 加動量」最大的不同：m<sub>0</sub> = v<sub>0</sub> = 0，前幾步的估計偏向 0，一定要修正回來。',
+ '論文建議的預設值是 η = 0.001、β<sub>1</sub> = 0.9、β<sub>2</sub> = 0.999、ε = 10<sup>−8</sup>，很多問題直接用就可以。',
+ '2016 年我和 Kiros、辛頓提出了 Layer Normalization，今天的 Transformer 裡到處都有它。',
+ '2025 年，Adam 這篇論文拿到 ICLR 的「時間考驗獎」。現在訓練大型語言模型，最常用的是它的改良版 AdamW。'];
+let qi=0;$('av1').onclick=()=>AV1.mood('smile',QUOTES[qi++%QUOTES.length]);
+
+/* ---------- 5. 小測驗 ---------- */
+const QZ=[
+ {q:'Adam 的 m<sub>t</sub> 主要負責什麼？',o:['方向：梯度的指數移動平均（一階矩，像動量）','尺度：梯度平方的平均','學習率的衰減','損失函數的值'],a:0,
+  e:'m<sub>t</sub> = β<sub>1</sub>m<sub>t−1</sub> + (1−β<sub>1</sub>)g<sub>t</sub>，平均掉雜訊、保留一致的方向。',h:'m 是「一階」矩，一階就是平均。'},
+ {q:'Adam 的 v<sub>t</sub> 主要負責什麼？',o:['尺度：估計梯度通常多大（二階矩，來自 RMSProp）','方向：梯度的平均','動量的大小','參數的初始值'],a:0,
+  e:'v<sub>t</sub> 是梯度平方的指數移動平均，√v̂ 用來把步長正規化。',h:'v 裡面放的是 g 的平方。'},
+ {q:'為什麼 Adam 需要偏差修正？',o:['因為 m<sub>0</sub> = v<sub>0</sub> = 0，前幾步的估計偏向 0','因為梯度太大','為了讓學習率變大','為了找到全域最小值'],a:0,
+  e:'m<sub>t</sub> = (1−β<sub>1</sub><sup>t</sup>)·E[g]，除以 1−β<sub>1</sub><sup>t</sup> 剛好還原。',h:'看第 2 節的虛線：剛開始是從 0 慢慢爬上來的。'},
+ {q:'β<sub>1</sub> = 0.9、β<sub>2</sub> = 0.999 時，如果「沒有」偏差修正，第 1 步走多遠？',o:['約 3.16η','剛好 η','0.1η','0'],a:0,
+  e:'m<sub>1</sub> = 0.1g、√v<sub>1</sub> = √0.001·|g| ≈ 0.0316|g|，相除 ≈ 3.16。',h:'把 t = 1 代進第 2 節的公式框。'},
+ {q:'有偏差修正時，Adam 第 1 步走多遠？',o:['約 η（m̂<sub>1</sub> = g<sub>1</sub>，v̂<sub>1</sub> = g<sub>1</sub>²）','約 0.1η','約 10η','跟 |g<sub>1</sub>| 成正比'],a:0,
+  e:'修正後 m̂<sub>1</sub>/√v̂<sub>1</sub> = g<sub>1</sub>/|g<sub>1</sub>| = ±1，所以第一步剛好走 η。',h:'第 1 節表格第一列的 Δθ 是多少？'},
+ {q:'梯度雜訊很大、平均卻接近 0 時，Adam 會怎樣？',o:['步伐自動變小','步伐自動變大','直接發散','跟 SGD 完全一樣'],a:0,
+  e:'m̂ ≈ 0 而 √v̂ 很大，比值很小，所以 Adam 會放慢、不被雜訊帶著亂走。',h:'第 3 節按「只有雜訊」看看。'},
+ {q:'把損失函數整個乘以 100，用同一組超參數，會發生什麼事？',o:['SGD 可能發散，Adam 的路徑幾乎不變','兩者都不受影響','Adam 發散，SGD 不變','兩者都走得更快'],a:0,
+  e:'Adam 的步長 = η·m̂/√v̂，分子分母都放大 100 倍，互相抵銷。',h:'第 4 節按「×100」看看。'},
+ {q:'下列關於 Adam 的敘述，哪一個正確？',o:['它仍需要選學習率，也不保證找到全域最小值','它保證找到全域最小值','它不需要任何超參數','它在任何問題上都比 Momentum 快'],a:0,
+  e:'Adam 很穩、好用，但不是萬能；第 4 節沒有雜訊時，調好的 Momentum 一點也不輸它。',h:'第 4 節把雜訊調成 0 看看。'}
+];
+const PRAISE=['Nice！答對了 😄','Great！你的 m̂ 和 v̂ 都估得很準！','Awesome！這一步剛好走 η！','Well done！偏差修正完成！'];
+let sc=0,dn=0,streak=0;
+function shuffle(a){return a.map(v=>[Math.random(),v]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);}
+function buildQuiz(){sc=0;dn=0;streak=0;$('score').style.display='none';
+  $('quiz').innerHTML=QZ.map((z,i)=>{const ord=shuffle(z.o.map((t,j)=>j));
+    return `<div class="q"><div><b>Q${i+1}.</b> ${z.q}</div><div class="opts">${ord.map(j=>`<button data-q="${i}" data-o="${j}">${z.o[j]}</button>`).join('')}</div><div class="fb" id="fb${i}"></div></div>`;}).join('');}
+$('quiz').onclick=e=>{const b=e.target.closest('button');if(!b)return;const i=+b.dataset.q,j=+b.dataset.o,z=QZ[i],box=b.parentElement;if(box.dataset.done)return;box.dataset.done=1;dn++;
+  if(j===z.a){b.classList.add('right');sc++;streak++;$('fb'+i).innerHTML='✔ 正確！'+z.e;
+    AV2.mood('smile',streak>=3?`連對 ${streak} 題！你的 Adam 已經收斂了 🎉`:PRAISE[Math.floor(Math.random()*PRAISE.length)]);}
+  else{b.classList.add('wrong');streak=0;[...box.children].forEach(x=>{if(+x.dataset.o===z.a)x.classList.add('right');});$('fb'+i).innerHTML='✘ '+z.e;AV2.mood('frown',z.h);}
+  if(dn===QZ.length){$('scoreTxt').textContent=`得分：${sc} / ${QZ.length}`;$('score').style.display='flex';
+    setTimeout(()=>{if(sc===QZ.length)AV2.mood('smile','滿分！動量、RMSProp、Adam 一路通關 🏆',true);
+      else if(sc>=QZ.length-2)AV2.mood('smile',`${sc} 分，很不錯！錯的題目回到對應小節再玩一下。`,true);
+      else AV2.mood('frown','建議回到第 1 節逐行跑一次 Adam，再看第 2 節的偏差修正！',true);},3300);}
+};
+$('retry').onclick=()=>{buildQuiz();AV2.mood('','新的一輪！選項順序都換過了喔。');};
+
+/* ---------- init ---------- */
+draw1();draw2();draw3();run4();draw4();buildQuiz();
+function redrawAll(){draw1();draw2();draw3();draw4();}
+let rz=null;window.addEventListener('resize',()=>{cancelAnimationFrame(rz);rz=requestAnimationFrame(redrawAll);});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redrawAll);
+</script>
+</body>
+</html>
