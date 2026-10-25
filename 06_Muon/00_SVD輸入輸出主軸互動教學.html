@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SVD 輸入主軸與輸出主軸</title>
+<style>
+:root{--bg:#f7f6f2;--card:#fff;--ink:#1d2330;--mute:#667085;--line:#e3e1da;--ok:#1f9d6b;--bad:#d6334f;
+--c1:#e0533d;--c2:#14907a;--hz:#2f6fbf;--vt:#8a5cf6;--eig:#c27c0e;--fill-in:#dceaf8;--fill-out:#f8d98a;--soft:#f1efe8;--wall:#efe3cf;--floor:#d8c09a;--sun:#e07b00}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+--c1:#ff7a5c;--c2:#3fd0b0;--hz:#6ea8ff;--vt:#b39bff;--eig:#f2b84b;--fill-in:#24364d;--fill-out:#5a4718;--soft:#262b36;--wall:#3a3428;--floor:#4a3d28;--sun:#ffa640}}
+:root[data-theme="dark"]{--bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+--c1:#ff7a5c;--c2:#3fd0b0;--hz:#6ea8ff;--vt:#b39bff;--eig:#f2b84b;--fill-in:#24364d;--fill-out:#5a4718;--soft:#262b36;--wall:#3a3428;--floor:#4a3d28;--sun:#ffa640}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.75rem;line-height:1.35}
+header p{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin:20px 0}
+.card h2{margin:0 0 12px;font-size:1.3rem;display:flex;align-items:center;gap:10px}
+.num{display:inline-flex;width:32px;height:32px;border-radius:50%;background:var(--ink);color:var(--card);align-items:center;justify-content:center;font-size:1rem;flex:none}
+.mute{color:var(--mute)}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.g2>*,.g3>*{min-width:0}
+.g3{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr) minmax(0,1fr);gap:14px}
+.pane{border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--card)}
+.pane h3{margin:0 0 6px;font-size:1rem;text-align:center}
+canvas{display:block;width:100%;touch-action:none}
+.ctrl{display:flex;align-items:center;gap:10px;margin:8px 0;flex-wrap:wrap}
+.ctrl label{min-width:118px;color:var(--mute);font-size:.95rem}
+.ctrl input[type=range]{flex:1;min-width:140px}
+.ctrl output{min-width:58px;font-weight:700;text-align:right}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:6px 14px;cursor:pointer}
+button:hover{border-color:var(--mute)}
+button.pri{background:var(--ink);color:var(--card);border-color:var(--ink)}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:10px 0}
+.stat{background:var(--soft);border-radius:10px;padding:8px 10px;text-align:center}
+.stat small{display:block;color:var(--mute);font-size:.8rem}
+.stat b{font-size:1.2rem}
+.msg{border-left:4px solid var(--line);background:var(--soft);padding:10px 14px;border-radius:0 10px 10px 0;margin:10px 0}
+.msg.good{border-left-color:var(--ok)}
+.key{background:var(--soft);border-radius:12px;padding:12px 16px;margin-top:12px}
+.leg{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.9rem;margin:6px 0}
+.leg i{display:inline-block;width:22px;height:0;border-top:3px solid;vertical-align:middle;margin-right:5px}
+.leg i.d{border-top-style:dashed}
+.mat{display:inline-flex;align-items:center;gap:4px;font-family:"Cambria Math","Times New Roman",serif;vertical-align:middle}
+.mat .br{display:grid;grid-template-columns:auto auto;gap:0 12px;border-left:2px solid var(--ink);border-right:2px solid var(--ink);border-radius:5px;padding:2px 8px;text-align:right}
+.mats{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin:10px 0;font-size:1.05rem}
+.prog{height:6px;background:var(--soft);border-radius:4px;overflow:hidden;margin:8px 0}
+.prog div{height:100%;background:var(--sun);width:0;transition:width .3s}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:480px}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left}
+th{color:var(--mute);font-weight:600}
+.qitem{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:10px 0}
+.qitem .q{font-weight:700;margin-bottom:8px}
+.opt{display:block;width:100%;text-align:left;margin:6px 0;padding:8px 12px}
+.opt.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,transparent)}
+.opt.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,transparent)}
+.exp{margin-top:6px;font-size:.95rem}
+.exp.ok{color:var(--ok)}.exp.no{color:var(--bad)}
+.score{font-size:1.2rem;font-weight:700;margin-top:12px}
+footer{text-align:center;color:var(--mute);font-size:.9rem;margin-top:30px}
+.theme{position:fixed;right:14px;bottom:14px;z-index:5;border-radius:50%;width:42px;height:42px;padding:0}
+/* avatar */
+.avwrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.av{width:100%;max-width:220px;cursor:pointer;user-select:none}
+.av svg{width:100%;display:block;overflow:visible;background:none}
+.av .bodyg{animation:bob 3.2s ease-in-out infinite;transform-origin:100px 200px}
+.av .eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+.av .hairL{animation:sway 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:top center}
+.av .hairR{animation:sway 3.2s ease-in-out infinite reverse;transform-box:fill-box;transform-origin:top center}
+.av .brow{transition:transform .3s;transform-box:fill-box}
+.av .browL{transform-origin:right center}.av .browR{transform-origin:left center}
+.av .mo{opacity:0;transition:opacity .25s}.av .mo.n{opacity:1}
+.av .blush,.av .sweat,.av .spark{opacity:0;transition:opacity .3s}
+.av.smile .mo.n,.av.frown .mo.n{opacity:0}
+.av.smile .mo.s{opacity:1}.av.frown .mo.f{opacity:1}
+.av.smile .blush{opacity:.55}.av.smile .spark{opacity:1}.av.frown .sweat{opacity:.9}
+.av.smile .brow{transform:translateY(-3px)}
+.av.frown .browL{transform:rotate(14deg) translateY(2px)}.av.frown .browR{transform:rotate(-14deg) translateY(2px)}
+.av.hop svg{animation:hop .7s ease}
+.av.shake svg{animation:shake .55s ease}
+.av .spark{animation:twinkle 1s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}
+@keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+@keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.bubble{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.95rem;margin-bottom:10px;min-height:2.6em;max-width:260px;text-align:center;transition:border-color .3s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--line);border-bottom:0}
+.bubble.good{border-color:var(--ok)}.bubble.good::after{border-top-color:var(--ok)}
+.bubble.bad{border-color:var(--bad)}.bubble.bad::after{border-top-color:var(--bad)}
+.intro{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:center}
+.intro>*,.qgrid>*{min-width:0}
+.intro .avwrap{flex-direction:row;gap:10px}.intro .bubble{flex:1;margin:0}.intro .bubble::after{display:none}.intro .av{width:125px;flex:none}
+.qgrid{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:18px;align-items:start}
+.qgrid .avwrap{position:sticky;top:12px}
+@media (max-width:860px){.intro,.qgrid{grid-template-columns:minmax(0,1fr)}.intro .avwrap{flex-direction:column}.intro .bubble{margin-bottom:10px}.intro .bubble::after{display:block}.intro .av,.qgrid .av{width:auto;max-width:140px}.qgrid .avwrap{position:static;order:-1}
+.g3{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:640px){.g2{grid-template-columns:minmax(0,1fr)}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.card{padding:16px 14px}header h1{font-size:1.4rem}.ctrl label{min-width:0;width:100%}}
+</style>
+<style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line,#e3e1da);border-radius:12px;background:var(--card,var(--surface,#fff));color:var(--ink,#1d2330);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+.pu-badge img{width:58px;height:58px;display:block}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute,var(--muted,#667085))}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="pu-hd">
+  <div class="pu-hd-main">
+  <h1>輸入主軸與輸出主軸：斜陽從圓窗照進室內</h1>
+  <p>工程數學 ・ 互動教學：奇異值分解（Singular Value Decomposition, SVD）的幾何意義</p>
+</div>
+  <div class="pu-badge"><img alt="靜宜大學校徽" src="data:image/webp;base64,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"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</header>
+
+<!-- 0 -->
+<section class="card">
+  <h2><span class="num">0</span>一句話直覺</h2>
+  <div class="intro">
+    <div>
+      <p>牆上有一扇<b>圓窗</b>，陽光斜斜照進來，在地板上留下一個<b>傾斜的橢圓光斑</b>。每一道光線把窗上的一點 (h, z) 搬到地板上的一點 (x, y)，這就是一個線性變換 A。</p>
+      <div class="msg good" style="font-size:1.05rem">
+        <b>輸入主軸 v₁, v₂</b>：窗戶上「照下來之後<b>仍然互相垂直</b>」的那一組直徑。<br>
+        <b>輸出主軸 u₁, u₂</b>：它們照到地板後的方向，也就是光斑的<b>長軸與短軸</b>。<br>
+        <b>奇異值 σ₁, σ₂</b>：沿著主軸被拉長或壓短的倍率。
+      </div>
+      <p class="mute" style="margin:0">一般的十字線照下來都會「歪掉」，只有主軸這一組能保持直角。下面就動手把它找出來！</p>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub1">Buongiorno！我是貝爾特拉米（Eugenio Beltrami）老師，1873 年我發現了主軸。點我聽故事！</div><div class="av" id="av1"></div></div>
+  </div>
+</section>
+
+<!-- 1 -->
+<section class="card">
+  <h2><span class="num">1</span>動手找主軸：轉動窗上的十字線</h2>
+  <p class="mute" style="margin-top:0">調整太陽位置，再<b>拖曳窗戶上的十字線</b>（或用滑桿）。當地板上的兩條線剛好夾 90°，你就找到輸入主軸了。</p>
+  <div class="ctrl"><label>太陽仰角 e</label><input type="range" id="sE" min="20" max="70" step="1" value="45"><output id="oE">45°</output></div>
+  <div class="ctrl"><label>太陽偏離正面 φ</label><input type="range" id="sP" min="-70" max="70" step="1" value="53"><output id="oP">53°</output></div>
+  <div class="ctrl"><label>十字線角度 α</label><input type="range" id="sA" min="0" max="179" step="1" value="0"><output id="oA">0°</output></div>
+  <div class="btns">
+    <button class="pri" id="bFind">對齊輸入主軸</button>
+    <button id="bHV">回到水平／垂直</button>
+    <button id="bClass">課堂範例 A = [[1, 0.8], [0, 0.6]]</button>
+    <button id="bFront">陽光正對牆面（φ = 0）</button>
+  </div>
+  <div class="g3">
+    <div class="pane"><h3>場景（斜視圖）</h3><canvas id="cScene"></canvas></div>
+    <div class="pane"><h3>牆上的圓窗（輸入）</h3><canvas id="cWin"></canvas></div>
+    <div class="pane"><h3>地板光斑，俯視（輸出）</h3><canvas id="cFloor"></canvas></div>
+  </div>
+  <div class="leg"><span><i style="border-color:var(--c1)"></i>十字線 1 → 照下來</span><span><i style="border-color:var(--c2)"></i>十字線 2 → 照下來</span><span><i class="d" style="border-color:var(--hz)"></i>水平直徑</span><span><i class="d" style="border-color:var(--vt)"></i>垂直直徑</span></div>
+  <div class="stats">
+    <div class="stat"><small>窗上夾角</small><b>90°</b></div>
+    <div class="stat"><small>地板上夾角</small><b id="stOut">–</b></div>
+    <div class="stat"><small>水平/垂直照下來的夾角</small><b id="stHV">–</b></div>
+    <div class="stat"><small>變換矩陣 A</small><b id="stA" style="font-size:.95rem">–</b></div>
+  </div>
+  <div class="msg" id="m1"></div>
+</section>
+
+<!-- 2 -->
+<section class="card">
+  <h2><span class="num">2</span>轉一圈量長度：主軸就是「拉最長、壓最短」的方向</h2>
+  <p class="mute" style="margin-top:0">在窗上取一條長度 1 的半徑，方向 θ。照到地板後它的長度 |A v| 會隨 θ 改變。看看最大值、最小值出現在哪裡。（太陽位置沿用第 1 節）</p>
+  <div class="ctrl"><label>半徑方向 θ</label><input type="range" id="sT" min="0" max="179" step="1" value="0"><output id="oT">0°</output></div>
+  <div class="g2">
+    <div class="pane"><h3>窗上半徑 → 地板上的影子</h3><canvas id="cLen"></canvas></div>
+    <div class="pane"><h3>影子長度 |A v| 對 θ 的曲線</h3><canvas id="cCurve"></canvas></div>
+  </div>
+  <div class="msg" id="m2"></div>
+</section>
+
+<!-- 3 -->
+<section class="card">
+  <h2><span class="num">3</span>SVD 三步驟動畫：A = U Σ Vᵀ（旋轉 → 伸縮 → 旋轉）</h2>
+  <div class="btns">
+    <button id="b3r">⟲ 重來</button><button id="b3p">◀ 上一步</button><button class="pri" id="b3n">下一步 ▶</button><button id="b3a">▶ 自動播放</button>
+  </div>
+  <div class="prog"><div id="p3"></div></div>
+  <div class="g2">
+    <div class="pane"><canvas id="cStep"></canvas></div>
+    <div>
+      <div class="msg good" id="m3" style="min-height:96px"></div>
+      <div class="mats" id="mats"></div>
+      <div class="key mute" style="font-size:.95rem">
+        Vᵀ：把<b>輸入主軸</b>轉到水平／垂直（對齊座標軸）。<br>
+        Σ：沿座標軸伸縮，倍率是 σ₁、σ₂。<br>
+        U：轉到<b>輸出主軸</b>的方向，變成地板上的光斑。<br>
+        兩次旋轉角度不同，正是因為輸入主軸 ≠ 輸出主軸。
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="card">
+  <h2><span class="num">4</span>別搞混：主軸 vs 特徵向量</h2>
+  <p class="mute" style="margin-top:0">特徵向量（Eigenvector）是「<b>方向不變</b>」的方向；主軸（奇異向量）是「<b>垂直關係不變</b>」的一組方向。兩者通常不一樣。</p>
+  <div class="btns"><label><input type="checkbox" id="kEig" checked> 顯示特徵向量</label><label><input type="checkbox" id="kSv" checked> 顯示主軸</label></div>
+  <div class="g2">
+    <div class="pane"><h3>窗上（輸入）</h3><canvas id="cEw"></canvas></div>
+    <div class="pane"><h3>地板（輸出）</h3><canvas id="cEf"></canvas></div>
+  </div>
+  <div class="leg"><span><i style="border-color:var(--eig)"></i>特徵向量方向</span><span><i style="border-color:var(--c1)"></i>主軸 1</span><span><i style="border-color:var(--c2)"></i>主軸 2</span></div>
+  <div class="tbl"><table id="tE"></table></div>
+</section>
+
+<!-- 5 -->
+<section class="card">
+  <h2><span class="num">5</span>觀念小測驗</h2>
+  <div class="qgrid">
+    <div><div id="quiz"></div><div class="score" id="score"></div><div class="btns"><button id="bRe" style="display:none">再做一次</button></div></div>
+    <div class="avwrap"><div class="bubble" id="bub2">來考考你！答對我會笑，答錯我會皺眉喔。</div><div class="av" id="av2"></div></div>
+  </div>
+</section>
+
+<footer>SVD 輸入主軸與輸出主軸互動教學 ・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+<button class="theme" id="bTheme" aria-label="切換深淺色">◐</button>
+
+<script>
+var $=function(id){return document.getElementById(id)};
+var css=function(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()};
+var D2R=Math.PI/180;
+/* ---------- state & math ---------- */
+var S={k:0.8,c:0.6,alpha:0,theta:0};
+function setSun(eDeg,pDeg){var ct=1/Math.tan(eDeg*D2R);S.k=ct*Math.sin(pDeg*D2R);S.c=ct*Math.cos(pDeg*D2R);}
+function A(){return [[1,S.k],[0,S.c]];}
+function mul(M,v){return [M[0][0]*v[0]+M[0][1]*v[1],M[1][0]*v[0]+M[1][1]*v[1]];}
+function svd(M){
+  var a=M[0][0]*M[0][0]+M[1][0]*M[1][0],b=M[0][0]*M[0][1]+M[1][0]*M[1][1],d=M[0][1]*M[0][1]+M[1][1]*M[1][1];
+  var tv=0.5*Math.atan2(2*b,a-d); var m=(a+d)/2,r=Math.sqrt(((a-d)/2)**2+b*b);
+  var s1=Math.sqrt(m+r),s2=Math.sqrt(Math.max(m-r,0));
+  var v1=[Math.cos(tv),Math.sin(tv)],v2=[-Math.sin(tv),Math.cos(tv)];
+  var w1=mul(M,v1),w2=mul(M,v2); var u1=[w1[0]/s1,w1[1]/s1],u2=[w2[0]/s2,w2[1]/s2];
+  return {s1:s1,s2:s2,v1:v1,v2:v2,u1:u1,u2:u2,tv:tv,tu:Math.atan2(u1[1],u1[0])};
+}
+function deg(v){var a=Math.atan2(v[1],v[0])/D2R;a=((a%180)+180)%180;return a;}
+function angBetween(a,b){var c=(a[0]*b[0]+a[1]*b[1])/Math.hypot(a[0],a[1])/Math.hypot(b[0],b[1]);return Math.acos(Math.max(-1,Math.min(1,c)))/D2R;}
+function acute(a){return a>90?180-a:a;}
+function f(x,n){return (Math.abs(x)<5e-4?0:x).toFixed(n===undefined?3:n);}
+
+/* ---------- canvas helpers ---------- */
+function prep(cv,ratio){var w=cv.parentElement.clientWidth-20;cv.style.width='0px';w=cv.parentElement.clientWidth-20;w=Math.min(w,cv._max||400);cv.style.width=w+'px';cv.style.margin='0 auto';var dpr=window.devicePixelRatio||1;var h=Math.round(w*(ratio||1));cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';var g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);return {g:g,w:w,h:h};}
+function view(c,R){var s=Math.min(c.w,c.h)/(2*R);var ox=c.w/2,oy=c.h/2;return {s:s,P:function(x,y){return [ox+x*s,oy-y*s]},inv:function(px,py){return [(px-ox)/s,(oy-py)/s]}};}
+function axes(g,V,R,lx,ly){g.strokeStyle=css('--line');g.lineWidth=1;g.beginPath();var a=V.P(-R,0),b=V.P(R,0);g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);a=V.P(0,-R);b=V.P(0,R);g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke();
+  g.fillStyle=css('--mute');g.font='12px sans-serif';if(lx){var p=V.P(R*0.97,0);g.textAlign='right';g.fillText(lx,p[0],p[1]+15);}if(ly){var q=V.P(0,R*0.97);g.textAlign='left';g.fillText(ly,q[0]+5,q[1]+10);}}
+function shape(g,V,M,fill,stroke){g.beginPath();for(var i=0;i<=120;i++){var t=i/120*2*Math.PI;var p=mul(M,[Math.cos(t),Math.sin(t)]);var q=V.P(p[0],p[1]);i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1]);}g.closePath();if(fill){g.fillStyle=fill;g.fill();}g.strokeStyle=stroke||css('--ink');g.lineWidth=1.8;g.stroke();}
+function line(g,V,d,col,w,dash){g.save();g.strokeStyle=col;g.lineWidth=w||3;g.setLineDash(dash?[6,5]:[]);g.lineCap='round';var a=V.P(-d[0],-d[1]),b=V.P(d[0],d[1]);g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke();g.restore();}
+function arrow(g,V,d,col,w,label,lpos){var a=V.P(0,0),b=V.P(d[0],d[1]);g.save();g.strokeStyle=col;g.fillStyle=col;g.lineWidth=w||3;g.lineCap='round';g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke();
+  var an=Math.atan2(b[1]-a[1],b[0]-a[0]),L=11;g.beginPath();g.moveTo(b[0],b[1]);g.lineTo(b[0]-L*Math.cos(an-0.4),b[1]-L*Math.sin(an-0.4));g.lineTo(b[0]-L*Math.cos(an+0.4),b[1]-L*Math.sin(an+0.4));g.closePath();g.fill();
+  if(label){var k=lpos||1.22;var p=V.P(d[0]*k,d[1]*k);g.font='bold 13px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(label,p[0],p[1]);}g.restore();}
+function arc(g,V,a0,a1,r,col,label){var o=V.P(0,0);g.save();g.strokeStyle=col;g.fillStyle=col;g.lineWidth=1.5;g.beginPath();g.arc(o[0],o[1],r,-a1,-a0);g.stroke();if(label){var m=(a0+a1)/2;g.font='12px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(label,o[0]+(r+16)*Math.cos(m),o[1]-(r+16)*Math.sin(m));}g.restore();}
+
+/* ---------- section 1 ---------- */
+$('cCurve')._max=520;$('cScene')._max=520;
+function crossDirs(){var a=S.alpha*D2R;return [[Math.cos(a),Math.sin(a)],[-Math.sin(a),Math.cos(a)]];}
+function radius(sv){return Math.max(1.45,sv.s1*1.18);}
+function drawScene(){
+  var c=prep($('cScene'),0.78),g=c.g;var sc=c.w/6.2;
+  function P(x,y,z){return [c.w*0.2+(x+0.55*y)*sc, c.h*0.62-z*sc-0.38*y*sc];}
+  function poly(pts,fill){g.beginPath();pts.forEach(function(p,i){var q=P(p[0],p[1],p[2]);i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1]);});g.closePath();g.fillStyle=fill;g.fill();g.strokeStyle=css('--mute');g.lineWidth=1;g.stroke();}
+  var W0=-1.1,W1=4.2,Hh=3.0,Dp=-2.2;
+  poly([[W0,0,0],[W1,0,0],[W1,0,Hh],[W0,0,Hh]],css('--wall'));
+  poly([[W0,0,0],[W1,0,0],[W1,Dp,0],[W0,Dp,0]],css('--floor'));
+  var R=0.55,zc=1.95,N=90,i,t;
+  // floor spot: window point (h,z) -> floor x=h+k z, y=-c z (toward viewer)
+  g.beginPath();for(i=0;i<=N;i++){t=i/N*2*Math.PI;var h=R*Math.cos(t),z=zc+R*Math.sin(t);var q=P(h+S.k*z,-S.c*z,0);i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1]);}
+  g.closePath();g.fillStyle=css('--fill-out');g.fill();g.strokeStyle=css('--sun');g.lineWidth=1.5;g.stroke();
+  g.strokeStyle=css('--sun');g.globalAlpha=0.45;g.lineWidth=1;
+  for(i=0;i<N;i+=6){t=i/N*2*Math.PI;var h2=R*Math.cos(t),z2=zc+R*Math.sin(t);var a=P(h2,0,z2),b=P(h2+S.k*z2,-S.c*z2,0);g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke();}
+  g.globalAlpha=1;
+  g.beginPath();for(i=0;i<=N;i++){t=i/N*2*Math.PI;var q2=P(R*Math.cos(t),0,zc+R*Math.sin(t));i?g.lineTo(q2[0],q2[1]):g.moveTo(q2[0],q2[1]);}
+  g.fillStyle=css('--fill-in');g.fill();g.strokeStyle=css('--ink');g.lineWidth=2.5;g.stroke();
+  // cross on window
+  var d=crossDirs();[[d[0],'--c1'],[d[1],'--c2']].forEach(function(x){var a=P(-R*x[0][0],0,zc-R*x[0][1]),b=P(R*x[0][0],0,zc+R*x[0][1]);g.strokeStyle=css(x[1]);g.lineWidth=2.5;g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke();
+    var a2=P(-R*x[0][0]+S.k*(zc-R*x[0][1]),-S.c*(zc-R*x[0][1]),0),b2=P(R*x[0][0]+S.k*(zc+R*x[0][1]),-S.c*(zc+R*x[0][1]),0);g.beginPath();g.moveTo(a2[0],a2[1]);g.lineTo(b2[0],b2[1]);g.stroke();});
+  g.fillStyle=css('--ink');g.font='bold 12px sans-serif';g.textAlign='center';var tw=P(0,0,zc+R+0.25);g.fillText('圓窗',tw[0],tw[1]);
+  g.fillStyle=css('--mute');g.font='12px sans-serif';var tl=P(W1-0.2,0,Hh-0.25);g.textAlign='right';g.fillText('牆',tl[0],tl[1]);var tf=P(W1-0.2,Dp+0.25,0);g.fillText('地板',tf[0],tf[1]);
+}
+function drawWin(){
+  var sv=svd(A()),R=radius(sv);var c=prep($('cWin')),g=c.g,V=view(c,R);
+  axes(g,V,R,'h 水平','z 高度');shape(g,V,[[1,0],[0,1]],css('--fill-in'));
+  line(g,V,[1,0],css('--hz'),2,true);line(g,V,[0,1],css('--vt'),2,true);
+  var d=crossDirs();line(g,V,d[0],css('--c1'),3.5);line(g,V,d[1],css('--c2'),3.5);
+  var h=V.P(d[0][0],d[0][1]);g.fillStyle=css('--c1');g.beginPath();g.arc(h[0],h[1],7,0,7);g.fill();
+  g.fillStyle=css('--mute');g.font='12px sans-serif';g.textAlign='center';g.fillText('拖曳紅點旋轉十字線',c.w/2,c.h-8);
+  $('cWin')._V=V;
+}
+function drawFloor(){
+  var M=A(),sv=svd(M),R=radius(sv);var c=prep($('cFloor')),g=c.g,V=view(c,R);
+  axes(g,V,R,'x 沿牆','y 離牆');shape(g,V,M,css('--fill-out'));
+  var H=mul(M,[1,0]),Vt=mul(M,[0,1]);line(g,V,H,css('--hz'),2,true);line(g,V,Vt,css('--vt'),2,true);
+  var d=crossDirs(),a=mul(M,d[0]),b=mul(M,d[1]);line(g,V,a,css('--c1'),3.5);line(g,V,b,css('--c2'),3.5);
+  var ang=angBetween(a,b);var t0=Math.atan2(a[1],a[0]),t1=Math.atan2(b[1],b[0]);
+  var dd=t1-t0;while(dd>Math.PI)dd-=2*Math.PI;while(dd<-Math.PI)dd+=2*Math.PI;
+  if(Math.abs(dd)>Math.PI/2+1e-9){t1+= (dd>0?-Math.PI:Math.PI);dd=t1-t0;}
+  arc(g,V,Math.min(t0,t0+dd),Math.max(t0,t0+dd),24,css('--ink'),Math.round(acute(ang))+'°');
+  return {ang:acute(ang),hv:acute(angBetween(H,Vt)),sv:sv};
+}
+function upd1(){
+  $('oE').textContent=$('sE').value+'°';$('oP').textContent=$('sP').value+'°';$('oA').textContent=Math.round(S.alpha)+'°';
+  drawScene();drawWin();var r=drawFloor();
+  var ok=Math.abs(r.ang-90)<0.6;$('stOut').textContent=r.ang.toFixed(1)+'°';$('stOut').style.color=ok?css('--ok'):'';
+  $('stHV').textContent=r.hv.toFixed(1)+'°';$('stA').textContent='[[1, '+f(S.k,2)+'], [0, '+f(S.c,2)+']]';
+  var m=$('m1');var diag=Math.abs(S.k)<0.005;
+  if(ok){m.className='msg good';m.innerHTML='✔ 找到了！窗上 '+deg(crossDirs()[0]).toFixed(0)+'° 與 '+deg(crossDirs()[1]).toFixed(0)+'° 的直徑照下來仍然垂直，它們就是<b>輸入主軸</b>。照到地板後分別落在 '+deg(r.sv.u1).toFixed(1)+'° 與 '+deg(r.sv.u2).toFixed(1)+'°（光斑的長、短軸），這就是<b>輸出主軸</b>；長度倍率 σ₁ = '+f(r.sv.s1)+'、σ₂ = '+f(r.sv.s2)+'。'+(diag?'<br>陽光正對牆面時，輸入主軸與輸出主軸方向相同！':'');}
+  else{m.className='msg';m.innerHTML='目前這組十字線照下來夾 <b>'+r.ang.toFixed(1)+'°</b>，已經不垂直了。繼續轉動，找出能保持 90° 的那一組。'+(Math.abs(S.alpha)<0.5&&!diag?'<br>注意：連最直覺的水平／垂直直徑，照下來也只剩 '+r.hv.toFixed(1)+'°。':'');}
+  if(window.AV1&&ok&&!S.wasOk){AV1.mood('smile','找到主軸了！照下來仍然垂直的那一組，就是輸入主軸。');}
+  S.wasOk=ok;
+  upd2();upd3draw();upd4();
+}
+function svAlpha(){var sv=svd(A());return Math.round(deg(sv.v1)*100)/100;}
+$('sE').oninput=$('sP').oninput=function(){setSun(+$('sE').value,+$('sP').value);upd1();};
+$('sA').oninput=function(){S.alpha=+$('sA').value;upd1();};
+$('bFind').onclick=function(){S.alpha=svAlpha();$('sA').value=Math.round(S.alpha)%180;upd1();};
+$('bHV').onclick=function(){S.alpha=0;$('sA').value=0;upd1();};
+$('bClass').onclick=function(){$('sE').value=45;$('sP').value=53;S.k=0.8;S.c=0.6;S.alpha=0;$('sA').value=0;upd1();$('oP').textContent='53.1°';};
+$('bFront').onclick=function(){$('sP').value=0;setSun(+$('sE').value,0);upd1();};
+(function(){var cv=$('cWin'),drag=false;function pos(e){var r=cv.getBoundingClientRect();var V=cv._V;var p=V.inv(e.clientX-r.left,e.clientY-r.top);var a=Math.atan2(p[1],p[0])/D2R;a=((a%180)+180)%180;S.alpha=a;$('sA').value=Math.round(a)%180;upd1();}
+  cv.addEventListener('pointerdown',function(e){drag=true;cv.setPointerCapture(e.pointerId);pos(e);});
+  cv.addEventListener('pointermove',function(e){if(drag)pos(e);});
+  cv.addEventListener('pointerup',function(){drag=false;});})();
+
+/* ---------- section 2 ---------- */
+function upd2(){
+  var M=A(),sv=svd(M),R=radius(sv),th=S.theta*D2R,v=[Math.cos(th),Math.sin(th)],w=mul(M,v);
+  $('oT').textContent=S.theta+'°';
+  var c=prep($('cLen')),g=c.g,V=view(c,R);axes(g,V,R,'','');
+  shape(g,V,[[1,0],[0,1]],null,css('--mute'));shape(g,V,M,css('--fill-out'));
+  line(g,V,sv.u1.map(function(x){return x*sv.s1}),css('--c1'),1.5,true);line(g,V,sv.u2.map(function(x){return x*sv.s2}),css('--c2'),1.5,true);
+  arrow(g,V,v,css('--hz'),3,'v',1.2);arrow(g,V,w,css('--ink'),3,'Av',1.18);
+  g.fillStyle=css('--mute');g.font='12px sans-serif';g.textAlign='left';g.fillText('灰圓：窗（長度 1）　黃色：光斑',8,c.h-8);
+  // curve
+  var c2=prep($('cCurve'),0.8),h=c2.g,W=c2.w,Hh=c2.h,L=40,Rr=12,T=14,B=34;var ymax=Math.ceil(sv.s1*1.15*4)/4;
+  function X(t){return L+(W-L-Rr)*t/180}function Y(y){return T+(Hh-T-B)*(1-y/ymax)}
+  h.strokeStyle=css('--line');h.lineWidth=1;h.fillStyle=css('--mute');h.font='11px sans-serif';
+  for(var y=0;y<=ymax+1e-9;y+=0.5){h.beginPath();h.moveTo(L,Y(y));h.lineTo(W-Rr,Y(y));h.stroke();h.textAlign='right';h.fillText(y.toFixed(1),L-5,Y(y)+4);}
+  for(var t=0;t<=180;t+=45){h.textAlign='center';h.fillText(t+'°',X(t),Hh-B+16);}
+  h.textAlign='center';h.fillText('窗上方向 θ',(L+W)/2,Hh-4);
+  h.strokeStyle=css('--ink');h.lineWidth=2;h.beginPath();for(var i=0;i<=360;i++){var tt=i/2,vv=mul(M,[Math.cos(tt*D2R),Math.sin(tt*D2R)]),yy=Math.hypot(vv[0],vv[1]);i?h.lineTo(X(tt),Y(yy)):h.moveTo(X(tt),Y(yy));}h.stroke();
+  [[sv.v1,sv.s1,'--c1','v₁ 最長 σ₁'],[sv.v2,sv.s2,'--c2','v₂ 最短 σ₂']].forEach(function(o){var a=deg(o[0]);h.fillStyle=css(o[2]);h.beginPath();h.arc(X(a),Y(o[1]),5,0,7);h.fill();h.font='bold 11px sans-serif';h.textAlign=a>120?'right':'left';h.fillText(o[3]+'='+f(o[1]),X(a)+(a>120?-8:8),Y(o[1])+(o[1]>ymax*0.5?-8:-8));});
+  var len=Math.hypot(w[0],w[1]);h.fillStyle=css('--hz');h.beginPath();h.arc(X(S.theta),Y(len),6,0,7);h.fill();
+  h.strokeStyle=css('--hz');h.setLineDash([4,4]);h.beginPath();h.moveTo(X(S.theta),Y(0));h.lineTo(X(S.theta),Y(len));h.stroke();h.setLineDash([]);
+  var a1=deg(sv.v1),a2=deg(sv.v2),near=function(a){var d=Math.abs(S.theta-a);return Math.min(d,180-d)<1;};
+  var m=$('m2');m.className='msg'+(near(a1)||near(a2)?' good':'');
+  m.innerHTML='目前 θ = '+S.theta+'°，影子長度 |A v| = <b>'+f(len)+'</b>。'+(near(a1)?'✔ 這是<b>最長</b>的方向：v₁（輸入主軸 1），長度 = σ₁。':near(a2)?'✔ 這是<b>最短</b>的方向：v₂（輸入主軸 2），長度 = σ₂。':'曲線最高點在 θ ≈ '+a1.toFixed(1)+'°，最低點在 θ ≈ '+a2.toFixed(1)+'°，兩者剛好相差 90°。')+'<br><span class="mute">結論：輸入主軸也是「被拉最長、壓最短」的兩個方向，而且一定互相垂直。</span>';
+}
+$('sT').oninput=function(){S.theta=+$('sT').value;upd2();};
+
+/* ---------- section 3 ---------- */
+var ST={step:0,t:1,timer:null,anim:null};
+var STEPTXT=[
+ '① 窗上的圓。紅、綠箭頭是輸入主軸 v₁、v₂（不一定在水平／垂直）。',
+ '② 先轉 Vᵀ：整個圓旋轉 {a}°，讓輸入主軸 v₁、v₂ 對齊水平與垂直。圓轉一轉還是圓。',
+ '③ 再伸縮 Σ：水平方向 ×σ₁ = {s1}，垂直方向 ×σ₂ = {s2}。圓變成「正放」的橢圓。',
+ '④ 最後轉 U：旋轉 {b}°，橢圓長短軸轉到輸出主軸 u₁、u₂，就是地板上的光斑。'];
+function rot(a){return [[Math.cos(a),-Math.sin(a)],[Math.sin(a),Math.cos(a)]];}
+function mm(P,Q){return [[P[0][0]*Q[0][0]+P[0][1]*Q[1][0],P[0][0]*Q[0][1]+P[0][1]*Q[1][1]],[P[1][0]*Q[0][0]+P[1][1]*Q[1][0],P[1][0]*Q[0][1]+P[1][1]*Q[1][1]]];}
+function stageM(step,t,sv){var a=-sv.tv,b=sv.tu;
+  if(step===0)return [[1,0],[0,1]];
+  if(step===1)return rot(a*t);
+  if(step===2)return mm([[1+(sv.s1-1)*t,0],[0,1+(sv.s2-1)*t]],rot(a));
+  return mm(rot(b*t),mm([[sv.s1,0],[0,sv.s2]],rot(a)));}
+function upd3draw(){
+  var sv=svd(A()),R=radius(sv),M=stageM(ST.step,ST.t,sv);
+  var c=prep($('cStep')),g=c.g,V=view(c,R);axes(g,V,R,'','');
+  if(ST.step===3&&ST.t>=1){shape(g,V,A(),null,css('--mute'));}
+  shape(g,V,M,ST.step===3?css('--fill-out'):css('--fill-in'));
+  var a=mul(M,sv.v1),b=mul(M,sv.v2);
+  var lab=ST.step===0?['v₁','v₂']:ST.step===3?['u₁','u₂']:['',''];
+  arrow(g,V,a,css('--c1'),3.5,lab[0],1.25);arrow(g,V,b,css('--c2'),3.5,lab[1],ST.step===0?1.3:2.2);
+  g.fillStyle=css('--ink');g.font='bold 14px sans-serif';g.textAlign='left';g.fillText(['原始圓','套用 Vᵀ','套用 ΣVᵀ','套用 UΣVᵀ = A'][ST.step],10,20);
+  var txt=STEPTXT[ST.step].replace('{a}',(-sv.tv/D2R).toFixed(1)).replace('{b}',(sv.tu/D2R>=0?'+':'')+(sv.tu/D2R).toFixed(1)).replace('{s1}',f(sv.s1)).replace('{s2}',f(sv.s2));
+  $('m3').innerHTML=txt;$('p3').style.width=(ST.step/3*100)+'%';
+  var mt=function(n,M2){return '<span class="mat">'+n+' = <span class="br"><span>'+f(M2[0][0])+'</span><span>'+f(M2[0][1])+'</span><span>'+f(M2[1][0])+'</span><span>'+f(M2[1][1])+'</span></span></span>';};
+  $('mats').innerHTML=mt('U',rot(sv.tu))+mt('Σ',[[sv.s1,0],[0,sv.s2]])+mt('Vᵀ',rot(-sv.tv))+'<span class="mute" style="font-size:.9rem">輸入主軸 v₁ = '+deg(sv.v1).toFixed(1)+'°，輸出主軸 u₁ = '+deg(sv.u1).toFixed(1)+'°</span>';
+}
+function go3(step){if(ST.anim)cancelAnimationFrame(ST.anim);var forward=step>ST.step;ST.step=Math.max(0,Math.min(3,step));
+  if(!forward){ST.t=1;upd3draw();return;}var t0=performance.now();
+  (function fr(now){ST.t=Math.min(1,(now-t0)/700);ST.t=ST.t<.5?2*ST.t*ST.t:1-Math.pow(-2*ST.t+2,2)/2;upd3draw();if(now-t0<700)ST.anim=requestAnimationFrame(fr);})(t0);}
+$('b3n').onclick=function(){go3(ST.step+1);};$('b3p').onclick=function(){go3(ST.step-1);};
+$('b3r').onclick=function(){stopAuto();go3(0);};
+function stopAuto(){clearInterval(ST.timer);ST.timer=null;$('b3a').textContent='▶ 自動播放';}
+$('b3a').onclick=function(){if(ST.timer){stopAuto();return;}if(ST.step===3)go3(0);$('b3a').textContent='⏸ 暫停';ST.timer=setInterval(function(){if(ST.step>=3){stopAuto();return;}go3(ST.step+1);},1300);};
+
+/* ---------- section 4 ---------- */
+function eigs(){var k=S.k,c=S.c,out=[{v:[1,0],l:1}];if(Math.abs(c-1)>1e-6){var v=[k,c-1],n=Math.hypot(v[0],v[1]);out.push({v:[v[0]/n,v[1]/n],l:c});}return out;}
+function upd4(){
+  var M=A(),sv=svd(M),R=radius(sv),E=eigs(),showE=$('kEig').checked,showS=$('kSv').checked;
+  var c=prep($('cEw')),g=c.g,V=view(c,R);axes(g,V,R,'h','z');shape(g,V,[[1,0],[0,1]],css('--fill-in'));
+  if(showE)E.forEach(function(e,i){line(g,V,e.v,css('--eig'),3,i===1);});
+  if(showS){line(g,V,sv.v1,css('--c1'),3);line(g,V,sv.v2,css('--c2'),3);}
+  var c2=prep($('cEf')),h=c2.g,W=view(c2,R);axes(h,W,R,'x','y');shape(h,W,M,css('--fill-out'));
+  if(showE)E.forEach(function(e,i){line(h,W,mul(M,e.v),css('--eig'),3,i===1);});
+  if(showS){line(h,W,mul(M,sv.v1),css('--c1'),3);line(h,W,mul(M,sv.v2),css('--c2'),3);}
+  var rows='<tr><th></th><th>窗上方向</th><th>照下來方向</th><th>方向改變？</th><th>兩條的夾角（窗 → 地板）</th></tr>';
+  var eAng=E.length>1?acute(angBetween(E[0].v,E[1].v)):null,eAng2=E.length>1?acute(angBetween(mul(M,E[0].v),mul(M,E[1].v))):null;
+  E.forEach(function(e,i){rows+='<tr><td style="color:var(--eig);font-weight:700">特徵向量 '+(i+1)+'（λ = '+f(e.l,2)+'）</td><td>'+deg(e.v).toFixed(1)+'°</td><td>'+deg(mul(M,e.v)).toFixed(1)+'°</td><td>不變 ✔</td><td>'+(i===0?(eAng===null?'—':eAng.toFixed(1)+'° → '+eAng2.toFixed(1)+'°'):'（同左）')+'</td></tr>';});
+  rows+='<tr><td style="color:var(--c1);font-weight:700">主軸 1（σ₁ = '+f(sv.s1)+'）</td><td>'+deg(sv.v1).toFixed(1)+'°</td><td>'+deg(sv.u1).toFixed(1)+'°</td><td>'+(Math.abs(deg(sv.v1)-deg(sv.u1))<0.05?'不變':'會轉動')+'</td><td rowspan="2">90° → 90° ✔</td></tr>';
+  rows+='<tr><td style="color:var(--c2);font-weight:700">主軸 2（σ₂ = '+f(sv.s2)+'）</td><td>'+deg(sv.v2).toFixed(1)+'°</td><td>'+deg(sv.u2).toFixed(1)+'°</td><td>'+(Math.abs(deg(sv.v2)-deg(sv.u2))<0.05?'不變':'會轉動')+'</td></tr>';
+  $('tE').innerHTML=rows;
+}
+$('kEig').onchange=$('kSv').onchange=upd4;
+
+/* ---------- avatar: Eugenio Beltrami ---------- */
+var BELTRAMI_SVG='<svg viewBox="0 0 200 230" aria-label="貝爾特拉米老師動畫"><g class="bodyg">'+
+'<path d="M14 232 Q20 170 100 158 Q180 170 186 232 Z" fill="#23262e"/>'+
+'<path d="M82 158 L100 196 L118 158 Z" fill="#f4f1ea"/>'+
+'<path d="M62 166 L84 158 L100 218 Z M138 166 L116 158 L100 218 Z" fill="#191b21"/>'+
+'<path d="M88 160 Q100 168 112 160 L106 172 Q100 168 94 172 Z" fill="#1a1a1a"/>'+
+'<rect x="86" y="130" width="28" height="30" rx="10" fill="#e3b49a"/>'+
+'<ellipse cx="66" cy="100" rx="6.5" ry="10.5" fill="#e3b49a"/><ellipse cx="134" cy="100" rx="6.5" ry="10.5" fill="#e3b49a"/>'+
+'<ellipse cx="100" cy="96" rx="33" ry="41" fill="#f0c6aa"/>'+
+'<path d="M67 86 Q64 56 100 50 Q137 54 133 86 Q130 70 118 64 Q104 60 92 64 Q76 68 67 86 Z" fill="#3b2a20"/>'+
+'<g class="hairL"><path d="M67 84 Q62 92 64 104 Q67 96 70 92 Z" fill="#3b2a20"/></g>'+
+'<g class="hairR"><path d="M133 84 Q138 92 136 104 Q133 96 130 92 Z" fill="#3b2a20"/></g>'+
+'<path d="M68 104 Q66 140 82 156 Q100 170 118 156 Q134 140 132 104 Q126 120 116 124 Q100 118 84 124 Q74 120 68 104 Z" fill="#3b2a20"/>'+
+'<ellipse class="blush" cx="80" cy="112" rx="6" ry="4" fill="#f08080"/><ellipse class="blush" cx="120" cy="112" rx="6" ry="4" fill="#f08080"/>'+
+'<path class="brow browL" d="M75 80 Q84 75 93 79" stroke="#2e2019" stroke-width="3.6" fill="none" stroke-linecap="round"/>'+
+'<path class="brow browR" d="M107 79 Q116 75 125 80" stroke="#2e2019" stroke-width="3.6" fill="none" stroke-linecap="round"/>'+
+'<g class="eyes"><ellipse cx="85" cy="92" rx="4.4" ry="3.8" fill="#fff"/><ellipse cx="115" cy="92" rx="4.4" ry="3.8" fill="#fff"/><circle cx="85.5" cy="92.5" r="2.7" fill="#2b1f18"/><circle cx="115.5" cy="92.5" r="2.7" fill="#2b1f18"/><circle cx="86.4" cy="91.6" r=".9" fill="#fff"/><circle cx="116.4" cy="91.6" r=".9" fill="#fff"/></g>'+
+'<path d="M100 98 Q97 108 99 112 Q103 114 106 111" stroke="#c9967a" stroke-width="2.2" fill="none" stroke-linecap="round"/>'+
+'<path class="mo n" d="M91 126 Q100 130 109 125" stroke="#f3d6c4" stroke-width="2.6" fill="none" stroke-linecap="round"/>'+
+'<path class="mo s" d="M89 124 Q100 137 111 124 Q100 128 89 124 Z" fill="#9b3a2c" stroke="#f3d6c4" stroke-width="1.5" stroke-linejoin="round"/>'+
+'<path class="mo f" d="M91 129 Q100 122 109 129" stroke="#f3d6c4" stroke-width="2.6" fill="none" stroke-linecap="round"/>'+
+'<path d="M84 120 Q92 114 100 118 Q108 114 116 120 Q108 122 100 120 Q92 122 84 120 Z" fill="#2e2019"/>'+
+'<path class="sweat" d="M137 66 Q142 76 137 80 Q132 76 137 66 Z" fill="#7cc3f0"/>'+
+'<g transform="translate(150 180)"><rect x="-16" y="-12" width="32" height="24" rx="3" fill="#f4f1e6" stroke="#8a8a8a"/><text x="0" y="4" font-size="9" text-anchor="middle" fill="#1d3a7a" font-family="serif" font-weight="700">1873</text></g>'+
+'<text class="spark" x="30" y="44" font-size="18" fill="#f0b400">✦</text><text class="spark" x="160" y="40" font-size="14" fill="#f0b400">✦</text><text class="spark" x="170" y="96" font-size="11" fill="#f0b400">✦</text>'+
+'</g></svg>';
+function makeAvatar(el,bubble){
+  el.innerHTML=BELTRAMI_SVG;var tm=null;
+  function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
+  return {mood:function(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
+    if(m==='smile'){el.classList.add('smile');restart('hop');}
+    if(m==='frown'){el.classList.add('frown');restart('shake');}
+    if(text!==undefined){bubble.innerHTML=text;bubble.className='bubble'+(m==='smile'?' good':m==='frown'?' bad':'');}
+    if(!hold)tm=setTimeout(function(){el.classList.remove('smile','frown');bubble.className='bubble';},3200);}};
+}
+var AV1=makeAvatar($('av1'),$('bub1')),AV2=makeAvatar($('av2'),$('bub2'));
+var QUOTES=[
+ '1873 年我在〈論雙線性函數〉這篇論文裡證明：任何實方陣都能找到兩組互相垂直的主軸。這就是 SVD 的起點！',
+ '有趣的是，我把這篇論文發表在一本「給大學生看的數學期刊」上。所以 SVD 一開始就是寫給學生的！',
+ '隔年（1874）法國的若爾當（Jordan）也獨立發現了同樣的結果，所以我們兩人常被並列為 SVD 的發現者。',
+ '年輕時家裡經濟困難，我曾中斷學業，到鐵路工程師身邊當秘書，在維洛納和米蘭工作過。',
+ '1868 年我用「偽球面」給非歐幾何一個看得見的模型：把曳物線繞軸旋轉就做出來了！',
+ '我的父親是細密畫畫家，但我自己最愛的是音樂。晚年我擔任林琴科學院院長，也成為義大利王國參議員。',
+ '我發現主軸「存在」；將近一百年後，Golub 才找到在電腦上把主軸「算準」的方法。'];
+var qi=0;$('av1').onclick=function(){AV1.mood('smile',QUOTES[qi++%QUOTES.length]);};
+
+/* ---------- quiz ---------- */
+var QZ=[
+ {q:'「輸入主軸 v₁, v₂」指的是什麼？',o:['窗戶上照下來後仍互相垂直、且被拉最長與壓最短的兩個方向','窗戶上的水平與垂直直徑','照下來方向完全不變的方向','地板光斑的長軸與短軸'],a:0,e:'輸入主軸在「窗上」，特點是照下來後仍保持 90°，並對應最大與最小的伸縮。',h:'回到第 1 節：哪一組十字線照下來仍是 90°？'},
+ {q:'「輸出主軸 u₁, u₂」在哪裡？',o:['地板光斑的長軸與短軸方向','窗戶的水平與垂直方向','陽光的方向','窗戶上 45° 的方向'],a:0,e:'輸入主軸照到地板後，剛好落在光斑橢圓的長軸與短軸上。',h:'輸出主軸在「地板上」，看看橢圓光斑。'},
+ {q:'課堂範例 A = [[1, 0.8], [0, 0.6]] 中，為什麼水平／垂直直徑不是主軸？',o:['照下來夾角變成約 37°，不再互相垂直','它們照下來長度不變','它們不在窗戶上','因為 A 不是方陣'],a:0,e:'主軸必須「照下來仍垂直」；水平與垂直直徑照下來只剩約 37°。',h:'在第 1 節按「回到水平／垂直」，看地板上的夾角。'},
+ {q:'陽光正對牆面（φ = 0，沒有左右偏）時會怎樣？',o:['輸入主軸與輸出主軸方向相同','光斑一定是正圓','沒有奇異值','輸入主軸消失'],a:0,e:'這時 A 是對角矩陣，只有伸縮沒有偏斜，兩組主軸重合（U、V 不用額外旋轉）。',h:'在第 1 節按「陽光正對牆面」，再對齊主軸看看。'},
+ {q:'σ₁ 的幾何意義是什麼？',o:['窗上單位半徑照下來的最大長度（光斑長半軸）','陽光的仰角','十字線的旋轉角度','光斑的面積'],a:0,e:'第 2 節的曲線最高點就是 σ₁，出現在 θ = v₁ 的方向。',h:'看第 2 節曲線的最高點。'},
+ {q:'課堂範例中，水平方向 (1, 0) 照下來仍是水平。它是什麼？',o:['特徵向量（方向不變），但不是主軸','主軸，也是特徵向量','輸出主軸','什麼都不是'],a:0,e:'特徵向量是「方向不變」；主軸是「垂直關係不變」。水平方向方向沒變，但它和垂直方向照下來不再垂直，所以不是主軸。',h:'看第 4 節的表格：哪一種是「方向不變」？'},
+ {q:'為什麼 SVD 需要「兩次旋轉」？',o:['輸入主軸與輸出主軸方向不同，需要分別對齊','為了讓圓變大','因為光線真的轉了兩次','兩次旋轉可以互相抵消'],a:0,e:'Vᵀ 把輸入主軸轉正，Σ 伸縮，U 再轉到輸出主軸。這是數學上的分解，不代表光線真的轉了兩次。',h:'回到第 3 節，比較 Vᵀ 和 U 的旋轉角度。'}];
+var QS={ans:0,score:0,streak:0};
+var PRAISE=['答對了！','正確，觀念很清楚！','漂亮！','就是這樣！','完全正確！'];
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function buildQuiz(){QS={ans:0,score:0,streak:0};$('score').textContent='';$('bRe').style.display='none';var box=$('quiz');box.innerHTML='';
+  QZ.forEach(function(z,qi2){var d=document.createElement('div');d.className='qitem';d.innerHTML='<div class="q">'+(qi2+1)+'. '+z.q+'</div>';
+    var exp=document.createElement('div');exp.className='exp';var done=false;
+    shuffle(z.o.map(function(t,i){return i;})).forEach(function(i){var b=document.createElement('button');b.className='opt';b.textContent=z.o[i];
+      b.onclick=function(){if(done)return;done=true;QS.ans++;var ok=i===z.a;
+        d.querySelectorAll('.opt').forEach(function(x){if(x.textContent===z.o[z.a])x.classList.add('right');});
+        if(!ok)b.classList.add('wrong');
+        exp.className='exp '+(ok?'ok':'no');exp.textContent=(ok?'✔ 正確！':'✘ ')+z.e;
+        if(ok){QS.score++;QS.streak++;AV2.mood('smile',QS.streak>=3?'連對 '+QS.streak+' 題！你已經抓到主軸的精髓了！':PRAISE[Math.floor(Math.random()*PRAISE.length)]);}
+        else{QS.streak=0;AV2.mood('frown',z.h);}
+        if(QS.ans===QZ.length){$('score').textContent='得分：'+QS.score+' / '+QZ.length;$('bRe').style.display='';
+          setTimeout(function(){var s=QS.score,n=QZ.length;AV2.mood(s===n?'smile':s>=n-2?'smile':'frown',s===n?'滿分！窗上看輸入、地板看輸出，你完全懂了！':s>=n-2?'很不錯！錯的題目回到對應小節再玩一次。':'建議回到第 1、2 節，親手轉轉十字線找主軸。',true);},3300);}};
+      d.appendChild(b);});
+    d.appendChild(exp);box.appendChild(d);});}
+$('bRe').onclick=function(){buildQuiz();AV2.mood('','新的一輪！選項順序已重新洗牌。');};
+
+/* ---------- theme & init ---------- */
+$('bTheme').onclick=function(){var r=document.documentElement;var dark=r.getAttribute('data-theme')?r.getAttribute('data-theme')==='dark':matchMedia('(prefers-color-scheme: dark)').matches;r.setAttribute('data-theme',dark?'light':'dark');upd1();};
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',upd1);
+var rt;window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(upd1,120);});
+buildQuiz();upd1();
+</script>
+</body>
+</html>

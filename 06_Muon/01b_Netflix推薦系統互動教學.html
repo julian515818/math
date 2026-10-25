@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Netflix 推薦系統互動教學</title>
+<style>
+:root{
+  --bg:#f7f6f2;--card:#fff;--ink:#1d2330;--mute:#667085;--line:#e3e1da;--ok:#1f9d6b;--bad:#d6334f;
+  --grid:#eceae4;--axis:#9aa0ab;--accent:#2f6fdb;--tint:#eaf1fc;
+  --c1:#2f6fdb;--c2:#e07a1f;--c3:#8b45d6;--warn:#c98a00;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+    --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+    --c1:#6c9dff;--c2:#ffa552;--c3:#b98bff;--warn:#ffd166;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+  --c1:#6c9dff;--c2:#ffa552;--c3:#b98bff;--warn:#ffd166;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.9rem}
+header p{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:18px}
+.card h2{margin:0 0 12px;font-size:1.22rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:.9rem;flex:none}
+h3{margin:0 0 6px;font-size:1.05rem}
+.m{font-family:"Times New Roman","Cambria Math",serif;font-style:italic}
+.def{font-size:1.25rem;text-align:center;padding:14px;border-radius:10px;background:var(--tint);line-height:2.1}
+.note{color:var(--mute);font-size:.92rem}
+.c1{color:var(--c1)}.c2{color:var(--c2)}.c3{color:var(--c3)}.ok{color:var(--ok)}.bad{color:var(--bad)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start}
+.two>*{min-width:0}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.three>div{border:2px solid var(--line);border-radius:12px;padding:10px 14px;min-width:0}
+.three b.t{display:block}
+@media (max-width:860px){.two,.three{grid-template-columns:minmax(0,1fr)}}
+.cvbox{width:100%;min-width:0}
+.cvbox .cap{text-align:center;font-size:.9rem;color:var(--mute);margin-top:4px}
+canvas{width:100%;display:block;border-radius:10px;background:var(--bg);touch-action:none}
+label{font-size:.92rem;color:var(--mute);display:block}
+label b{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 12px}
+button{cursor:pointer}button:hover{border-color:var(--accent)}
+button.pri,button.on{background:var(--accent);color:#fff;border-color:transparent}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:10px 18px;align-items:end;margin-top:12px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(110px,100%),1fr));gap:10px;margin-top:12px}
+.stats>div{padding:8px 12px;border-radius:10px;background:var(--bg)}
+.stats small{display:block;color:var(--mute);font-size:.82rem}
+.stats b{font-size:1.15rem;font-variant-numeric:tabular-nums}
+.say{margin-top:12px;padding:10px 14px;border-left:4px solid var(--ok);background:var(--bg);border-radius:8px}
+.formula{font-size:1.05rem;line-height:2.2;overflow-x:auto;padding:6px 2px;white-space:nowrap}
+.mat{display:inline-grid;gap:0 10px;padding:2px 8px;border-left:2px solid var(--ink);border-right:2px solid var(--ink);border-radius:6px;vertical-align:middle;font-variant-numeric:tabular-nums;text-align:right;font-size:.92rem;line-height:1.55;font-family:system-ui,sans-serif;font-style:normal}
+.stepbar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:10px 0 8px}
+.stepbar div{height:100%;background:var(--accent);transition:width .3s}
+.explain{padding:10px 14px;border-radius:10px;background:var(--tint);min-height:3.4em}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.85rem;color:var(--mute);margin-top:6px}
+.legend i{display:inline-block;width:18px;height:4px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.scroll{overflow-x:auto}
+table.tbl{border-collapse:collapse;font-variant-numeric:tabular-nums;margin:4px 0}
+table.tbl th,table.tbl td{border:1px solid var(--line);padding:4px 8px;text-align:center}
+table.tbl th{background:var(--bg);font-weight:600}
+table.tbl input{width:58px;font:inherit;text-align:center;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:3px 2px}
+.bars .br{display:grid;grid-template-columns:110px minmax(0,1fr) 60px;gap:8px;align-items:center;margin:4px 0;font-size:.92rem}
+.bars .bt{height:16px;border-radius:5px;background:var(--line);overflow:hidden}
+.bars .bt div{height:100%;transition:width .3s}
+.bars .bv{text-align:right;font-variant-numeric:tabular-nums;color:var(--mute)}
+.tag{display:inline-block;padding:0 8px;border-radius:999px;font-size:.82rem;color:#fff;margin-left:4px}
+.imgs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-width:720px;margin-left:auto;margin-right:auto}
+.imgs canvas{image-rendering:pixelated}
+.classic{display:grid;grid-template-columns:minmax(0,1fr) 74px minmax(0,1fr);grid-template-rows:auto 78px auto;align-items:center}
+.cl-pan{min-width:0}
+.cl-pan .ttl{font-size:.88rem;text-align:center;margin-bottom:3px;color:var(--mute);min-height:1.5em}
+.cl-pan .ttl b{color:var(--ink)}
+.arr{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:.8rem;line-height:1.3;color:var(--mute);min-width:0}
+.arr b{font-size:1.05rem}.arr .g{font-size:1.7rem;line-height:1.1}
+.arr.A b,.arr.A .g{color:var(--ink)}.arr.v b,.arr.v .g{color:var(--c1)}.arr.s b,.arr.s .g{color:var(--c2)}.arr.u b,.arr.u .g{color:var(--c3)}
+.clc{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:.9rem;line-height:1.3}
+.clc small{color:var(--mute);font-size:.75rem}
+.p1grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:22px;align-items:start}
+.p1grid>*{min-width:0}
+.mc{border:2px solid var(--line);border-radius:12px;padding:8px 12px;margin-bottom:10px}
+.mc h3{margin:0 0 2px}.mc .formula{line-height:1.9;padding:2px}.mc .note{line-height:1.6}
+@media (max-width:860px){.p1grid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:520px){.classic{grid-template-columns:minmax(0,1fr) 48px minmax(0,1fr);grid-template-rows:auto 92px auto}.arr{font-size:.68rem}.arr .g{font-size:1.3rem}.clc{font-size:.72rem}.cl-pan .ttl{font-size:.74rem}}
+.shapes{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 12px;margin:6px 0 2px}
+.shapes .eq{font-size:1.6rem;font-weight:700}
+.mbox{display:flex;flex-direction:column;align-items:center;gap:4px}
+.mbox small{color:var(--mute);font-size:.8rem;white-space:nowrap}.mbox small b{font-size:1rem}
+.mg{display:grid;gap:2px;padding:3px;border-left:2px solid var(--ink);border-right:2px solid var(--ink);border-radius:5px}
+.mg span{width:36px;height:30px;display:grid;place-items:center;font-size:.82rem;border-radius:4px;background:var(--line)}
+.mg.cU span{background:color-mix(in srgb,var(--c3) 30%,transparent)}.mg.cU span.z{background:color-mix(in srgb,var(--c3) 10%,transparent);color:var(--mute)}
+.mg.cS span{background:var(--bg)}.mg.cS span.d{background:color-mix(in srgb,var(--c2) 35%,transparent);font-weight:700}.mg.cS span.z{background:transparent;outline:1.5px dashed var(--mute);color:var(--mute)}
+.mg.cV span{background:color-mix(in srgb,var(--c1) 28%,transparent)}
+.mn23{display:grid;grid-template-columns:minmax(0,1.7fr) 84px minmax(0,1fr) 66px minmax(0,1fr);align-items:center;margin-top:14px}
+.mn23>*{min-width:0}
+@media (max-width:860px){.mn23{grid-template-columns:minmax(0,1fr) 54px minmax(0,1fr)}.mn23 #ar23a{grid-column:1/-1;flex-direction:row;gap:8px;padding:8px 0}.mn23 .p3d{grid-column:1/-1}}
+@media (max-width:520px){.mg span{width:28px;height:26px;font-size:.72rem}}
+/* quiz */
+.quiz .q{padding:12px 0;border-bottom:1px solid var(--line)}
+.quiz .q:last-child{border:none}
+.opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.opts button.right{background:var(--ok);color:#fff;border-color:transparent}
+.opts button.wrong{background:var(--bad);color:#fff;border-color:transparent}
+.fb{font-size:.92rem;margin-top:6px;min-height:1.2em}
+.score{margin-top:12px;font-size:1.15rem;font-weight:700;display:none;align-items:center;gap:12px;flex-wrap:wrap}
+footer{color:var(--mute);font-size:.85rem;text-align:center;margin-top:30px}
+/* ---------- avatar ---------- */
+.avwrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.av{width:100%;max-width:220px;cursor:pointer;user-select:none}
+.av svg{width:100%;display:block;overflow:visible;background:none}
+.av .bodyg{animation:bob 3.2s ease-in-out infinite;transform-origin:100px 200px}
+.av .eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+.av .hairL{animation:sway 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:top center}
+.av .hairR{animation:sway 3.2s ease-in-out infinite reverse;transform-box:fill-box;transform-origin:top center}
+.av .brow{transition:transform .3s;transform-box:fill-box}
+.av .browL{transform-origin:right center}.av .browR{transform-origin:left center}
+.av .mo{opacity:0;transition:opacity .25s}.av .mo.n{opacity:1}
+.av .blush,.av .sweat,.av .spark{opacity:0;transition:opacity .3s}
+.av.smile .mo.n,.av.frown .mo.n{opacity:0}
+.av.smile .mo.s{opacity:1}.av.frown .mo.f{opacity:1}
+.av.smile .blush{opacity:.55}.av.smile .spark{opacity:1}.av.frown .sweat{opacity:.9}
+.av.smile .brow{transform:translateY(-3px)}
+.av.frown .browL{transform:rotate(14deg) translateY(2px)}.av.frown .browR{transform:rotate(-14deg) translateY(2px)}
+.av.hop svg{animation:hop .7s ease}
+.av.shake svg{animation:shake .55s ease}
+.av .spark{animation:twinkle 1s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}
+@keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+@keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.bubble{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.95rem;margin-bottom:10px;min-height:2.6em;max-width:260px;text-align:center;transition:border-color .3s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--line);border-bottom:0}
+.bubble.good{border-color:var(--ok)}.bubble.good::after{border-top-color:var(--ok)}
+.bubble.bad{border-color:var(--bad)}.bubble.bad::after{border-top-color:var(--bad)}
+.intro{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:center}
+.intro>*,.qgrid>*{min-width:0}
+.intro .avwrap{flex-direction:row;gap:10px}.intro .bubble{flex:1;margin:0}.intro .bubble::after{display:none}.intro .av{width:125px;flex:none}
+.qgrid{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:18px;align-items:start}
+.qgrid .avwrap{position:sticky;top:12px}
+@media (max-width:860px){.intro,.qgrid{grid-template-columns:minmax(0,1fr)}.intro .avwrap{flex-direction:column}.intro .bubble{margin-bottom:10px}.intro .bubble::after{display:block}.intro .av,.qgrid .av{width:auto;max-width:140px}.qgrid .avwrap{position:static;order:-1}}
+table.tbl th{white-space:nowrap}
+@media (max-width:520px){table.tbl input{width:46px}table.tbl th,table.tbl td{padding:4px 5px}.bars .br{grid-template-columns:86px minmax(0,1fr) 50px}.def{font-size:1.1rem}}
+</style>
+<style>
+:root{--known:#1d2330;--pred:#2f6fdb;--tr:#2f6fdb;--te:#e07a1f;--base:#98a2b3}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--known:#e8eaf0;--pred:#6c9dff;--tr:#6c9dff;--te:#ffa552;--base:#6b7385}}
+:root[data-theme="dark"]{--known:#e8eaf0;--pred:#6c9dff;--tr:#6c9dff;--te:#ffa552;--base:#6b7385}
+.def2{font-size:1.12rem;text-align:center;padding:14px;border-radius:10px;background:var(--tint);line-height:2}
+table.rt{border-collapse:separate;border-spacing:3px;font-variant-numeric:tabular-nums;margin:4px 0}
+table.rt th{font-size:.82rem;font-weight:600;color:var(--mute);padding:2px 4px;white-space:nowrap}
+table.rt th.mv{writing-mode:horizontal-tb;font-size:.78rem;line-height:1.2}
+table.rt td{width:56px;height:44px;text-align:center;border-radius:8px;border:1.5px solid var(--line);font-size:1.02rem;position:relative;cursor:default}
+table.rt td.k{font-weight:700;color:var(--known)}
+table.rt td.h{border-style:dashed;color:var(--pred)}
+table.rt td .t{position:absolute;right:4px;bottom:1px;font-size:.66rem;color:var(--mute);font-weight:400}
+table.rt td.click{cursor:pointer}
+table.rt td.sel{outline:3px solid var(--c3)}
+.tag2{display:inline-block;font-size:.72rem;padding:0 6px;border-radius:999px;color:#fff;margin-left:2px}
+.act{background:#d6334f}.rom{background:#c2549a}
+.legend2{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.85rem;color:var(--mute);margin-top:6px}
+.legend2 span{display:inline-flex;align-items:center;gap:6px}
+.legend2 i{display:inline-block;width:26px;height:18px;border-radius:5px;border:1.5px solid var(--line)}
+.code{background:#1b1f27;color:#e6e9ef;border-radius:10px;padding:10px 0;font-family:"Cascadia Code",Consolas,"Fira Code",monospace;font-size:.86rem;overflow-x:auto;line-height:1.6}
+.code div{padding:0 14px;white-space:pre}
+.code .cm{color:#8b95a7}.code .kw{color:#c792ea}.code .nb{color:#f78c6c}
+.rec{list-style:none;padding:0;margin:6px 0 0}
+.rec li{display:grid;grid-template-columns:28px minmax(0,1fr) 70px 70px;gap:8px;align-items:center;padding:6px 10px;border-radius:8px;background:var(--bg);margin-bottom:6px;font-size:.95rem}
+.rec li b.n{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--c3);color:#fff;font-size:.8rem}
+.rec small{color:var(--mute)}
+@media (max-width:520px){table.rt{border-spacing:2px}table.rt td{width:42px;height:38px;font-size:.88rem}table.rt th{font-size:.7rem;padding:1px}table.rt th.mv{font-size:.64rem}table.rt td .t{font-size:.56rem;right:2px}.tag2{font-size:.6rem;padding:0 4px}.rec li{grid-template-columns:24px minmax(0,1fr) 62px 52px;font-size:.85rem}}
+</style>
+<style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line,#e3e1da);border-radius:12px;background:var(--card,var(--surface,#fff));color:var(--ink,#1d2330);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+.pu-badge img{width:58px;height:58px;display:block}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute,var(--muted,#667085))}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="pu-hd">
+  <div class="pu-hd-main">
+  <h1>Netflix 推薦系統互動教學</h1>
+  <p>工程數學 ・ 互動教學：用 SVD／矩陣分解，從部分評分預測空格</p>
+</div>
+  <div class="pu-badge"><img alt="靜宜大學校徽" src="data:image/webp;base64,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"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</header>
+
+<!-- 0 -->
+<section class="card">
+  <h2><span class="num">0</span><span>一句話：評分表 ≈ 使用者口味 × 電影特性</span></h2>
+  <div class="intro">
+    <div>
+      <div class="def2"><span class="m">R</span>（使用者 × 電影，很多空格）≈ μ + <span class="c3 m">U</span> <span class="c2 m">V</span><sup>T</sup><br>
+        <span style="font-size:.95rem">只用<b>已知</b>的評分學出 <span class="c3">U</span>、<span class="c2">V</span>，再用 μ + <span class="c3">u</span>·<span class="c2">v</span> 填滿空格 → 推薦預測分數最高的電影</span></div>
+      <div class="three">
+        <div><b class="t c3">U：使用者的口味</b>每位使用者一列，例如「多喜歡動作片」「多喜歡愛情片」。</div>
+        <div><b class="t c2">V：電影的特性</b>每部電影一列，例如「動作成分多少」「愛情成分多少」。</div>
+        <div><b class="t c1">預測 = 口味 · 特性</b>口味和電影特性越對味（內積越大），預測評分就越高。</div>
+      </div>
+      <p class="note" style="margin:12px 0 0">和 SVD 單元的成績例子同一個想法：成績表 ≈ 學生能力 × 科目組成；評分表 ≈ 使用者口味 × 電影特性。不同的是：<b>評分表大部分是空的</b>，所以不能直接做 SVD。</p>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub1">Buongiorno！又是我，貝爾特拉米老師。這次來看 SVD 怎麼幫你挑電影。點我聽故事！</div><div class="av" id="av1"></div></div>
+  </div>
+</section>
+
+<!-- 1 -->
+<section class="card">
+  <h2><span class="num">1</span><span>一張小評分表：12 個空格要預測</span></h2>
+  <div class="two">
+    <div>
+      <div class="scroll"><table class="rt" id="tb1"></table></div>
+      <div class="legend2"><span><i></i>已知評分（訓練用）</span><span><i style="border-style:dashed"></i>空格（要預測，右下小字是正確答案）</span></div>
+      <div class="row" style="margin-top:10px"><label class="note" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" id="showAns"> 顯示空格的正確答案</label><button id="rstMask">還原預設空格</button><button id="rndMask">隨機挖 12 個空格</button></div>
+      <p class="note">點任一格可以切換「已知 ↔ 空格」，後面每一節都會用新的表重新計算。</p>
+    </div>
+    <div>
+      <div class="stats">
+        <div><small>已知評分</small><b id="s1k">–</b></div>
+        <div><small>空格</small><b id="s1h">–</b></div>
+        <div><small>已知評分平均 μ</small><b id="s1m">–</b></div>
+        <div><small>全猜 μ 的誤差 RMSE</small><b id="s1b">–</b></div>
+      </div>
+      <div class="explain" style="margin-top:12px">
+        <b>這張表是怎麼來的？</b>每位使用者有兩個隱藏的口味：<span class="tag2 act">動作</span> 和 <span class="tag2 rom">愛情</span>；每部電影也有兩個成分。評分 ≈ 3 + 口味 · 成分。
+        <br>預測方法看不到這些隱藏數字，只看得到表上的已知評分，要自己猜出來。
+        <br><b>真實的 Netflix</b>：約 48 萬使用者 × 1.8 萬部電影，約 1 億筆評分，只填滿了約 1%。
+      </div>
+      <div class="say" id="say1" style="margin-top:10px"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="card">
+  <h2><span class="num">2</span><span>方法一：先填平均，再用 SVD 反覆修正</span></h2>
+  <p class="note" style="margin-top:0">SVD 需要完整的矩陣，所以先把空格填上平均 μ，做 SVD 後只留前 k 個奇異值（低秩近似），用近似值更新空格；已知格保持原值。重複這個「填補 → SVD → 截斷」的循環。</p>
+  <div class="two">
+    <div>
+      <div class="scroll"><table class="rt" id="tb2"></table></div>
+      <div class="ctl">
+        <label>保留前 k 個奇異值：k = <b id="l2k">2</b><input type="range" id="s2k" min="1" max="4" step="1" value="2"></label>
+      </div>
+      <div class="row" style="margin-top:8px"><button id="n2r">⟲ 重來</button><button id="n2p">◀ 上一輪</button><button id="n2n" class="pri">下一輪 ▶</button><button id="n2a">▶ 自動播放</button></div>
+      <div class="stepbar"><div id="bar2" style="width:0%"></div></div>
+    </div>
+    <div>
+      <div class="cvbox"><canvas id="cv2a"></canvas><div class="cap">空格的預測誤差（RMSE）隨迭代次數變化</div></div>
+      <div class="cvbox" style="margin-top:8px"><canvas id="cv2b"></canvas><div class="cap">目前填補後矩陣的奇異值（藍色 = 保留）</div></div>
+    </div>
+  </div>
+  <div class="say" id="say2"></div>
+</section>
+
+<!-- 3 -->
+<section class="card">
+  <h2><span class="num">3</span><span>方法二：Funk SVD，只用已知格做梯度下降</span></h2>
+  <p class="note" style="margin-top:0">2006 年 Netflix 大獎賽中，Simon Funk 公開的做法：不填空格，直接把每位使用者、每部電影各用 k 個數字表示，<b>只在已知格上</b>用梯度下降讓 μ + u·v 接近真實評分。</p>
+  <div class="two">
+    <div>
+      <div class="code" id="code3"></div>
+      <div class="ctl">
+        <label>潛在因素個數 k = <b id="l3k">2</b><input type="range" id="s3k" min="1" max="3" step="1" value="2"></label>
+        <label>學習率 η = <b id="l3e">0.05</b><input type="range" id="s3e" min="0.01" max="0.1" step="0.01" value="0.05"></label>
+        <label>正則化 λ = <b id="l3l">0.10</b><input type="range" id="s3l" min="0" max="0.5" step="0.01" value="0.1"></label>
+      </div>
+      <div class="row" style="margin-top:8px"><button id="t3r">⟲ 重新初始化</button><button id="t3s">訓練 10 輪</button><button id="t3a" class="pri">▶ 自動訓練</button><span class="note">已訓練 <b id="l3ep">0</b> 輪</span></div>
+    </div>
+    <div>
+      <div class="cvbox"><canvas id="cv3"></canvas><div class="cap">誤差 RMSE：<span style="color:var(--tr)">已知格（訓練）</span>、<span style="color:var(--te)">空格（測試）</span>、<span style="color:var(--base)">全猜 μ</span></div></div>
+    </div>
+  </div>
+  <div class="scroll" style="margin-top:10px"><table class="rt" id="tb3"></table></div>
+  <div class="say" id="say3"></div>
+</section>
+
+<!-- 4 -->
+<section class="card">
+  <h2><span class="num">4</span><span>潛在因素地圖與推薦清單</span></h2>
+  <p class="note" style="margin-top:0">把第 3 節學到的 U、V（k = 2 時）畫在同一張平面上：<span class="c3">● 使用者</span>、<span class="c2">■ 電影</span>。預測評分 = μ + 使用者向量 · 電影向量，方向越一致，分數越高。</p>
+  <div class="two">
+    <div class="cvbox"><canvas id="cv4"></canvas><div class="cap" id="cap4"></div></div>
+    <div>
+      <div class="row"><span class="note">選擇使用者：</span><span id="usel" class="row"></span></div>
+      <h3 style="margin-top:12px">推薦清單（只列這位使用者沒評過的電影）</h3>
+      <ul class="rec" id="rec4"></ul>
+      <div class="say" id="say4"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="card quiz">
+  <h2><span class="num">5</span><span>小測驗</span></h2>
+  <div class="qgrid">
+    <div><div id="quiz"></div>
+      <div class="score" id="score"><span id="scoreTxt"></span><button id="again">再做一次</button></div>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub2">來考考你！答對我會笑，答錯我會皺眉喔。</div><div class="av" id="av2"></div></div>
+  </div>
+</section>
+
+<footer>Netflix 推薦系統互動教學 ・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+
+<script>
+/* ============ 共用工具 ============ */
+const $=id=>document.getElementById(id);
+const C=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+function fmt(x,d=2){if(!isFinite(x))return '—';if(Math.abs(x)<0.5*Math.pow(10,-d))x=0;return x.toFixed(d).replace('-','−');}
+function setup(cv,aspect){cv.style.width='100%';const w=cv.parentElement.clientWidth||300,h=Math.round(w*aspect),d=Math.min(window.devicePixelRatio||1,2);
+  cv.width=Math.round(w*d);cv.height=Math.round(h*d);cv.style.height=h+'px';const g=cv.getContext('2d');g.setTransform(d,0,0,d,0,0);return {g,w,h};}
+function svd(A){
+  const m=A.length,n=A[0].length,W=A.map(r=>r.slice()),V=[];
+  for(let i=0;i<n;i++){V.push(new Array(n).fill(0));V[i][i]=1;}
+  for(let sw=0;sw<80;sw++){let rot=0;
+    for(let p=0;p<n-1;p++)for(let q=p+1;q<n;q++){
+      let a=0,b=0,c=0;for(let i=0;i<m;i++){const x=W[i][p],y=W[i][q];a+=x*x;b+=y*y;c+=x*y;}
+      if(c===0||Math.abs(c)<=1e-13*Math.sqrt(a*b))continue;rot++;
+      const z=(b-a)/(2*c),t=(z>=0?1:-1)/(Math.abs(z)+Math.sqrt(1+z*z)),cs=1/Math.sqrt(1+t*t),sn=cs*t;
+      for(let i=0;i<m;i++){const x=W[i][p],y=W[i][q];W[i][p]=cs*x-sn*y;W[i][q]=sn*x+cs*y;}
+      for(let i=0;i<n;i++){const x=V[i][p],y=V[i][q];V[i][p]=cs*x-sn*y;V[i][q]=sn*x+cs*y;}}
+    if(!rot)break;}
+  const S=[];for(let j=0;j<n;j++){let s=0;for(let i=0;i<m;i++)s+=W[i][j]**2;S.push(Math.sqrt(s));}
+  const idx=[...Array(n).keys()].sort((x,y)=>S[y]-S[x]),tol=1e-12*Math.max(1e-300,Math.max(...S));
+  const U=[...Array(m)].map(()=>[]),Vs=[...Array(n)].map(()=>[]);
+  idx.forEach((j,k)=>{for(let i=0;i<m;i++)U[i][k]=S[j]>tol?W[i][j]/S[j]:0;for(let i=0;i<n;i++)Vs[i][k]=V[i][j];});
+  return {U,S:idx.map(j=>S[j]<=tol?0:S[j]),V:Vs};
+}
+function rng(seed){let a=seed>>>0;return ()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
+function gauss(r){const u=Math.max(1e-12,r()),v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+/* 評分的顏色：1 偏紅、3 中性、5 偏綠 */
+function rcol(v){const t=clamp((v-1)/4,0,1),h=t*130,a=0.16+0.5*Math.abs(t-0.5);return `hsla(${h},70%,50%,${a.toFixed(2)})`;}
+function plot(cv,aspect,series,opt){
+  const {g,w,h}=setup(cv,aspect),pl=40,pb=22,pr=10,pt=10,N=opt.N,ymax=opt.ymax;
+  const X=i=>pl+i/N*(w-pl-pr),Y=v=>pt+(1-clamp(v,0,ymax)/ymax)*(h-pt-pb);
+  g.clearRect(0,0,w,h);g.font='11px system-ui,sans-serif';
+  for(let v=0;v<=ymax+1e-9;v+=opt.ystep){g.strokeStyle=C('--grid');g.beginPath();g.moveTo(pl,Y(v));g.lineTo(w-pr,Y(v));g.stroke();g.fillStyle=C('--mute');g.fillText(fmt(v,1),6,Y(v)+4);}
+  opt.xt.forEach(t=>{g.fillStyle=C('--mute');g.fillText(t,X(t)-6,h-6);});
+  series.forEach(s=>{if(!s.d.length)return;g.strokeStyle=s.c;g.lineWidth=s.lw||2.2;g.setLineDash(s.dash||[]);g.beginPath();
+    s.d.forEach((v,i)=>{const x=s.flat?(i?w-pr:pl):X(i);i?g.lineTo(x,Y(v)):g.moveTo(x,Y(v));});g.stroke();g.setLineDash([]);
+    if(s.dot!==undefined&&s.d[s.dot]!==undefined){g.fillStyle=s.c;g.beginPath();g.arc(X(s.dot),Y(s.d[s.dot]),4.5,0,7);g.fill();}});
+  if(opt.cur!==undefined){g.strokeStyle=C('--axis');g.setLineDash([3,3]);g.beginPath();g.moveTo(X(opt.cur),pt);g.lineTo(X(opt.cur),h-pb);g.stroke();g.setLineDash([]);}
+}
+
+/* ============ 資料 ============ */
+const USERS=['阿明','小華','小美','阿傑','小芳','大雄'];
+const MOVIES=[['極速追擊','act'],['鋼鐵戰士','act'],['星際突襲','act'],['戀戀巴黎','rom'],['雨中情書','rom'],['初戀時光','rom']];
+const PREF=[[2.0,-1.2],[1.6,0.3],[-1.2,2.0],[1.4,1.3],[-1.6,1.6],[0.3,0.1]];
+const FEAT=[[1,0],[0.9,0.1],[0.8,0.3],[0,1],[0.1,0.9],[0.3,0.8]];
+const R=PREF.map(p=>FEAT.map(f=>clamp(Math.round(3+p[0]*f[0]+p[1]*f[1]),1,5)));
+const DEFMASK=[[0,0,1,0,1,0],[0,1,0,0,0,1],[1,0,0,1,0,0],[0,0,1,0,0,1],[0,1,0,0,1,0],[1,0,0,0,0,1]];   // 1 = 空格
+const ST={H:DEFMASK.map(r=>r.slice())};
+const known=(i,j)=>!ST.H[i][j];
+function mu(){let s=0,c=0;for(let i=0;i<6;i++)for(let j=0;j<6;j++)if(known(i,j)){s+=R[i][j];c++;}return c?s/c:3;}
+function rmse(P,which){let s=0,c=0;for(let i=0;i<6;i++)for(let j=0;j<6;j++)if(which==='test'?!known(i,j):known(i,j)){s+=(clamp(P[i][j],1,5)-R[i][j])**2;c++;}return c?Math.sqrt(s/c):NaN;}
+const nHidden=()=>ST.H.flat().filter(x=>x).length;
+
+/* 畫評分表：pred 為 null 時空格顯示「?」 */
+function rtable(el,pred,opt={}){
+  const ans=$('showAns').checked;
+  let h='<tr><th></th>'+MOVIES.map(([n,t])=>`<th class="mv">${n}<br><span class="tag2 ${t}">${t==='act'?'動作':'愛情'}</span></th>`).join('')+'</tr>';
+  USERS.forEach((u,i)=>{h+=`<tr><th>${u}</th>`+MOVIES.map((_,j)=>{
+    if(known(i,j)){const v=pred&&opt.showFit?pred[i][j]:R[i][j];return `<td class="k${opt.click?' click':''}" data-i="${i}" data-j="${j}" style="background:${rcol(R[i][j])}">${R[i][j]}${pred&&opt.showFit?`<span class="t">${fmt(v,1)}</span>`:''}</td>`;}
+    const p=pred?clamp(pred[i][j],1,5):null;
+    return `<td class="h${opt.click?' click':''}${opt.sel&&opt.sel(i,j)?' sel':''}" data-i="${i}" data-j="${j}" style="background:${p!==null?rcol(p):'transparent'}">${p!==null?fmt(p,1):'?'}${ans?`<span class="t">答 ${R[i][j]}</span>`:''}</td>`;}).join('')+'</tr>';});
+  el.innerHTML=h;
+  if(opt.click)el.querySelectorAll('td').forEach(td=>td.onclick=()=>{const i=+td.dataset.i,j=+td.dataset.j;ST.H[i][j]=ST.H[i][j]?0:1;
+    const rowK=ST.H[i].filter(x=>!x).length,colK=ST.H.map(r=>r[j]).filter(x=>!x).length;
+    if(rowK<1||colK<1){ST.H[i][j]=0;}recomputeAll();});
+}
+
+/* ============ 第 1 節 ============ */
+function draw1(){
+  rtable($('tb1'),null,{click:true});
+  const m=mu(),base=R.map(r=>r.map(()=>m));
+  $('s1k').textContent=36-nHidden();$('s1h').textContent=nHidden();$('s1m').textContent=fmt(m,2);$('s1b').textContent=fmt(rmse(base,'test'),3);
+  $('say1').innerHTML=nHidden()?`最笨的預測：所有空格都猜平均 μ = ${fmt(m,2)}，誤差 RMSE = <b>${fmt(rmse(base,'test'),3)}</b>（平均差約 1 顆星）。這是後面兩種方法要打敗的<b>基準線</b>。`
+    :'目前沒有空格：點表格裡的格子把它變成空格，才有東西可以預測。';
+}
+
+/* ============ 第 2 節：SVD 反覆填補 ============ */
+const S2={k:2,it:0,N:20,res:null,auto:null};
+function sim2(){
+  const m=mu(),k=S2.k;let X=R.map((r,i)=>r.map((v,j)=>known(i,j)?v:m));
+  const preds=[X.map(r=>r.slice())],sv=[],te=[rmse(X,'test')];
+  for(let it=0;it<S2.N;it++){
+    const d=svd(X);sv.push(d.S);
+    const L=X.map((_,i)=>X[0].map((_,j)=>{let s=0;for(let t=0;t<k;t++)s+=d.S[t]*d.U[i][t]*d.V[j][t];return s;}));
+    X=R.map((r,i)=>r.map((v,j)=>known(i,j)?v:L[i][j]));preds.push(X.map(r=>r.slice()));te.push(rmse(X,'test'));}
+  sv.push(svd(X).S);S2.res={preds,sv,te,base:rmse(R.map(r=>r.map(()=>m)),'test')};
+}
+function draw2(){
+  const {preds,sv,te,base}=S2.res,it=S2.it;$('l2k').textContent=S2.k;
+  rtable($('tb2'),preds[it]);
+  plot($('cv2a'),0.5,[{d:[base,base],c:C('--base'),dash:[5,4],flat:true},{d:te,c:C('--te'),dot:it}],{N:S2.N,ymax:1.4,ystep:0.2,xt:[0,5,10,15,20],cur:it});
+  {const cv=$('cv2b'),{g,w,h}=setup(cv,0.32),S=sv[it],mx=S[0]||1,bw=(w-20)/S.length;g.clearRect(0,0,w,h);g.font='11px system-ui,sans-serif';
+    S.forEach((s,i)=>{const bh=(h-22)*s/mx;g.fillStyle=i<S2.k?C('--c1'):C('--line');g.fillRect(10+i*bw+6,h-16-bh,bw-12,bh);g.fillStyle=C('--mute');g.fillText(`σ${'₁₂₃₄₅₆'[i]} ${fmt(s,1)}`,10+i*bw+6,h-3);});}
+  $('bar2').style.width=(it/S2.N*100)+'%';
+  const best=Math.min(...te);
+  $('say2').innerHTML=it===0?`<b>第 0 輪</b>：空格先填平均 μ，誤差就是基準線 ${fmt(base,3)}。按「下一輪」開始做 SVD。`
+    :`<b>第 ${it} 輪</b>：空格的誤差 RMSE = <b>${fmt(te[it],3)}</b>（基準線 ${fmt(base,3)}）。${S2.k===2?'k = 2 剛好對應「動作、愛情」兩種口味，空格慢慢被填成合理的值。':S2.k===1?'k = 1 只能表示「整體喜不喜歡看電影」一種口味，分不出動作和愛情，效果有限。':'k 太大時，低秩近似幾乎等於原本的填補矩陣，空格就停在一開始填的平均附近，學不到結構。'}<br>
+     看右下的奇異值：真正有結構的只有前兩個，後面的都很小。這就是「評分表其實是低秩的」，也是推薦系統能成功的原因。`;
+}
+function stop2(){clearInterval(S2.auto);S2.auto=null;$('n2a').textContent='▶ 自動播放';}
+$('n2n').onclick=()=>{stop2();S2.it=Math.min(S2.N,S2.it+1);draw2();};$('n2p').onclick=()=>{stop2();S2.it=Math.max(0,S2.it-1);draw2();};$('n2r').onclick=()=>{stop2();S2.it=0;draw2();};
+$('n2a').onclick=()=>{if(S2.auto){stop2();return;}if(S2.it>=S2.N)S2.it=0;$('n2a').textContent='⏸ 暫停';S2.auto=setInterval(()=>{if(S2.it>=S2.N){stop2();return;}S2.it++;draw2();},500);};
+$('s2k').addEventListener('input',e=>{S2.k=+e.target.value;sim2();draw2();});
+
+/* ============ 第 3 節：Funk SVD ============ */
+const CODE=[['<span class="kw">for</span> epoch <span class="kw">in</span> range(n_epochs):',''],['    <span class="kw">for</span> (i, j, r) <span class="kw">in</span> known_ratings:','<span class="cm">      # 只看已知格</span>'],['        e = r - (mu + U[i] @ V[j])','<span class="cm">           # 預測誤差</span>'],['        U[i] += lr * (e * V[j] - lam * U[i])','<span class="cm">   # 調整使用者口味</span>'],['        V[j] += lr * (e * U[i] - lam * V[j])','<span class="cm">   # 調整電影特性</span>']];
+$('code3').innerHTML=CODE.map(l=>`<div>${l[0]}${l[1]}</div>`).join('');
+const S3={k:2,lr:0.05,lam:0.1,ep:0,U:null,V:null,hist:[],auto:null,MAX:300};
+function init3(){const r=rng(1);S3.U=USERS.map(()=>[...Array(S3.k)].map(()=>0.1*gauss(r)));S3.V=MOVIES.map(()=>[...Array(S3.k)].map(()=>0.1*gauss(r)));S3.ep=0;S3.hist=[];S3.hist.push(stat3());}
+const dot=(a,b)=>a.reduce((s,x,i)=>s+x*b[i],0);
+function pred3(){const m=mu();return USERS.map((_,i)=>MOVIES.map((_,j)=>m+dot(S3.U[i],S3.V[j])));}
+function stat3(){const P=pred3();return {tr:rmse(P,'train'),te:rmse(P,'test')};}
+function epoch3(){const m=mu();for(let i=0;i<6;i++)for(let j=0;j<6;j++){if(!known(i,j))continue;
+  const u=S3.U[i],v=S3.V[j],e=R[i][j]-(m+dot(u,v));
+  for(let t=0;t<S3.k;t++){const ut=u[t];u[t]+=S3.lr*(e*v[t]-S3.lam*u[t]);v[t]+=S3.lr*(e*ut-S3.lam*v[t]);}}
+  S3.ep++;S3.hist.push(stat3());}
+function train3(n){for(let i=0;i<n&&S3.ep<S3.MAX;i++)epoch3();draw3();draw4();}
+function draw3(){
+  $('l3k').textContent=S3.k;$('l3e').textContent=fmt(S3.lr,2);$('l3l').textContent=fmt(S3.lam,2);$('l3ep').textContent=S3.ep;
+  const P=pred3(),base=rmse(R.map(r=>r.map(()=>mu())),'test');
+  rtable($('tb3'),P,{showFit:true});
+  plot($('cv3'),0.62,[{d:[base,base],c:C('--base'),dash:[5,4],flat:true},{d:S3.hist.map(h=>h.tr),c:C('--tr')},{d:S3.hist.map(h=>h.te),c:C('--te')}],{N:S3.MAX,ymax:1.6,ystep:0.4,xt:[0,100,200,300],cur:S3.ep});
+  const h=S3.hist[S3.hist.length-1];let m=`第 ${S3.ep} 輪：已知格誤差 <b style="color:var(--tr)">${fmt(h.tr,3)}</b>、空格誤差 <b style="color:var(--te)">${fmt(h.te,3)}</b>（全猜 μ：${fmt(base,3)}）。已知格右下的小字是模型的擬合值。`;
+  if(S3.ep>=100){
+    if(h.tr<0.05)m+=`<br>⚠ <b>過度擬合</b>：已知格幾乎背得一字不差（${fmt(h.tr,3)}），空格誤差 ${fmt(h.te,3)} 卻沒有跟著變好（k = 2、λ = 0.1 時約 0.52）。參數太多（k = ${S3.k}）又沒有約束（λ = ${fmt(S3.lam,2)}）。試著調大 λ。`;
+    else if(S3.lam>=0.35)m+=`<br>λ 太大：U、V 被壓得太小，模型「不敢」給極端的分數，已知格和空格都猜不準（欠擬合）。`;
+    else if(h.te<base*0.75)m+=`<br>✔ 空格誤差比全猜平均降低了約 ${fmt((1-h.te/base)*100,0)}%：${S3.k===1?'只用 1 個因素也有進步，但它分不清「動作」和「愛情」，試試 k = 2。':'模型從已知評分學到了「動作 vs. 愛情」的口味結構。'}`;}
+  else m+='<br>按「▶ 自動訓練」看兩條誤差曲線怎麼下降。';
+  $('say3').innerHTML=m;
+}
+function stop3(){clearInterval(S3.auto);S3.auto=null;$('t3a').textContent='▶ 自動訓練';}
+$('t3r').onclick=()=>{stop3();init3();draw3();draw4();};$('t3s').onclick=()=>{stop3();train3(10);};
+$('t3a').onclick=()=>{if(S3.auto){stop3();return;}if(S3.ep>=S3.MAX){init3();}$('t3a').textContent='⏸ 暫停';S3.auto=setInterval(()=>{if(S3.ep>=S3.MAX){stop3();return;}train3(5);},40);};
+[['s3k','k',v=>+v],['s3e','lr',v=>+v],['s3l','lam',v=>+v]].forEach(([id,key,f])=>$(id).addEventListener('input',e=>{stop3();S3[key]=f(e.target.value);init3();train3(S3.MAX);}));
+
+/* ============ 第 4 節：潛在因素地圖與推薦 ============ */
+const S4={u:4};
+function draw4(){
+  $('usel').innerHTML=USERS.map((u,i)=>`<button data-u="${i}" class="${i===S4.u?'on':''}">${u}</button>`).join('');
+  document.querySelectorAll('[data-u]').forEach(b=>b.onclick=()=>{S4.u=+b.dataset.u;draw4();});
+  const cv=$('cv4'),{g,w,h}=setup(cv,0.85);g.clearRect(0,0,w,h);
+  if(S3.k!==2){g.fillStyle=C('--mute');g.font='14px "Noto Sans TC",sans-serif';g.textAlign='center';g.fillText('地圖需要 k = 2：請把第 3 節的 k 調成 2',w/2,h/2);g.textAlign='left';$('cap4').textContent='';}
+  else{
+    const pts=[...S3.U,...S3.V],R0=Math.max(1,...pts.map(p=>Math.max(Math.abs(p[0]),Math.abs(p[1]))))*1.25,sc=Math.min(w,h)/2/R0,X=x=>w/2+x*sc,Y=y=>h/2-y*sc;
+    g.strokeStyle=C('--grid');g.lineWidth=1;for(let k=-Math.floor(R0);k<=Math.floor(R0);k++){g.beginPath();g.moveTo(X(k),0);g.lineTo(X(k),h);g.moveTo(0,Y(k));g.lineTo(w,Y(k));g.stroke();}
+    g.strokeStyle=C('--axis');g.beginPath();g.moveTo(0,Y(0));g.lineTo(w,Y(0));g.moveTo(X(0),0);g.lineTo(X(0),h);g.stroke();
+    const u=S3.U[S4.u];g.strokeStyle=C('--c3');g.lineWidth=2.5;g.setLineDash([]);g.beginPath();g.moveTo(X(0),Y(0));g.lineTo(X(u[0]),Y(u[1]));g.stroke();
+    g.font='12px "Noto Sans TC",sans-serif';
+    const boxes=[];
+    const place=(txt,x,y)=>{const tw=g.measureText(txt).width,th=13,offs=[[9,4],[9,-8],[9,17],[-tw-9,4],[-tw-9,-8],[-tw-9,17],[-tw/2,-12],[-tw/2,22]];
+      for(const [dx,dy] of offs){const bx=clamp(x+dx,2,w-tw-2),by=y+dy;const r={x:bx,y:by-th+2,w:tw,h:th};
+        if(!boxes.some(q=>r.x<q.x+q.w&&q.x<r.x+r.w&&r.y<q.y+q.h&&q.y<r.y+r.h)){boxes.push(r);return [bx,by];}}
+      return [clamp(x+9,2,w-tw-2),y+4];};
+    S3.V.forEach((v,j)=>{const s=7;g.fillStyle=MOVIES[j][1]==='act'?'#d6334f':'#c2549a';g.fillRect(X(v[0])-s,Y(v[1])-s,2*s,2*s);boxes.push({x:X(v[0])-s,y:Y(v[1])-s,w:2*s,h:2*s});});
+    S3.U.forEach((p,i)=>{g.fillStyle=i===S4.u?C('--c3'):C('--mute');g.beginPath();g.arc(X(p[0]),Y(p[1]),i===S4.u?8:6,0,7);g.fill();boxes.push({x:X(p[0])-6,y:Y(p[1])-6,w:12,h:12});});
+    S3.V.forEach((v,j)=>{const [lx,ly]=place(MOVIES[j][0],X(v[0]),Y(v[1]));g.fillStyle=C('--ink');g.fillText(MOVIES[j][0],lx,ly);});
+    S3.U.forEach((p,i)=>{const [lx,ly]=place(USERS[i],X(p[0]),Y(p[1]));g.fillStyle=i===S4.u?C('--c3'):C('--mute');g.fillText(USERS[i],lx,ly);});
+    $('cap4').innerHTML=`紫色箭頭：${USERS[S4.u]}的口味向量。和箭頭方向越一致的電影，內積越大，預測分數越高。座標軸的方向是學出來的，可能旋轉或翻轉。`;}
+  const P=pred3(),i=S4.u,cand=MOVIES.map((m,j)=>({j,p:clamp(P[i][j],1,5)})).filter(o=>!known(i,o.j)).sort((a,b)=>b.p-a.p);
+  $('rec4').innerHTML=cand.length?cand.map((o,r)=>`<li><b class="n">${r+1}</b><span>${MOVIES[o.j][0]} <span class="tag2 ${MOVIES[o.j][1]}">${MOVIES[o.j][1]==='act'?'動作':'愛情'}</span></span><span>預測 <b>${fmt(o.p,1)}</b></span><small>真實 ${R[i][o.j]}</small></li>`).join(''):'<li><span></span><span>這位使用者沒有空格可以推薦。</span></li>';
+  const seen=MOVIES.map((m,j)=>known(i,j)?`${m[0]} ${R[i][j]}★`:null).filter(x=>x).join('、');
+  $('say4').innerHTML=`${USERS[i]}已評過：${seen}。${S3.ep<50?'（第 3 節還沒訓練夠，先按「▶ 自動訓練」。）':cand.length?`推薦第一名是「${MOVIES[cand[0].j][0]}」。比較預測和真實分數：排序對了，推薦就成功了。`:''}`;
+}
+
+/* ============ 重新計算 ============ */
+function recomputeAll(){stop2();stop3();draw1();sim2();S2.it=Math.min(S2.it,S2.N);draw2();init3();train3(S3.MAX);}
+$('showAns').addEventListener('change',()=>{draw1();draw2();draw3();});
+$('rstMask').onclick=()=>{ST.H=DEFMASK.map(r=>r.slice());recomputeAll();};
+$('rndMask').onclick=()=>{let ok=false,r=Math.random;while(!ok){const cells=[...Array(36).keys()].sort(()=>r()-0.5).slice(0,12);ST.H=[...Array(6)].map(()=>new Array(6).fill(0));cells.forEach(c=>ST.H[Math.floor(c/6)][c%6]=1);
+  ok=ST.H.every(row=>row.filter(x=>!x).length>=2)&&[0,1,2,3,4,5].every(j=>ST.H.filter(row=>!row[j]).length>=2);}recomputeAll();};
+
+/* ============ 卡通老師：貝爾特拉米 ============ */
+const BEL_SVG=`<svg viewBox="0 0 200 230" aria-label="貝爾特拉米老師動畫">
+ <g class="bodyg">
+  <path d="M14 232 Q20 170 100 160 Q180 170 186 232 Z" fill="#2b2f3a"/>
+  <path d="M80 163 L100 204 L120 163 Z" fill="#f4f1ea"/>
+  <path d="M76 163 L98 206 L86 232 L56 232 Q62 186 76 163 Z" fill="#3a3f4d"/>
+  <path d="M124 163 L102 206 L114 232 L144 232 Q138 186 124 163 Z" fill="#3a3f4d"/>
+  <path d="M100 174 L85 166 L85 182 Z M100 174 L115 166 L115 182 Z" fill="#7a1f2b"/><circle cx="100" cy="174" r="3.6" fill="#5e1621"/>
+  <rect x="84" y="132" width="32" height="34" rx="10" fill="#e3b69a"/>
+  <ellipse cx="66" cy="104" rx="6" ry="10" fill="#e3b69a"/><ellipse cx="134" cy="104" rx="6" ry="10" fill="#e3b69a"/>
+  <ellipse cx="100" cy="100" rx="33" ry="40" fill="#f0c6aa"/>
+  <ellipse class="blush" cx="80" cy="114" rx="7" ry="4.5" fill="#f08080"/>
+  <ellipse class="blush" cx="120" cy="114" rx="7" ry="4.5" fill="#f08080"/>
+  <path d="M64 98 Q57 58 84 50 Q102 44 120 50 Q145 58 136 98 Q133 79 124 71 Q112 63 96 67 Q85 66 76 74 Q67 83 64 98 Z" fill="#3b2a20"/>
+  <path d="M74 72 Q92 54 130 64 Q108 58 90 64 Q80 67 74 72 Z" fill="#5a4030"/>
+  <g class="hairL"><path d="M64 80 Q55 92 59 110 Q63 100 67 95 Z" fill="#3b2a20"/></g>
+  <g class="hairR"><path d="M136 80 Q145 92 141 110 Q137 100 133 95 Z" fill="#3b2a20"/></g>
+  <path d="M66 102 Q63 148 100 164 Q137 148 134 102 Q131 122 121 130 Q111 137 100 137 Q89 137 79 130 Q69 122 66 102 Z" fill="#3b2a20"/>
+  <path d="M74 132 Q80 148 92 156 M126 132 Q120 148 108 156 M100 142 L100 158" stroke="#2a1d16" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path class="brow browL" d="M75 83 Q84 78 93 82" stroke="#2f2119" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+  <path class="brow browR" d="M107 82 Q116 78 125 83" stroke="#2f2119" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+  <g class="eyes"><ellipse cx="85" cy="96" rx="4.6" ry="3.6" fill="#fff"/><ellipse cx="115" cy="96" rx="4.6" ry="3.6" fill="#fff"/>
+   <circle cx="85.5" cy="96.3" r="2.8" fill="#3a2e26"/><circle cx="115.5" cy="96.3" r="2.8" fill="#3a2e26"/>
+   <circle cx="86.6" cy="95.2" r="0.9" fill="#fff"/><circle cx="116.6" cy="95.2" r="0.9" fill="#fff"/></g>
+  <path d="M100 102 Q97 113 100 117 Q104 119 107 116" stroke="#c9967a" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <path d="M83 125 Q91 117 100 121 Q109 117 117 125 Q110 129 100 125.5 Q90 129 83 125 Z" fill="#3b2a20"/>
+  <path class="mo n" d="M92 131 Q100 135 108 130.5" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path class="mo s" d="M89 129 Q100 143 111 129 Q100 133 89 129 Z" fill="#9b3a2c" stroke="#8a4a3a" stroke-width="1.5" stroke-linejoin="round"/>
+  <path class="mo f" d="M91 135 Q100 128 109 135" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path class="sweat" d="M138 72 Q143 82 138 86 Q133 82 138 72 Z" fill="#7cc3f0"/>
+  <text class="spark" x="30" y="44" font-size="18" fill="#f0b400">✦</text>
+  <text class="spark" x="160" y="40" font-size="14" fill="#f0b400">✦</text>
+  <text class="spark" x="170" y="96" font-size="11" fill="#f0b400">✦</text>
+ </g></svg>`;
+function makeAvatar(el,bubble){
+  el.innerHTML=BEL_SVG;let tm=null;
+  function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
+  return {mood(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
+    if(m==='smile'){el.classList.add('smile');restart('hop');}
+    if(m==='frown'){el.classList.add('frown');restart('shake');}
+    if(text!==undefined){bubble.innerHTML=text;bubble.className='bubble'+(m==='smile'?' good':m==='frown'?' bad':'');}
+    if(!hold)tm=setTimeout(()=>{el.classList.remove('smile','frown');bubble.className='bubble';},3200);}};
+}
+var AV1=makeAvatar($('av1'),$('bub1')),AV2=makeAvatar($('av2'),$('bub2'));
+const QUOTES=[
+ '2006 年 10 月，Netflix 舉辦大獎賽：誰能把預測誤差比自家系統 Cinematch 降低 10%，就能拿走 100 萬美元。',
+ '比賽資料約有 1 億筆評分、48 萬名使用者、1 萬 7 千多部電影，但評分表只填滿了大約 1%。',
+ '2006 年 12 月，參賽者 Simon Funk 在部落格公開了「只用已知格做梯度下降」的矩陣分解，大家稱它 Funk SVD，排名立刻衝上前段。',
+ '2009 年，BellKor\'s Pragmatic Chaos 團隊奪冠。第二名 The Ensemble 的成績和他們一樣，但晚了大約 20 分鐘上傳！',
+ '冠軍模型融合了上百個模型，但最核心的想法還是矩陣分解：評分表 ≈ 使用者口味 × 電影特性。',
+ '我在 1873 年寫下 SVD 時，可沒想到 130 多年後，它會被拿來幫大家挑電影！'];
+let qi=0;$('av1').onclick=()=>AV1.mood('smile',QUOTES[qi++%QUOTES.length]);
+
+/* ============ 第 5 節：小測驗 ============ */
+const QZ=[
+ {q:'為什麼不能直接對 Netflix 的評分表做標準 SVD？',o:['評分表大部分是空格，SVD 需要完整的矩陣','評分表不是方陣','評分都是整數','SVD 只能用在成績表'],e:'每位使用者只評過極少數電影，空格要先處理：填補後反覆 SVD，或只用已知格學 U、V。',h:'看第 1 節：表裡有多少格是「?」？'},
+ {q:'在 R ≈ μ + U Vᵀ 中，U 的每一列代表什麼？',o:['一位使用者的口味（例如多喜歡動作、愛情）','一部電影的特性','一筆評分','評分的平均'],e:'U 是「使用者 × 因素」，V 是「電影 × 因素」；預測 = μ + 口味 · 特性。',h:'U 有幾列？和使用者人數有什麼關係？'},
+ {q:'Funk SVD 訓練時，用哪些格子計算誤差？',o:['只用已知評分的格子','所有格子，空格當作 0','只用空格','隨機挑一半格子'],e:'只在已知格上做梯度下降；空格完全不參與訓練，訓練完再用 μ + u·v 預測。',h:'看第 3 節程式碼的第 2 行。'},
+ {q:'第 3 節中，k = 3、λ = 0 時，已知格誤差幾乎是 0，空格誤差卻變大，這叫？',o:['過度擬合','欠擬合','梯度消失','收斂太慢'],e:'模型把已知評分「背」起來，卻沒學到可推廣的結構；加大正則化 λ 可以改善。',h:'訓練誤差和測試誤差一個很小、一個變大，代表什麼？'},
+ {q:'正則化 λ 的作用是？',o:['懲罰太大的 U、V，避免過度擬合','讓學習率變大','增加潛在因素個數','把空格填成平均'],e:'更新式裡的 −λU[i]、−λV[j] 會把參數往 0 拉；λ 太大則會欠擬合。',h:'看程式碼中 lam 出現在哪裡。'},
+ {q:'這張評分表最適合用幾個潛在因素（k）？',o:['2 個，對應「動作」與「愛情」兩種口味','1 個','6 個，越多越好','0 個'],e:'第 2 節的奇異值只有前兩個明顯比較大：評分表本質上是秩 2 的結構。',h:'看第 2 節右下的奇異值長條圖。'},
+ {q:'在潛在因素地圖上，哪部電影最可能得到某位使用者的高分？',o:['方向和這位使用者的口味向量最一致的電影','離原點最遠的電影','名字最長的電影','和使用者距離最遠的電影'],e:'預測 = μ + u·v，內積在兩個向量方向一致時最大。',h:'回想內積的幾何意義。'}];
+const PRAISE=['Perfetto！','正確！','觀念很清楚！','Bravissimo！','推薦成功！'];
+let QS={ans:0,ok:0,streak:0};
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function buildQuiz(){
+  QS={ans:0,ok:0,streak:0};$('score').style.display='none';
+  $('quiz').innerHTML=QZ.map((z,qi)=>`<div class="q"><div><b>${qi+1}.</b> ${z.q}</div><div class="opts">${shuffle(z.o.map((t,k)=>({t,k}))).map(o=>`<button data-q="${qi}" data-k="${o.k}">${o.t}</button>`).join('')}</div><div class="fb" id="fb${qi}"></div></div>`).join('');
+  $('quiz').querySelectorAll('.opts button').forEach(b=>b.onclick=()=>{
+    const qi=+b.dataset.q,k=+b.dataset.k,z=QZ[qi],box=b.parentElement;if(box.dataset.done)return;box.dataset.done=1;
+    box.querySelectorAll('button').forEach(x=>{x.disabled=true;if(+x.dataset.k===0)x.classList.add('right');});
+    QS.ans++;
+    if(k===0){QS.ok++;QS.streak++;$('fb'+qi).innerHTML=`<span class="ok">✔ 正確！</span>${z.e}`;AV2.mood('smile',QS.streak>=3?`連對 ${QS.streak} 題！我推薦你下一部看《SVD 進階篇》！`:PRAISE[Math.floor(Math.random()*PRAISE.length)]);}
+    else{QS.streak=0;b.classList.add('wrong');$('fb'+qi).innerHTML=`<span class="bad">✘ </span>${z.e}`;AV2.mood('frown',z.h);}
+    if(QS.ans===QZ.length){$('scoreTxt').textContent=`得分：${QS.ok} / ${QZ.length}`;$('score').style.display='flex';
+      setTimeout(()=>{const r=QS.ok/QZ.length;
+        if(r===1)AV2.mood('smile','全對！你已經懂推薦系統背後的矩陣分解了！',true);
+        else if(r>=0.7)AV2.mood('smile','很好！錯的題目再回去對應的小節玩一下。',true);
+        else if(r>=0.5)AV2.mood('frown','還可以，建議回到第 2、3 節再看一次。',true);
+        else AV2.mood('frown','別灰心！先從第 1 節的評分表開始看。',true);},3300);}
+  });}
+$('again').onclick=()=>{buildQuiz();AV2.mood('','新的一輪！選項順序換過了喔。');};
+
+/* ============ 啟動 ============ */
+function drawAll(){draw1();draw2();draw3();draw4();}
+draw1();sim2();draw2();init3();train3(S3.MAX);buildQuiz();
+let rt=null;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(drawAll,120);});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',drawAll);
+</script>
+</body>
+</html>

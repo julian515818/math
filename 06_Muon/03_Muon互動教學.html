@@ -1,0 +1,642 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Muon 最佳化器互動教學</title>
+<style>
+:root{
+  --bg:#f7f6f2;--card:#fff;--ink:#1d2330;--mute:#667085;--line:#e3e1da;--ok:#1f9d6b;--bad:#d6334f;
+  --grid:#eceae4;--axis:#9aa0ab;--accent:#2f6fdb;--tint:#eaf1fc;
+  --c1:#2f6fdb;--c2:#e07a1f;--c3:#8b45d6;--warn:#c98a00;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+    --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+    --c1:#6c9dff;--c2:#ffa552;--c3:#b98bff;--warn:#ffd166;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+  --c1:#6c9dff;--c2:#ffa552;--c3:#b98bff;--warn:#ffd166;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.9rem}
+header p{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:18px}
+.card h2{margin:0 0 12px;font-size:1.22rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:.9rem;flex:none}
+h3{margin:0 0 6px;font-size:1.05rem}
+.m{font-family:"Times New Roman","Cambria Math",serif;font-style:italic}
+.def{font-size:1.25rem;text-align:center;padding:14px;border-radius:10px;background:var(--tint);line-height:2.1}
+.note{color:var(--mute);font-size:.92rem}
+.c1{color:var(--c1)}.c2{color:var(--c2)}.c3{color:var(--c3)}.ok{color:var(--ok)}.bad{color:var(--bad)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start}
+.two>*{min-width:0}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.three>div{border:2px solid var(--line);border-radius:12px;padding:10px 14px;min-width:0}
+.three b.t{display:block}
+@media (max-width:860px){.two,.three{grid-template-columns:minmax(0,1fr)}}
+.cvbox{width:100%;min-width:0}
+.cvbox .cap{text-align:center;font-size:.9rem;color:var(--mute);margin-top:4px}
+canvas{width:100%;display:block;border-radius:10px;background:var(--bg);touch-action:none}
+label{font-size:.92rem;color:var(--mute);display:block}
+label b{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 12px}
+button{cursor:pointer}button:hover{border-color:var(--accent)}
+button.pri,button.on{background:var(--accent);color:#fff;border-color:transparent}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:10px 18px;align-items:end;margin-top:12px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(110px,100%),1fr));gap:10px;margin-top:12px}
+.stats>div{padding:8px 12px;border-radius:10px;background:var(--bg)}
+.stats small{display:block;color:var(--mute);font-size:.82rem}
+.stats b{font-size:1.15rem;font-variant-numeric:tabular-nums}
+.say{margin-top:12px;padding:10px 14px;border-left:4px solid var(--ok);background:var(--bg);border-radius:8px}
+.formula{font-size:1.05rem;line-height:2.2;overflow-x:auto;padding:6px 2px;white-space:nowrap}
+.mat{display:inline-grid;gap:0 10px;padding:2px 8px;border-left:2px solid var(--ink);border-right:2px solid var(--ink);border-radius:6px;vertical-align:middle;font-variant-numeric:tabular-nums;text-align:right;font-size:.92rem;line-height:1.55;font-family:system-ui,sans-serif;font-style:normal}
+.stepbar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:10px 0 8px}
+.stepbar div{height:100%;background:var(--accent);transition:width .3s}
+.explain{padding:10px 14px;border-radius:10px;background:var(--tint);min-height:3.4em}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.85rem;color:var(--mute);margin-top:6px}
+.legend i{display:inline-block;width:18px;height:4px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.scroll{overflow-x:auto}
+table.tbl{border-collapse:collapse;font-variant-numeric:tabular-nums;margin:4px 0}
+table.tbl th,table.tbl td{border:1px solid var(--line);padding:4px 8px;text-align:center}
+table.tbl th{background:var(--bg);font-weight:600}
+table.tbl input{width:58px;font:inherit;text-align:center;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:3px 2px}
+.bars .br{display:grid;grid-template-columns:110px minmax(0,1fr) 60px;gap:8px;align-items:center;margin:4px 0;font-size:.92rem}
+.bars .bt{height:16px;border-radius:5px;background:var(--line);overflow:hidden}
+.bars .bt div{height:100%;transition:width .3s}
+.bars .bv{text-align:right;font-variant-numeric:tabular-nums;color:var(--mute)}
+.tag{display:inline-block;padding:0 8px;border-radius:999px;font-size:.82rem;color:#fff;margin-left:4px}
+.imgs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-width:720px;margin-left:auto;margin-right:auto}
+.imgs canvas{image-rendering:pixelated}
+.classic{display:grid;grid-template-columns:minmax(0,1fr) 74px minmax(0,1fr);grid-template-rows:auto 78px auto;align-items:center}
+.cl-pan{min-width:0}
+.cl-pan .ttl{font-size:.88rem;text-align:center;margin-bottom:3px;color:var(--mute);min-height:1.5em}
+.cl-pan .ttl b{color:var(--ink)}
+.arr{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:.8rem;line-height:1.3;color:var(--mute);min-width:0}
+.arr b{font-size:1.05rem}.arr .g{font-size:1.7rem;line-height:1.1}
+.arr.A b,.arr.A .g{color:var(--ink)}.arr.v b,.arr.v .g{color:var(--c1)}.arr.s b,.arr.s .g{color:var(--c2)}.arr.u b,.arr.u .g{color:var(--c3)}
+.clc{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:.9rem;line-height:1.3}
+.clc small{color:var(--mute);font-size:.75rem}
+.p1grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:22px;align-items:start}
+.p1grid>*{min-width:0}
+.mc{border:2px solid var(--line);border-radius:12px;padding:8px 12px;margin-bottom:10px}
+.mc h3{margin:0 0 2px}.mc .formula{line-height:1.9;padding:2px}.mc .note{line-height:1.6}
+@media (max-width:860px){.p1grid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:520px){.classic{grid-template-columns:minmax(0,1fr) 48px minmax(0,1fr);grid-template-rows:auto 92px auto}.arr{font-size:.68rem}.arr .g{font-size:1.3rem}.clc{font-size:.72rem}.cl-pan .ttl{font-size:.74rem}}
+.shapes{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 12px;margin:6px 0 2px}
+.shapes .eq{font-size:1.6rem;font-weight:700}
+.mbox{display:flex;flex-direction:column;align-items:center;gap:4px}
+.mbox small{color:var(--mute);font-size:.8rem;white-space:nowrap}.mbox small b{font-size:1rem}
+.mg{display:grid;gap:2px;padding:3px;border-left:2px solid var(--ink);border-right:2px solid var(--ink);border-radius:5px}
+.mg span{width:36px;height:30px;display:grid;place-items:center;font-size:.82rem;border-radius:4px;background:var(--line)}
+.mg.cU span{background:color-mix(in srgb,var(--c3) 30%,transparent)}.mg.cU span.z{background:color-mix(in srgb,var(--c3) 10%,transparent);color:var(--mute)}
+.mg.cS span{background:var(--bg)}.mg.cS span.d{background:color-mix(in srgb,var(--c2) 35%,transparent);font-weight:700}.mg.cS span.z{background:transparent;outline:1.5px dashed var(--mute);color:var(--mute)}
+.mg.cV span{background:color-mix(in srgb,var(--c1) 28%,transparent)}
+.mn23{display:grid;grid-template-columns:minmax(0,1.7fr) 84px minmax(0,1fr) 66px minmax(0,1fr);align-items:center;margin-top:14px}
+.mn23>*{min-width:0}
+@media (max-width:860px){.mn23{grid-template-columns:minmax(0,1fr) 54px minmax(0,1fr)}.mn23 #ar23a{grid-column:1/-1;flex-direction:row;gap:8px;padding:8px 0}.mn23 .p3d{grid-column:1/-1}}
+@media (max-width:520px){.mg span{width:28px;height:26px;font-size:.72rem}}
+/* quiz */
+.quiz .q{padding:12px 0;border-bottom:1px solid var(--line)}
+.quiz .q:last-child{border:none}
+.opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.opts button.right{background:var(--ok);color:#fff;border-color:transparent}
+.opts button.wrong{background:var(--bad);color:#fff;border-color:transparent}
+.fb{font-size:.92rem;margin-top:6px;min-height:1.2em}
+.score{margin-top:12px;font-size:1.15rem;font-weight:700;display:none;align-items:center;gap:12px;flex-wrap:wrap}
+footer{color:var(--mute);font-size:.85rem;text-align:center;margin-top:30px}
+/* ---------- avatar ---------- */
+.avwrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.av{width:100%;max-width:220px;cursor:pointer;user-select:none}
+.av svg{width:100%;display:block;overflow:visible;background:none}
+.av .bodyg{animation:bob 3.2s ease-in-out infinite;transform-origin:100px 200px}
+.av .eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+.av .hairL{animation:sway 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:top center}
+.av .hairR{animation:sway 3.2s ease-in-out infinite reverse;transform-box:fill-box;transform-origin:top center}
+.av .brow{transition:transform .3s;transform-box:fill-box}
+.av .browL{transform-origin:right center}.av .browR{transform-origin:left center}
+.av .mo{opacity:0;transition:opacity .25s}.av .mo.n{opacity:1}
+.av .blush,.av .sweat,.av .spark{opacity:0;transition:opacity .3s}
+.av.smile .mo.n,.av.frown .mo.n{opacity:0}
+.av.smile .mo.s{opacity:1}.av.frown .mo.f{opacity:1}
+.av.smile .blush{opacity:.55}.av.smile .spark{opacity:1}.av.frown .sweat{opacity:.9}
+.av.smile .brow{transform:translateY(-3px)}
+.av.frown .browL{transform:rotate(14deg) translateY(2px)}.av.frown .browR{transform:rotate(-14deg) translateY(2px)}
+.av.hop svg{animation:hop .7s ease}
+.av.shake svg{animation:shake .55s ease}
+.av .spark{animation:twinkle 1s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}
+@keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+@keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.bubble{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.95rem;margin-bottom:10px;min-height:2.6em;max-width:260px;text-align:center;transition:border-color .3s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--line);border-bottom:0}
+.bubble.good{border-color:var(--ok)}.bubble.good::after{border-top-color:var(--ok)}
+.bubble.bad{border-color:var(--bad)}.bubble.bad::after{border-top-color:var(--bad)}
+.intro{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:center}
+.intro>*,.qgrid>*{min-width:0}
+.intro .avwrap{flex-direction:row;gap:10px}.intro .bubble{flex:1;margin:0}.intro .bubble::after{display:none}.intro .av{width:125px;flex:none}
+.qgrid{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:18px;align-items:start}
+.qgrid .avwrap{position:sticky;top:12px}
+@media (max-width:860px){.intro,.qgrid{grid-template-columns:minmax(0,1fr)}.intro .avwrap{flex-direction:column}.intro .bubble{margin-bottom:10px}.intro .bubble::after{display:block}.intro .av,.qgrid .av{width:auto;max-width:140px}.qgrid .avwrap{position:static;order:-1}}
+table.tbl th{white-space:nowrap}
+@media (max-width:520px){table.tbl input{width:46px}table.tbl th,table.tbl td{padding:4px 5px}.bars .br{grid-template-columns:86px minmax(0,1fr) 50px}.def{font-size:1.1rem}}
+</style>
+<style>
+:root{--sgd:#2f6fdb;--adam:#e07a1f;--muon:#1f9d6b}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--sgd:#6c9dff;--adam:#ffa552;--muon:#4fd19d}}
+:root[data-theme="dark"]{--sgd:#6c9dff;--adam:#ffa552;--muon:#4fd19d}
+.sgd{color:var(--sgd)}.adam{color:var(--adam)}.muon{color:var(--muon)}
+.def2{font-size:1.15rem;text-align:center;padding:14px;border-radius:10px;background:var(--tint);line-height:2}
+.flow3{display:grid;grid-template-columns:minmax(0,1fr) 60px minmax(0,1fr);align-items:center;gap:6px}
+.flow3>*{min-width:0}
+.mid{display:flex;flex-direction:column;align-items:center;text-align:center;font-size:.85rem;color:var(--mute);line-height:1.35}
+.mid .g{font-size:1.8rem;color:var(--muon)}
+.code{background:#1b1f27;color:#e6e9ef;border-radius:10px;padding:10px 0;font-family:"Cascadia Code",Consolas,"Fira Code",monospace;font-size:.86rem;overflow-x:auto;line-height:1.6}
+.code div{padding:0 14px;white-space:pre;border-left:4px solid transparent}
+.code div.hl{background:rgba(255,165,82,.18);border-left-color:#ffa552}
+.code .cm{color:#8b95a7}.code .kw{color:#c792ea}.code .nb{color:#f78c6c}.code .ln{color:#5c6475;display:inline-block;width:1.6em}
+.bars2 .br{display:grid;grid-template-columns:150px minmax(0,1fr) 70px;gap:8px;align-items:center;margin:6px 0;font-size:.92rem}
+.bars2 .bt{height:18px;border-radius:5px;background:var(--line);overflow:hidden}
+.bars2 .bt div{height:100%;transition:width .35s}
+.bars2 .bv{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+table.nst{border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.86rem;margin-top:6px}
+table.nst th,table.nst td{border:1px solid var(--line);padding:3px 8px;text-align:right}
+table.nst th{background:var(--bg);text-align:center}
+table.nst tr.cur td{background:var(--tint);font-weight:700}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:none;border-radius:0}
+@media (max-width:860px){.flow3{grid-template-columns:minmax(0,1fr)}.mid{flex-direction:row;gap:8px;padding:4px 0}.mid .g{transform:rotate(90deg)}}
+@media (max-width:520px){.bars2 .br{grid-template-columns:110px minmax(0,1fr) 56px;font-size:.82rem}}
+</style>
+<style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line,#e3e1da);border-radius:12px;background:var(--card,var(--surface,#fff));color:var(--ink,#1d2330);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+.pu-badge img{width:58px;height:58px;display:block}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute,var(--muted,#667085))}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="pu-hd">
+  <div class="pu-hd-main">
+  <h1>Muon 最佳化器互動教學</h1>
+  <p>工程數學 ・ 互動教學：Muon（MomentUm Orthogonalized by Newton–Schulz）：把動量矩陣「正交化」再更新</p>
+</div>
+  <div class="pu-badge"><img alt="靜宜大學校徽" src="data:image/webp;base64,UklGRp4NAABXRUJQVlA4IJINAABQLwCdASpkAGQAPpE8lkglo6IhNDhMcLASCWwAyJAJkoayxKYH9n30f7b/zF+c96Kf85vvvoAdMnXmnbN5u+ID1f7let9j/tP+rz73zJ7yfiZqBOo+SvoEe233Xv2f770F+uX/O9wD8vvKq8CLyr9afgC/ln9v/5X+C9ff/s/0/n3+kf/X/m/gK/Wz/q+vB7Pv3G9nD9qHFLDlY7viCW1/x/jRblVR/R3XoZS2XKu0cqedDpp3BGWkYNMzYdRkjmQnRE55yD4o50+qWmStkNkZhsI9Zo3VypJ62c71sQoWGxkmmsEAS4b1MFr82ULQBw7NEmQZ6G/Z35mWquOa2a1qiJsBP80y6mZb5zwYcVZyLDNEPnwFy2JgpQKDmz3TMMshOdquwEOcy/oHrRx/yt9zNyo/e/Kzrz7E0gD0/jrvnK+jtphdBC7c+QSA4gHi2wr12ekIUU44ga4VxjSpb4dT6kRhYj3wAX/ryYxW22D6F8xOs08XqIbsehEpS9KQb9ENWqAA/v9dAW0liceKq+YH0mRfu1vrWFByLR89d7VQsjuxClxIRffyOM1vXt+aazxaL7o1EM6cbazY3CksDSQ08EUyLFwACckGP2eRoZ5+Tu6xVk/ODdvdo+RJrIdNvdBSFr0QeDRz/5qinU2EKBkrcrZzcbk68o2ZPWIxSelUtHRpOsAuU4QQWhyPDIi2y+ZPGu6SjMfTgdungbpxguwdcsNK0BYRztV+jfNcVVQ9n6IWjA6aLKEBXneSX/ZQ7+vhJyEwgOQtEN2nM24mXuNs5X716YBv1qdmt9afYpjnoejTOQA2YPaKJJdJCOf8tBRjFF8lmf3JOIphtNfdUNxB4l1WaTQ0p2BaTuuK/cf0YXsSCoyzVHwF8AzF1SSM0mu7I/OFv/0B2yeX+Nai/LWKRxOND2qDVQkNIvrgvJ19vDRReS4R2UfaqQNCw0Td67pinRSLbeaT2MArke3jA31vHxLWFxyukzgT11ipse3hYXtdHDPuJILC3Jf+WyhnzrbECxWlekXGZHvfCq4byZgFC4EF006FVPkTG4mD8wLWCNRw1+amvRzIJpP10lX3IeIBV8tFoguMCTa6jKR67qhrroz6PVV6n4jYQJlEZU9uBMjgxGaBSpgajd0fGKC5DM7BWdoEYxj4cJqaAt0+vAqeW8C4pPZvpSxAupuVT6kjPiY+Glpm+Z2c29VdrPBCrujf4Oua77+elnYJlstt/ZzHe78Ca4+MCu+DgggtLIfzUSmISvQbVg6fU5PhowLwmU4I2OfCzFVzIrPhXZclWluD6cJbSQ5rPUqUCseByBFGIHsxNGxVCngn2q3kRPTzCq/Jrgtlhs9S5bLfeUN7jVYJmfKqQYQvmTwKT6bfyIx50R1fobx40eSAevQWahInd3Bwb9FPB1udcvOnF6KLTgJzPWGR4gExOTRE2XHm4SC55Jt4vo0K44Mk0mayLGynvlwaU2ghoRE8Oal8FDH026NyQFvN8iBVWVZgYceNoxO/WGWY0Gmy3zOck1Ysv/lLK021wwXY14Nm4aTWrEveonV/0h30SUOvc4VfCqlc5MQXaxQlZzOlgks4DqKWDUNlh0dCxJG4ASnAsg4kv5OnSoKJF9kD5lVf9goDmc9mUJ8Pmrohf/iS/Y3yWHkMUijVp2CifVfBohGu3dh1TS8CxfksZi+gYOrEvLAsIQgqmRBPeYLfgtoZgmfoLvYccjHfP7tpWO7zfp/N2ZbiOeVuN7JgLTup04o+LgleesjgSv5ovAV/C2/aMIg+h8ND/i+lHlqxlZZu8e/2zQCgpocgWGzeT1C67SQHW5CoYOQIjnV1sgDM9SP695ubjsaTTK3cYc2xLQryttnjYzliXC4moearYZsYStCrSsf/u1htDfIEQo5n9KFzGY0F0pgid0RBcab+EqWDPLM1jVwgcVAUZ3mWpTA+MnPmN22uov3pLDSQRUkJNxFddPnCcZz8zTtH3mwfYx+BAehlbkKKkpbOmVfJykW1dCLJpuJBRTMOeqWUionyxochrDNlcMYnYYD00SDhaH6FvRX8fg1TWW+SCq1+A2rb8u5CXHcwiMzbZXM/Sf8ajIj2+Bw+UvkXAhZuRArzT56c5KeAsRFRPb3y0jRI3vJKd4LDRtKNPiP6blJM7lqnQ14FugOOMKd0OPYnPC5Zjj+lFDAWJRLYa4345zRrwt6wmcuXIG0p3ZpyaK2AEzzWTDUQwfofDzsgZOue0GW+Kusk4B0jjVPhInfoAk7A2B+tTk9/rrr9b0ycHn4tQfk1GFkWs213SVfK0Pa+yIULFkzVUdkodXT923Qlf3rket2T/fEAPZ2wDrV+0LsG6PwkA2CKdrt3oXOmFQdjH8Ezb/JzDcnvhNIsp6iGQgN4erY0i2NJVSTzWXvnm1VCq2U9eXFRBmEqIxdJ9eqntQT+UeTpy8beiZYqbCLmXhMTZf9aebr/bDz96T2HRvchccO/WwanBicoCSkCGZlm6Iw+Xh/kHyXeIMmuON4WqTyVPbffFmmQ8F6ipQJP1oCNXmwU/8ad9PjLU5yLneujliwL7gREgSsQpVFagPkmh7ud8KAQmsHZMwpKM7KSJiGfS3bhSgwQ1q2GMk8J6v1Ph+j4YJmdeZV3SFZJLb9PHHM5n4/jDmOtDu1l8pFZQhVtW1TihZJHnvYqsNKro+SGABmKjFn1yfuqRcrRJJ/MyfTzDKMQf8nNxPfv7OvJbEJWTBysH1D1pLg/yLstx7lPDottqJnKXNcdMEfSf9QRVrloR6zEGM4GtkCOETrSDLojdVymcGRP6kH9yNdMcucGly1uv2B1GR6iYYuiyMv5JeOm8pZ8M9j+7y+AvDkwM+d5BwLMgFA6xtfCiDD7r/fD/mWRIOOb8EdNtWgxgOYd/ueerPaG+vp8X4uzt12Yxc2nEvVoji2UuicAjqRu0lSGZpsb6H/z/Wgzb4F3YCkw+0DdoJEdO+N8aiOdeeqYjfKQvWRY/vMG4CZDRMvIOLJP8J6X3FtkF/9rO7DS45YszN62iluqndrbOt3dmfB4JLd3Zm/8wRIPsCSTl7X36KcPizCylvV1jX9gZ6DUJICft8LRdjngvbac2b2xHFDXwXmaNcaEQetz4LfvwRviIbs4EKVFx+h2+hy/Et8LimVIVWe0xea5X7GBVaCTxxxikeLT6Rl+YhMKeMyFQCE0M/+6E2j+H5lpb3PI9etwBYbAK5eNjpqzksxqSTTezfrx23r/HbaU2rtC3zpKnM6FdkxCX+XKRtfx8hIqUOD8HxImKS7GNTSA9VzsqSu4PDtJZ4Bj94DBCTHwz20CyZYcw2SaS+uuAcbdia50Zja07Jnw8db16URDljnVYsfvw81dD4Dq+6yY4qg38d4yYGjMNgun1rZJpCz7rnSbRSofo1R/I5jrVqDIY7anl90txbq+4589jJ/puZPjRmKgGhVQjZnM6BtqJ0JO1YAsd4NxqR76VsPck95vhqd05c4jXhgens6sBBAWap4s7x7VdBqEqwvSweJm64eiU92CIosEGzRgj23O+eZjjIkHLY+US0HT7jjAJ1V+RO0VHN+MCbvFfhJQGg1u0Lw4ebRuaqBNlL1Epg0Ih09l4skDcaOdjT6LAHvmoRRphx2GScPwXBM05rWic/Pb06Tztmu0jFypGL1L7SCWUtoBtYtwuNuPx+By5M1AJnBdMqzmDabbnwZuXUHhbZSH7T8xj8j7SI88xd6zBPzAGSu7jefemLava/cMkvVLWfYnXbY7vGFQzYaGhUZ8ZSXWutIK33AY7Swt35FrdIFFfHOrmo7v4gbTpPA/oAFHnenV/r2TV1J/GD8MWaAUNO1cr2ruaE528x7mJcdyR38nu7n+mnkhRfhMTRurzmgqX+Lf4u3cDAXxmi/17ZUyl8FlPTG1+wGR2TGSKroKuC1QbAkBPa3NIymuy2QV9trQSG8wfZ+ilCfwWC53h22me8Kc7EDflDFFBeBlNtQQgXZTCdT6qTGKdNabKfvEMlYbuTBEsOy+j5Mpzr91/JrvFR5jGy0nqwgXlhBeu8KDWHtzhp7GO2WlXQ5/oXM2g0RVeFZEOWT8VonUsIC7JJeXy4LYs9YgYJXItv320So10IiCoQoyHrvrZrgxa3xM/3xENs+VWC4Ct45r4TdadVFPvV1MhvwcBTP8L/Hwt+z0HW82oEUHgxliaFSLCUyMaZk0NYwMQ5jfamJBiduhM86DBlu2ONEqF9NJlIA8Y8/d6utk/69Knq/u+QjxtVKO6gak8QlSwf3Rv7mj9wcZaQ1bwRPbLRuMcN/fbcycATWoKAmJsaVGHKmJWkv0qKuZMORw9WYnLb32vbRxUOCZTfFQ6q4hLdsOoEhqEDatFqaqKNRa4enJuHgrospFv7USi1Cnk76jLFmPch22vTPAlmnwL1oDVysXkFPMrgIS/Fpm+IJgxdL6N8DaNYraZJdek94iUE67yBbhh+Bn22N/T308LxI+f3OhLK2S9eSL+SUB3SY3URkvWtOQdI4ABVJRaC9J1Q6EUMJy+/atlQmZyAjLSvJRmYlnGSrxL53XIZbC92uU/Iw/zOeftQrSkuBpfze+tn7crQlLX6xHIsQBhQX/UFD7WFKsKS0xikAtyrWAAAAAAAA="><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</header>
+
+<!-- 0 -->
+<section class="card">
+  <h2><span class="num">0</span><span>一句話：只保留旋轉，把縮放拿掉</span></h2>
+  <div class="intro">
+    <div>
+      <div class="def2">動量矩陣 <span class="m">B</span> = <span class="c3 m">U</span><span class="c2">Σ</span><span class="c1 m">V</span><sup>T</sup>　⟶　Muon 的更新方向 <b><span class="c3 m">U</span><span class="c1 m">V</span><sup>T</sup></b><br>
+        <span class="m">W</span> ← <span class="m">W</span> − η · <span class="c3 m">U</span><span class="c1 m">V</span><sup>T</sup></div>
+      <div class="three">
+        <div><b class="t muon">① 動量</b>和 SGD 動量一樣：<span class="m">B</span> ← μ<span class="m">B</span> + <span class="m">G</span>，把最近幾步的梯度累積起來。</div>
+        <div><b class="t c2">② 正交化</b>把 <span class="m">B</span> 的奇異值<b>全部變成 1</b>（方向不變），得到 U V<sup>T</sup>。實作上用 Newton–Schulz 迭代，不做 SVD。</div>
+        <div><b class="t c3">③ 更新</b><span class="m">W</span> ← <span class="m">W</span> − η·U V<sup>T</sup>。每個奇異方向都用<b>同樣的步長</b>前進。</div>
+      </div>
+      <p class="note" style="margin:12px 0 0">複習 SVD：矩陣 = 旋轉（V<sup>T</sup>）→ 縮放（Σ）→ 旋轉（U）。Muon 就是「<b>只保留兩次旋轉，把縮放 Σ 換成單位矩陣 I</b>」。只用在隱藏層的 2D 權重矩陣；embedding、輸出層、bias 仍用 AdamW。</p>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub1">Hi！我是 Keller Jordan 老師，Muon 是我設計的。點我聽故事！</div><div class="av" id="av1"></div></div>
+  </div>
+</section>
+
+<!-- 1 -->
+<section class="card">
+  <h2><span class="num">1</span><span>為什麼要正交化？梯度矩陣「一邊倒」</span></h2>
+  <p class="note" style="margin-top:0">左圖：動量矩陣 <span class="m">B</span> 作用在單位圓上，變成又扁又長的橢圓：更新幾乎全部集中在 u₁ 方向。右圖：正交化後的 U V<sup>T</sup> 只會旋轉，圓還是圓：每個方向一樣長。</p>
+  <div class="flow3">
+    <div class="cvbox"><canvas id="cv1a"></canvas><div class="cap">動量 <span class="m">B</span> = UΣV<sup>T</sup>（SGD 動量就沿這個走）</div></div>
+    <div class="mid"><span class="g">➜</span>把 Σ<br>換成 I</div>
+    <div class="cvbox"><canvas id="cv1b"></canvas><div class="cap">Muon：U V<sup>T</sup>（所有 σ = 1）</div></div>
+  </div>
+  <div class="row" style="margin-top:10px"><span class="note">範例：</span><button data-b="0">一邊倒（條件數大）</button><button data-b="1">中等</button><button data-b="2">接近低秩</button><button data-b="3">本來就正交</button></div>
+  <div class="ctl">
+    <label>b₁₁ = <b id="lb11"></b><input type="range" id="b11" min="-2" max="2" step="0.05"></label>
+    <label>b₁₂ = <b id="lb12"></b><input type="range" id="b12" min="-2" max="2" step="0.05"></label>
+    <label>b₂₁ = <b id="lb21"></b><input type="range" id="b21" min="-2" max="2" step="0.05"></label>
+    <label>b₂₂ = <b id="lb22"></b><input type="range" id="b22" min="-2" max="2" step="0.05"></label>
+  </div>
+  <div class="stats">
+    <div><small>B 的 σ₁</small><b class="c1" id="t1">–</b></div>
+    <div><small>B 的 σ₂</small><b class="c2" id="t2">–</b></div>
+    <div><small>條件數 σ₁/σ₂</small><b id="t3">–</b></div>
+    <div><small>UV<sup>T</sup> 的 σ</small><b class="muon" id="t4">1, 1</b></div>
+  </div>
+  <div class="formula" id="fm1"></div>
+  <div class="say" id="say1"></div>
+</section>
+
+<!-- 2 -->
+<section class="card">
+  <h2><span class="num">2</span><span>理論：譜範數下的最速下降</span></h2>
+  <div class="two">
+    <div>
+      <p style="margin-top:0">一般梯度下降是在「歐氏長度 ≤ 1」的限制下，找讓損失下降最多的方向。Muon 換一把尺：<b>限制更新矩陣的譜範數</b>（最大奇異值 ‖Δ‖₂ ≤ 1），也就是「任何輸入向量最多被改變 1 倍」。</p>
+      <div class="def2" style="font-size:1.02rem">max ⟨<span class="m">G</span>, Δ⟩　subject to　‖Δ‖₂ ≤ 1<br>解：Δ = <b class="muon">U V<sup>T</sup></b>，最大值 = σ₁ + σ₂ + …（核範數）</div>
+      <p class="note">原因：⟨G, Δ⟩ = Σ σᵢ uᵢ<sup>T</sup>Δvᵢ，而 ‖Δ‖₂ ≤ 1 時每一項 uᵢ<sup>T</sup>Δvᵢ ≤ 1，取 Δ = UV<sup>T</sup> 時每一項剛好等於 1。</p>
+    </div>
+    <div>
+      <h3>三種方向比一比（都縮放到 ‖Δ‖₂ = 1）</h3>
+      <p class="note" style="margin:0 0 4px">G 使用第 1 節目前的矩陣。數值越大，表示這一步讓損失下降越多（一階近似）。</p>
+      <div class="bars2" id="bars2"></div>
+      <div class="explain" id="ex2" style="margin-top:8px"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="card">
+  <h2><span class="num">3</span><span>Newton–Schulz 迭代：不做 SVD 也能把 σ 推到 1</span></h2>
+  <p class="note" style="margin-top:0">每一步做 SVD 太慢。Muon 先把 <span class="m">X</span> 除以 Frobenius 範數（所有 σ ≤ 1），再重複 5 次 <span class="m">X</span> ← a<span class="m">X</span> + b(<span class="m">XX</span><sup>T</sup>)<span class="m">X</span> + c(<span class="m">XX</span><sup>T</sup>)²<span class="m">X</span>。這個運算<b>只改奇異值、不改 U 和 V</b>：每個 σ 都變成 f(σ) = aσ + bσ³ + cσ⁵。</p>
+  <div class="row"><span class="note">係數：</span><span class="seg"><button id="vq" class="on">五次（Keller）a=3.4445, b=−4.7750, c=2.0315</button><button id="vc">三次（經典）a=1.5, b=−0.5, c=0</button></span></div>
+  <div class="two" style="margin-top:10px">
+    <div class="cvbox"><canvas id="cv3a"></canvas><div class="cap">f(σ) 曲線與蛛網圖（從 σ₀ 出發）</div></div>
+    <div class="cvbox"><canvas id="cv3b"></canvas><div class="cap">6 個不同大小的 σ，每次迭代後的位置</div></div>
+  </div>
+  <div class="row" style="margin-top:8px"><button id="n3r">⟲ 重來</button><button id="n3p">◀ 上一步</button><button id="n3n" class="pri">下一步 ▶</button><button id="n3a">▶ 自動播放</button>
+    <label style="flex:1;min-width:200px">蛛網起點 σ₀ = <b id="l3s"></b><input type="range" id="s3s" min="-3" max="0" step="0.05" value="-1.3"></label></div>
+  <div class="stepbar"><div id="bar3" style="width:0%"></div></div>
+  <div class="scroll"><table class="nst" id="tb3"></table></div>
+  <div class="say" id="say3"></div>
+</section>
+
+<!-- 4 -->
+<section class="card">
+  <h2><span class="num">4</span><span>一步 Muon 的完整流程（逐步動畫）</span></h2>
+  <p class="note" style="margin-top:0">以 2×2 為例：<span class="m">W</span>、上一步的動量 <span class="m">B</span>、這一步的梯度 <span class="m">G</span>，μ = 0.95、η = 0.02。圖中是目前的矩陣作用在單位圓上的樣子。</p>
+  <div class="two">
+    <div>
+      <div class="code" id="code4"></div>
+      <div class="row" style="margin-top:10px"><button id="n4r">⟲ 重來</button><button id="n4p">◀ 上一步</button><button id="n4n" class="pri">下一步 ▶</button><button id="n4a">▶ 自動播放</button></div>
+      <div class="stepbar"><div id="bar4" style="width:0%"></div></div>
+      <div class="explain" id="ex4"></div>
+      <div class="formula" id="fm4"></div>
+    </div>
+    <div class="cvbox"><canvas id="cv4"></canvas><div class="cap" id="cap4"></div></div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="card">
+  <h2><span class="num">5</span><span>玩具實驗：SGD 動量、Adam、Muon 比一比</span></h2>
+  <p class="note" style="margin-top:0">學一個 8×8 的權重矩陣 <span class="m">W</span>（線性迴歸），輸入資料的共變異矩陣條件數很大：有些方向的訊號很強、有些很弱。梯度 <span class="m">G</span> = (<span class="m">W</span> − <span class="m">W</span>*)Σ<sub>x</sub>，弱方向的梯度非常小。三種方法都訓練 300 步，學習率線性遞減到 0。</p>
+  <div class="ctl">
+    <label>輸入的條件數 κ = <b id="l5k"></b><input type="range" id="s5k" min="1" max="4" step="0.5" value="3"></label>
+    <label><span class="sgd">SGD 動量</span>學習率 = <b id="l5a"></b><input type="range" id="s5a" min="-1" max="0.5" step="0.05" value="0"></label>
+    <label><span class="adam">Adam</span>學習率 = <b id="l5b"></b><input type="range" id="s5b" min="-2" max="0" step="0.05" value="-0.5"></label>
+    <label><span class="muon">Muon</span>學習率 = <b id="l5c"></b><input type="range" id="s5c" min="-2" max="-0.3" step="0.05" value="-0.8"></label>
+  </div>
+  <div class="row" style="margin-top:10px"><button id="p5" class="pri">▶ 開始訓練</button><label style="flex:1;min-width:200px">目前步數 t = <b id="l5t"></b><input type="range" id="s5t" min="0" max="300" step="1" value="300"></label></div>
+  <div class="two" style="margin-top:10px">
+    <div class="cvbox"><canvas id="cv5a"></canvas><div class="cap">損失（對數座標）</div></div>
+    <div class="cvbox"><canvas id="cv5b"></canvas><div class="cap">各方向的剩餘誤差（左：訊號強 → 右：訊號弱）</div></div>
+  </div>
+  <div class="legend"><span><i style="background:var(--sgd)"></i>SGD 動量</span><span><i style="background:var(--adam)"></i>Adam</span><span><i style="background:var(--muon)"></i>Muon</span></div>
+  <div class="say" id="say5"></div>
+</section>
+
+<!-- 6 -->
+<section class="card quiz">
+  <h2><span class="num">6</span><span>小測驗</span></h2>
+  <div class="qgrid">
+    <div><div id="quiz"></div>
+      <div class="score" id="score"><span id="scoreTxt"></span><button id="again">再做一次</button></div>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub2">來考考你！答對我會笑，答錯我會皺眉喔。</div><div class="av" id="av2"></div></div>
+  </div>
+</section>
+
+<footer>Muon 最佳化器互動教學 ・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+
+<script>
+/* ============ 共用工具 ============ */
+const $=id=>document.getElementById(id);
+const C=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+function fmt(x,d=2){if(!isFinite(x))return '∞';if(Math.abs(x)<0.5*Math.pow(10,-d))x=0;return x.toFixed(d).replace('-','−');}
+function setup(cv,aspect){cv.style.width='100%';const w=cv.parentElement.clientWidth||300,h=Math.round(w*aspect),d=Math.min(window.devicePixelRatio||1,2);
+  cv.width=Math.round(w*d);cv.height=Math.round(h*d);cv.style.height=h+'px';const g=cv.getContext('2d');g.setTransform(d,0,0,d,0,0);return {g,w,h};}
+function matH(M,d=2){const c=M[0].length;return `<span class="mat" style="grid-template-columns:repeat(${c},auto)">${M.flat().map(x=>`<span>${fmt(x,d)}</span>`).join('')}</span>`;}
+const mm=(A,B)=>A.map(r=>B[0].map((_,j)=>r.reduce((s,a,k)=>s+a*B[k][j],0)));
+const T_=A=>A[0].map((_,j)=>A.map(r=>r[j]));
+const lin=(a,A,b,B)=>A.map((r,i)=>r.map((x,j)=>a*x+b*B[i][j]));
+const fro=A=>Math.sqrt(A.flat().reduce((s,x)=>s+x*x,0));
+const ap=(M,p)=>[M[0][0]*p[0]+M[0][1]*p[1],M[1][0]*p[0]+M[1][1]*p[1]];
+function svd(A){
+  const m=A.length,n=A[0].length,W=A.map(r=>r.slice()),V=[];
+  for(let i=0;i<n;i++){V.push(new Array(n).fill(0));V[i][i]=1;}
+  for(let sw=0;sw<80;sw++){let rot=0;
+    for(let p=0;p<n-1;p++)for(let q=p+1;q<n;q++){
+      let a=0,b=0,c=0;for(let i=0;i<m;i++){const x=W[i][p],y=W[i][q];a+=x*x;b+=y*y;c+=x*y;}
+      if(c===0||Math.abs(c)<=1e-13*Math.sqrt(a*b))continue;rot++;
+      const z=(b-a)/(2*c),t=(z>=0?1:-1)/(Math.abs(z)+Math.sqrt(1+z*z)),cs=1/Math.sqrt(1+t*t),sn=cs*t;
+      for(let i=0;i<m;i++){const x=W[i][p],y=W[i][q];W[i][p]=cs*x-sn*y;W[i][q]=sn*x+cs*y;}
+      for(let i=0;i<n;i++){const x=V[i][p],y=V[i][q];V[i][p]=cs*x-sn*y;V[i][q]=sn*x+cs*y;}}
+    if(!rot)break;}
+  const S=[];for(let j=0;j<n;j++){let s=0;for(let i=0;i<m;i++)s+=W[i][j]**2;S.push(Math.sqrt(s));}
+  const idx=[...Array(n).keys()].sort((x,y)=>S[y]-S[x]),tol=1e-12*Math.max(1e-300,Math.max(...S));
+  const U=[...Array(m)].map(()=>[]),Vs=[...Array(n)].map(()=>[]);
+  idx.forEach((j,k)=>{for(let i=0;i<m;i++)U[i][k]=S[j]>tol?W[i][j]/S[j]:0;for(let i=0;i<n;i++)Vs[i][k]=V[i][j];});
+  return {U,S:idx.map(j=>S[j]<=tol?0:S[j]),V:Vs};
+}
+/* 2×2 SVD（補齊秩不足時的 U）→ UVᵀ */
+function dec2(A){const r=svd(A);let U=[[r.U[0][0],r.U[0][1]],[r.U[1][0],r.U[1][1]]],V=[[r.V[0][0],r.V[0][1]],[r.V[1][0],r.V[1][1]]],S=r.S;
+  if(S[0]===0)U=[[1,0],[0,1]];
+  if(S[1]===0){const d=V[0][0]*V[1][1]-V[0][1]*V[1][0];U[0][1]=-U[1][0]*d;U[1][1]=U[0][0]*d;}
+  if(V[0][0]<0||(Math.abs(V[0][0])<1e-12&&V[1][0]<0)){for(const M of [U,V])for(const row of M)row[0]*=-1;}
+  return {U,V,S,O:mm(U,T_(V))};}
+function world(w,h,R){const sc=Math.min(w,h)/2/R;return {sc,X:x=>w/2+x*sc,Y:y=>h/2-y*sc};}
+function grid(g,w,h,T,R){g.clearRect(0,0,w,h);g.lineWidth=1;g.strokeStyle=C('--grid');
+  for(let k=-Math.ceil(R);k<=Math.ceil(R);k++){g.beginPath();g.moveTo(T.X(k),0);g.lineTo(T.X(k),h);g.moveTo(0,T.Y(k));g.lineTo(w,T.Y(k));g.stroke();}
+  g.strokeStyle=C('--axis');g.beginPath();g.moveTo(0,T.Y(0));g.lineTo(w,T.Y(0));g.moveTo(T.X(0),0);g.lineTo(T.X(0),h);g.stroke();}
+function arrow(g,T,p,q,col,lw,label){const x0=T.X(p[0]),y0=T.Y(p[1]),x1=T.X(q[0]),y1=T.Y(q[1]),L=Math.hypot(x1-x0,y1-y0);
+  g.strokeStyle=col;g.fillStyle=col;g.lineWidth=lw;g.beginPath();g.moveTo(x0,y0);g.lineTo(x1,y1);g.stroke();
+  if(L>4){const a=Math.atan2(y1-y0,x1-x0),hs=Math.min(10,L*.4);g.beginPath();g.moveTo(x1,y1);g.lineTo(x1-hs*Math.cos(a-.4),y1-hs*Math.sin(a-.4));g.lineTo(x1-hs*Math.cos(a+.4),y1-hs*Math.sin(a+.4));g.closePath();g.fill();}
+  if(label){g.font='bold 14px "Noto Sans TC",system-ui,sans-serif';const a=Math.atan2(y1-y0,x1-x0),tw=g.measureText(label).width,cw=g.canvas.clientWidth,ch=g.canvas.clientHeight;
+    g.fillText(label,clamp(x1+10*Math.cos(a)-6,2,cw-tw-2),clamp(y1+10*Math.sin(a)+5,14,ch-3));}}
+const NDOT=16,dotCol=i=>`hsl(${i*360/NDOT},70%,55%)`;
+/* 畫「矩陣 M 作用在單位圓」 */
+function ellipse(cv,M,R,labs,ref,Uo){
+  const {g,w,h}=setup(cv,0.85),T=world(w,h,R);grid(g,w,h,T,R);
+  if(ref){g.strokeStyle=C('--axis');g.setLineDash([4,4]);g.beginPath();g.arc(T.X(0),T.Y(0),T.sc,0,7);g.stroke();g.setLineDash([]);}
+  g.beginPath();for(let k=0;k<=160;k++){const t=k/160*2*Math.PI,p=ap(M,[Math.cos(t),Math.sin(t)]);k?g.lineTo(T.X(p[0]),T.Y(p[1])):g.moveTo(T.X(p[0]),T.Y(p[1]));}
+  g.fillStyle=C('--tint');g.fill();g.strokeStyle=C('--ink');g.lineWidth=2;g.stroke();
+  for(let i=0;i<NDOT;i++){const t=i*2*Math.PI/NDOT,p=ap(M,[Math.cos(t),Math.sin(t)]);g.fillStyle=dotCol(i);g.beginPath();g.arc(T.X(p[0]),T.Y(p[1]),3.5,0,7);g.fill();}
+  const D=dec2(M);let U=D.U,S=D.S;
+  if(Uo){U=Uo.U;const MV=mm(M,Uo.V);S=[0,1].map(j=>U[0][j]*MV[0][j]+U[1][j]*MV[1][j]);}
+  arrow(g,T,[0,0],[S[0]*U[0][0],S[0]*U[1][0]],C('--c1'),3,labs?labs[0]:'');
+  if(Math.abs(S[1])>1e-6)arrow(g,T,[0,0],[S[1]*U[0][1],S[1]*U[1][1]],C('--c2'),3,labs?labs[1]:'');
+}
+
+/* ============ 第 1、2 節 ============ */
+const PREB=[[[1.6,1.1],[0.9,0.7]],[[1.5,0.5],[0.3,1]],[[1.2,0.6],[1.0,0.5]],[[0.8,-0.6],[0.6,0.8]]];
+const S1={B:PREB[0].map(r=>r.slice())};
+function setB(B){S1.B=B.map(r=>r.slice());[['b11',0,0],['b12',0,1],['b21',1,0],['b22',1,1]].forEach(([id,i,j])=>{$(id).value=B[i][j];$('l'+id).textContent=B[i][j];});draw1();}
+[['b11',0,0],['b12',0,1],['b21',1,0],['b22',1,1]].forEach(([id,i,j])=>$(id).addEventListener('input',e=>{S1.B[i][j]=+e.target.value;$('l'+id).textContent=e.target.value;draw1();}));
+document.querySelectorAll('[data-b]').forEach(b=>b.onclick=()=>setB(PREB[+b.dataset.b]));
+function draw1(){
+  const B=S1.B,D=dec2(B),R=Math.max(1.6,D.S[0]*1.2);
+  ellipse($('cv1a'),B,R,['σ₁u₁','σ₂u₂'],true);ellipse($('cv1b'),D.O,R,['u₁','u₂'],true,D);
+  $('t1').textContent=fmt(D.S[0]);$('t2').textContent=fmt(D.S[1]);const k=D.S[1]>1e-9?D.S[0]/D.S[1]:Infinity;$('t3').textContent=fmt(k,1);
+  $('fm1').innerHTML=`<span class="m">B</span> = ${matH(B)} = <span class="c3 m">U</span> ${matH(D.U)} <span class="c2">Σ</span> ${matH([[D.S[0],0],[0,D.S[1]]])} <span class="c1 m">V</span><sup>T</sup> ${matH(T_(D.V))}　⟶　<b class="muon">U V<sup>T</sup></b> = ${matH(D.O)}`;
+  let m;
+  if(!isFinite(k)||k>50)m=`⚠ σ₂ 幾乎是 0：B 幾乎是秩 1。SGD 動量只會沿 u₁ 走；Muon 仍然讓 u₂ 方向走一樣的步長（若 σ₂ 剛好等於 0，正交化無法決定 u₂ 的方向，實際上 Newton–Schulz 會讓它保持 0）。`;
+  else if(k>4)m=`條件數 ${fmt(k,1)}：SGD 動量沿 u₁ 走的距離是沿 u₂ 的 <b>${fmt(k,1)} 倍</b>，u₂ 方向幾乎學不到東西。Muon 把兩個方向都拉成 1：方向（U、V）不變，只是步長平均分配。`;
+  else if(k>1.05)m=`條件數 ${fmt(k,1)}：差距不大，正交化的影響也比較小。`;
+  else m=`B 本來就是正交矩陣（σ₁ = σ₂ = 1）：正交化後完全不變。`;
+  $('say1').innerHTML=m;draw2();
+}
+function draw2(){
+  const G=S1.B,D=dec2(G),dot=(A,B)=>A.flat().reduce((s,x,i)=>s+x*B.flat()[i],0),s2=A=>svd(A).S[0];
+  const sg=G.map(r=>r.map(x=>Math.sign(x)));
+  const cands=[['SGD：G / ‖G‖₂','--sgd',G.map(r=>r.map(x=>x/D.S[0]))],['Adam 類：sign(G)','--adam',(()=>{const n=s2(sg)||1;return sg.map(r=>r.map(x=>x/n));})()],['Muon：U V<sup>T</sup>','--muon',D.O]];
+  const vals=cands.map(c=>dot(G,c[2])),mx=D.S[0]+D.S[1];
+  $('bars2').innerHTML=cands.map((c,i)=>`<div class="br"><span>${c[0]}</span><div class="bt"><div style="width:${(vals[i]/mx*100).toFixed(1)}%;background:${C(c[1])}"></div></div><span class="bv" style="color:${C(c[1])}">${fmt(vals[i])}</span></div>`).join('')+
+    `<div class="note" style="text-align:right">上限 σ₁ + σ₂ = <b>${fmt(mx)}</b></div>`;
+  const r=D.S[1]/D.S[0];
+  $('ex2').innerHTML=`Muon 正好達到上限 ${fmt(mx)}；SGD 方向拿到 (σ₁² + σ₂²)/σ₁ = ${fmt(vals[0])}。<br>差在哪裡？看<b>沿 u₂ 的步長</b>：SGD 只有 σ₂/σ₁ = <b>${fmt(r)}</b>，Muon 是 <b>1</b>。譜範數的預算被 σ₁ 用光了，SGD 在弱方向幾乎沒走；Muon 讓每個奇異方向都走滿 1 倍，多拿到的 ${fmt(mx-vals[0])} 正是弱方向的貢獻。<br>直覺：在「每個方向最多改 1 倍」的預算下，最划算的做法是<b>每個方向都改滿</b>。`;
+}
+
+/* ============ 第 3 節：Newton–Schulz ============ */
+const COEF={q:[3.4445,-4.7750,2.0315],c:[1.5,-0.5,0]},SIG0=[1,0.5,0.2,0.05,0.01,0.002];
+const S3={v:'q',k:0,s0:Math.pow(10,-1.3),auto:null};
+const f3=(s,v)=>{const [a,b,c]=COEF[v];return a*s+b*s**3+c*s**5;};
+function draw3(){
+  const v=S3.v,k=S3.k;
+  {const cv=$('cv3a'),{g,w,h}=setup(cv,0.85),pad=34,X=s=>pad+s/1.3*(w-pad-10),Y=y=>h-pad-y/1.3*(h-pad-10);
+    g.clearRect(0,0,w,h);g.strokeStyle=C('--grid');g.lineWidth=1;
+    for(let t=0;t<=1.3001;t+=0.25){g.beginPath();g.moveTo(X(t),Y(0));g.lineTo(X(t),Y(1.3));g.moveTo(X(0),Y(t));g.lineTo(X(1.3),Y(t));g.stroke();}
+    g.strokeStyle=C('--axis');g.beginPath();g.moveTo(X(0),Y(0));g.lineTo(X(1.3),Y(0));g.moveTo(X(0),Y(0));g.lineTo(X(0),Y(1.3));g.stroke();
+    g.fillStyle=C('--mute');g.font='11px system-ui,sans-serif';[0,0.5,1].forEach(t=>{g.fillText(t,X(t)-4,Y(0)+14);g.fillText(t,X(0)-24,Y(t)+4);});
+    g.fillText('σ',X(1.3)-10,Y(0)-6);g.fillText('f(σ)',X(0)+4,Y(1.3)+12);
+    g.setLineDash([4,4]);g.strokeStyle=C('--mute');g.beginPath();g.moveTo(X(0),Y(0));g.lineTo(X(1.3),Y(1.3));g.stroke();
+    g.strokeStyle=C('--muon');g.beginPath();g.moveTo(X(0),Y(1));g.lineTo(X(1.3),Y(1));g.stroke();g.setLineDash([]);
+    g.fillStyle=C('--muon');g.fillText('目標 σ = 1',X(1.0)+4,Y(1)-6);g.fillStyle=C('--mute');g.fillText('y = σ',X(1.12),Y(1.2));
+    g.strokeStyle=C('--c3');g.lineWidth=2.5;g.beginPath();for(let i=0;i<=200;i++){const s=i/200*1.3,y=f3(s,v);i?g.lineTo(X(s),Y(clamp(y,-0.2,1.3))):g.moveTo(X(s),Y(y));}g.stroke();
+    let s=S3.s0;g.strokeStyle=C('--c2');g.lineWidth=1.5;g.beginPath();g.moveTo(X(s),Y(0));
+    for(let i=0;i<k;i++){const y=f3(s,v);g.lineTo(X(s),Y(y));g.lineTo(X(y),Y(y));s=y;}g.stroke();
+    g.fillStyle=C('--c2');g.beginPath();g.arc(X(s),Y(0),5,0,7);g.fill();
+    g.fillText(`σ${['₀','₁','₂','₃','₄','₅'][k]} = ${fmt(s,3)}`,clamp(X(s)-20,30,w-80),Y(0)-10);}
+  {const cv=$('cv3b'),{g,w,h}=setup(cv,0.85),pl=44,X=s=>pl+s/1.3*(w-pl-12),rowH=(h-30)/6;
+    g.clearRect(0,0,w,h);g.font='11px system-ui,sans-serif';
+    g.setLineDash([4,4]);g.strokeStyle=C('--muon');g.beginPath();g.moveTo(X(1),6);g.lineTo(X(1),h-22);g.stroke();g.setLineDash([]);
+    g.fillStyle=C('--mute');[0,0.5,1].forEach(t=>g.fillText(t,X(t)-4,h-6));
+    let vals=SIG0.slice();
+    for(let r=0;r<=5;r++){const y=12+r*rowH+rowH/2;
+      if(r===k){g.fillStyle=C('--tint');g.fillRect(pl-40,y-rowH/2+2,w-pl+36,rowH-4);}
+      g.strokeStyle=C('--line');g.beginPath();g.moveTo(X(0),y);g.lineTo(X(1.3),y);g.stroke();
+      g.fillStyle=r===k?C('--ink'):C('--mute');g.fillText(`第 ${r} 次`,4,y+4);
+      if(r<=k)vals.forEach((s,i)=>{g.fillStyle=`hsl(${i*55},70%,50%)`;g.beginPath();g.arc(X(clamp(s,0,1.3)),y,r===k?6:4,0,7);g.fill();});
+      vals=vals.map(s=>f3(s,v));}}
+  let rows='<tr><th>迭代</th>'+SIG0.map(s=>`<th>σ = ${s}</th>`).join('')+'</tr>',vals=SIG0.slice();
+  for(let r=0;r<=5;r++){rows+=`<tr class="${r===k?'cur':''}"><td>${r}</td>${vals.map(s=>`<td>${r<=k?fmt(s,3):''}</td>`).join('')}</tr>`;vals=vals.map(s=>f3(s,v));}
+  $('tb3').innerHTML=rows;$('bar3').style.width=(k/5*100)+'%';$('l3s').textContent=fmt(S3.s0,3);
+  const fin=SIG0.map(s=>{for(let i=0;i<5;i++)s=f3(s,v);return s;});
+  $('say3').innerHTML=v==='q'?`<b>五次多項式</b>：小的 σ 每次約放大 a = 3.44 倍，5 次就放大約 480 倍，所以 0.002 也能長到接近 1。代價是不精確收斂：最後都落在約 <b>${fmt(Math.min(...fin))}～${fmt(Math.max(...fin))}</b> 之間。Keller 的經驗是「大約等於 1」就夠了，速度比精確更重要。`
+    :`<b>三次多項式</b>（經典 Newton–Schulz）：σ 最後會精確收斂到 1，但小的 σ 每次只放大 1.5 倍；5 次後 σ = 0.002 只長到 <b>${fmt(fin[5],3)}</b>，正交化還差得遠。`;
+}
+function step3(d){S3.k=clamp(S3.k+d,0,5);draw3();}
+function stop3(){clearInterval(S3.auto);S3.auto=null;$('n3a').textContent='▶ 自動播放';}
+$('n3n').onclick=()=>{stop3();step3(1);};$('n3p').onclick=()=>{stop3();step3(-1);};$('n3r').onclick=()=>{stop3();S3.k=0;draw3();};
+$('n3a').onclick=()=>{if(S3.auto){stop3();return;}if(S3.k>=5)S3.k=0;draw3();$('n3a').textContent='⏸ 暫停';S3.auto=setInterval(()=>{if(S3.k>=5){stop3();return;}step3(1);},1200);};
+$('vq').onclick=()=>{S3.v='q';$('vq').classList.add('on');$('vc').classList.remove('on');draw3();};
+$('vc').onclick=()=>{S3.v='c';$('vc').classList.add('on');$('vq').classList.remove('on');draw3();};
+$('s3s').addEventListener('input',e=>{S3.s0=Math.pow(10,+e.target.value);draw3();});
+
+/* ============ 第 4 節：一步 Muon ============ */
+const E4={W:[[0.5,-0.2],[0.1,0.4]],Bp:[[0.8,0.5],[0.3,0.2]],G:[[1.2,0.9],[0.4,0.35]],mu:0.95,lr:0.02};
+const CODE=[
+ ['<span class="kw">def</span> muon_step(W, G, B, lr=<span class="nb">0.02</span>, mu=<span class="nb">0.95</span>):',''],
+ ['    B.mul_(mu).add_(G)','<span class="cm">            # ① 動量</span>'],
+ ['    X = B / (B.norm() + <span class="nb">1e-7</span>)','<span class="cm">     # ② 正規化：σ ≤ 1</span>'],
+ ['    a, b, c = <span class="nb">3.4445</span>, <span class="nb">-4.7750</span>, <span class="nb">2.0315</span>',''],
+ ['    <span class="kw">for</span> _ <span class="kw">in</span> range(<span class="nb">5</span>):','<span class="cm">            # ③ Newton–Schulz</span>'],
+ ['        A = X @ X.T',''],
+ ['        X = a * X + (b * A + c * A @ A) @ X',''],
+ ['    scale = max(<span class="nb">1</span>, W.size(<span class="nb">0</span>) / W.size(<span class="nb">1</span>)) ** <span class="nb">0.5</span>',''],
+ ['    W.add_(X, alpha=-lr * scale)','<span class="cm">       # ④ 更新</span>']];
+const ST4=(()=>{const st=[];const {W,Bp,G,mu,lr}=E4;
+  st.push({M:G,hl:[0],t:'<b>開始</b>：手上有權重 W、上一步的動量 B、這一步的梯度 G。圖中是 <b>G</b> 作用在單位圓上：已經是又扁又長的橢圓。',name:'G（梯度）'});
+  const B=lin(mu,Bp,1,G);st.push({M:B,hl:[1],t:`<b>① 動量</b>：B ← 0.95·B + G。累積過去的梯度，讓方向更穩定。（Keller 的實作預設再加 Nesterov：用 G + μB 當作下一步的輸入。）`,name:'B（動量）'});
+  let X=B.map(r=>r.map(x=>x/fro(B)));st.push({M:X,hl:[2,3],t:`<b>② 正規化</b>：除以 Frobenius 範數 ‖B‖<sub>F</sub> = ${fmt(fro(B),3)}。因為 ‖B‖<sub>F</sub> = √(σ₁² + σ₂²) ≥ σ₁，所以所有 σ 都 ≤ 1，可以安全進入迭代。`,name:'X₀ = B / ‖B‖_F'});
+  const [a,b,c]=COEF.q;
+  for(let i=1;i<=5;i++){const A=mm(X,T_(X));X=lin(a,X,1,mm(lin(b,A,c,mm(A,A)),X));
+    st.push({M:X,hl:[4,5,6],t:`<b>③ Newton–Schulz 第 ${i} 次</b>：只用矩陣乘法。U、V 不變，每個 σ 都變成 f(σ) = aσ + bσ³ + cσ⁵。${i===1?'小的 σ₂ 被放大了約 3.4 倍。':i===5?'5 次之後兩個 σ 都接近 1：橢圓變成（差不多的）圓，已經近似 U V<sup>T</sup>。':''}`,name:`X${'₁₂₃₄₅'[i-1]}`});}
+  const Wn=lin(1,W,-lr,X);const sx=svd(X).S;st.push({M:X,hl:[7,8],t:`<b>④ 更新</b>：W ← W − η·scale·X（2×2 時 scale = 1）。X₅ 的兩個 σ（${fmt(sx[0],2)}、${fmt(sx[1],2)}）幾乎一樣大，所以 X₅ ≈ ${fmt((sx[0]+sx[1])/2,2)} × U V<sup>T</sup>：方向和真正的 U V<sup>T</sup> = ${matH(dec2(B).O)} 相同，只差一個常數倍（會被學習率吸收）。`,name:'更新方向 X₅ ≈ UVᵀ',Wn});
+  st.DB=dec2(B);return st;})();
+const S4={k:0,auto:null};
+function draw4(){
+  const s=ST4[S4.k],D=dec2(s.M);
+  $('code4').innerHTML=CODE.map((l,i)=>`<div class="${s.hl.includes(i)?'hl':''}"><span class="ln">${i+1}</span>${l[0]}${l[1]}</div>`).join('');
+  $('ex4').innerHTML=s.t;$('bar4').style.width=(S4.k/(ST4.length-1)*100)+'%';
+  let f=`${s.name.replace(/_F/,'<sub>F</sub>')} = ${matH(s.M,3)}　σ = (${fmt(D.S[0],3)}, ${fmt(D.S[1],3)})`;
+  if(s.Wn)f+=`<br>W<sub>新</sub> = ${matH(E4.W)} − 0.02 × X₅ = ${matH(s.Wn,3)}`;
+  $('fm4').innerHTML=f;
+  ellipse($('cv4'),s.M,Math.max(1.6,D.S[0]*1.2),['σ₁u₁','σ₂u₂'],true,S4.k>0?ST4.DB:null);
+  $('cap4').innerHTML=`${s.name.replace(/_F/,'<sub>F</sub>')} 作用在單位圓（虛線）上　σ₁ = ${fmt(D.S[0],3)}、σ₂ = ${fmt(D.S[1],3)}`;
+}
+function stop4(){clearInterval(S4.auto);S4.auto=null;$('n4a').textContent='▶ 自動播放';}
+$('n4n').onclick=()=>{stop4();S4.k=Math.min(ST4.length-1,S4.k+1);draw4();};$('n4p').onclick=()=>{stop4();S4.k=Math.max(0,S4.k-1);draw4();};$('n4r').onclick=()=>{stop4();S4.k=0;draw4();};
+$('n4a').onclick=()=>{if(S4.auto){stop4();return;}if(S4.k>=ST4.length-1)S4.k=0;draw4();$('n4a').textContent='⏸ 暫停';S4.auto=setInterval(()=>{if(S4.k>=ST4.length-1){stop4();return;}S4.k++;draw4();},1300);};
+
+/* ============ 第 5 節：玩具實驗 ============ */
+function rng(seed){let a=seed>>>0;return ()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
+function gauss(r){const u=Math.max(1e-12,r()),v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function NS5(G){let X=G.map(r=>r.map(x=>x/(fro(G)+1e-7)));const [a,b,c]=COEF.q;for(let i=0;i<5;i++){const A=mm(X,T_(X));X=lin(a,X,1,mm(lin(b,A,c,mm(A,A)),X));}return X;}
+const N5=8,T5=300;
+const S5={res:null,t:300,anim:null};
+function sim5(){
+  const r=rng(7),k=Math.pow(10,+$('s5k').value);
+  let M=[...Array(N5)].map(()=>[...Array(N5)].map(()=>gauss(r)));const Q=[];   // Gram–Schmidt
+  for(let j=0;j<N5;j++){let v=M.map(row=>row[j]);for(const q of Q){const d=v.reduce((s,x,i)=>s+x*q[i],0);v=v.map((x,i)=>x-d*q[i]);}const n=Math.hypot(...v);Q.push(v.map(x=>x/n));}
+  const ev=[...Array(N5)].map((_,i)=>Math.pow(k,-i/(N5-1))),Qm=T_(Q);   // columns = directions
+  const Sx=mm(mm(Qm,ev.map((e,i)=>ev.map((_,j)=>i===j?e:0))),T_(Qm));
+  const Ws=[...Array(N5)].map(()=>[...Array(N5)].map(()=>gauss(r))),WsQ=mm(Ws,Qm),den=[...Array(N5)].map((_,j)=>Math.hypot(...WsQ.map(row=>row[j])));
+  const lrs={sgd:Math.pow(10,+$('s5a').value),adam:Math.pow(10,+$('s5b').value),muon:Math.pow(10,+$('s5c').value)},res={};
+  for(const o of ['sgd','adam','muon']){
+    let W=Ws.map(row=>row.map(()=>0)),B=W.map(r=>r.slice()),m=W.map(r=>r.slice()),v=W.map(r=>r.slice());const L=[],dir=[];
+    for(let t=0;t<=T5;t++){const E=lin(1,W,-1,Ws),ES=mm(E,Sx);L.push(0.5*ES.flat().reduce((s,x,i)=>s+x*E.flat()[i],0));
+      const EQ=mm(E,Qm);dir.push([...Array(N5)].map((_,j)=>Math.hypot(...EQ.map(row=>row[j]))/den[j]));
+      if(t===T5)break;const G=ES,eta=lrs[o]*(1-t/T5);
+      if(o==='sgd'){B=lin(0.9,B,1,G);W=lin(1,W,-eta,B);}
+      else if(o==='adam'){m=lin(0.9,m,0.1,G);v=v.map((row,i)=>row.map((x,j)=>0.999*x+0.001*G[i][j]**2));const b1=1-0.9**(t+1),b2=1-0.999**(t+1);
+        W=W.map((row,i)=>row.map((x,j)=>x-eta*(m[i][j]/b1)/(Math.sqrt(v[i][j]/b2)+1e-8)));}
+      else{B=lin(0.95,B,1,G);W=lin(1,W,-eta,NS5(lin(1,G,0.95,B)));}}
+    res[o]={L,dir};}
+  S5.res=res;S5.lrs=lrs;S5.k=k;
+}
+function draw5(){
+  const res=S5.res,t=S5.t,O=[['sgd','--sgd'],['adam','--adam'],['muon','--muon']];
+  $('l5k').textContent=fmt(S5.k,0);$('l5a').textContent=fmt(S5.lrs.sgd,3);$('l5b').textContent=fmt(S5.lrs.adam,3);$('l5c').textContent=fmt(S5.lrs.muon,3);$('l5t').textContent=t;
+  {const cv=$('cv5a'),{g,w,h}=setup(cv,0.75),pl=46,pb=24,lo=-8,hi=2,X=s=>pl+s/T5*(w-pl-10),Y=v=>{const l=Math.log10(Math.max(v,1e-8));return 8+(hi-l)/(hi-lo)*(h-pb-8);};
+    g.clearRect(0,0,w,h);g.font='11px system-ui,sans-serif';
+    for(let e=lo;e<=hi;e+=2){g.strokeStyle=C('--grid');g.beginPath();g.moveTo(pl,Y(10**e));g.lineTo(w-10,Y(10**e));g.stroke();g.fillStyle=C('--mute');g.fillText(`1e${e}`,4,Y(10**e)+4);}
+    [0,100,200,300].forEach(s=>{g.fillStyle=C('--mute');g.fillText(s,X(s)-8,h-6);});
+    O.forEach(([o,c])=>{g.strokeStyle=C(c);g.lineWidth=2.2;g.beginPath();res[o].L.slice(0,t+1).forEach((v,i)=>{i?g.lineTo(X(i),Y(v)):g.moveTo(X(i),Y(v));});g.stroke();});
+    g.strokeStyle=C('--axis');g.setLineDash([3,3]);g.beginPath();g.moveTo(X(t),8);g.lineTo(X(t),h-pb);g.stroke();g.setLineDash([]);}
+  {const cv=$('cv5b'),{g,w,h}=setup(cv,0.75),pl=40,pb=34,gw=(w-pl-8)/N5,Y=v=>8+(1-clamp(v,0,1.1)/1.1)*(h-pb-8);
+    g.clearRect(0,0,w,h);g.font='11px system-ui,sans-serif';
+    [0,0.5,1].forEach(v=>{g.strokeStyle=C('--grid');g.beginPath();g.moveTo(pl,Y(v));g.lineTo(w-8,Y(v));g.stroke();g.fillStyle=C('--mute');g.fillText(v===0?'0':v*100+'%',4,Y(v)+4);});
+    for(let j=0;j<N5;j++){O.forEach(([o,c],q)=>{const v=res[o].dir[t][j];g.fillStyle=C(c);const x=pl+j*gw+gw*0.12+q*gw*0.26;g.fillRect(x,Y(v),gw*0.24,Y(0)-Y(v));});
+      g.fillStyle=C('--mute');g.fillText(`λ${j+1}`,pl+j*gw+gw*0.32,h-18);}
+    g.fillText('訊號強',pl,h-4);g.textAlign='right';g.fillText('訊號弱',w-8,h-4);g.textAlign='left';}
+  const fin=o=>res[o].L[T5],last=o=>res[o].dir[T5][N5-1];
+  $('say5').innerHTML=`第 300 步的損失：<span class="sgd">SGD 動量 ${fin('sgd').toExponential(1)}</span>、<span class="adam">Adam ${fin('adam').toExponential(1)}</span>、<span class="muon">Muon ${fin('muon').toExponential(1)}</span>。最弱方向 λ₈ 剩餘誤差：<span class="sgd">${fmt(last('sgd')*100,1)}%</span>、<span class="adam">${fmt(last('adam')*100,1)}%</span>、<span class="muon">${fmt(last('muon')*100,1)}%</span>。<br>
+    看右圖：SGD 與 Adam 很快學好<b>強方向</b>，但弱方向的梯度太小，幾乎不動；Muon 把每個奇異方向的步長拉平，<b>弱方向也一起學</b>。把 κ 調小（例如 10）再試：條件數不大時，調好學習率的 SGD 一樣很好，正交化的優勢就不明顯了。`;
+}
+function run5(){sim5();S5.t=T5;$('s5t').value=T5;draw5();}
+['s5k','s5a','s5b','s5c'].forEach(id=>$(id).addEventListener('change',run5));
+['s5k','s5a','s5b','s5c'].forEach(id=>$(id).addEventListener('input',()=>{const m={s5k:['l5k',v=>fmt(10**v,0)],s5a:['l5a',v=>fmt(10**v,3)],s5b:['l5b',v=>fmt(10**v,3)],s5c:['l5c',v=>fmt(10**v,3)]}[id];$(m[0]).textContent=m[1](+$(id).value);}));
+$('s5t').addEventListener('input',e=>{cancelAnimationFrame(S5.anim);S5.t=+e.target.value;draw5();});
+$('p5').onclick=()=>{cancelAnimationFrame(S5.anim);const t0=performance.now();(function f(now){S5.t=Math.min(T5,Math.floor((now-t0)/12));$('s5t').value=S5.t;draw5();if(S5.t<T5)S5.anim=requestAnimationFrame(f);})(t0);};
+
+/* ============ 卡通老師：Keller Jordan ============ */
+const KJ_SVG=`<svg viewBox="0 0 200 230" aria-label="Keller Jordan 老師動畫">
+ <g class="bodyg">
+  <path d="M12 232 Q18 172 100 160 Q182 172 188 232 Z" fill="#23262d"/>
+  <path d="M100 172 L100 232" stroke="#8d939c" stroke-width="2.4"/>
+  <path d="M97 186 h6 v8 h-6 z" fill="#b9bec6"/>
+  <path d="M60 196 Q72 206 76 232 M140 196 Q128 206 124 232" stroke="#30343c" stroke-width="2" fill="none"/>
+  <rect x="85" y="130" width="30" height="34" rx="10" fill="#e9bfa5"/>
+  <path d="M86 154 Q100 168 114 154 L114 162 Q100 176 86 162 Z" fill="#5b2231"/>
+  <path d="M76 150 Q80 168 100 174 Q120 168 124 150 L130 156 Q126 176 100 182 Q74 176 70 156 Z" fill="#2c3038"/>
+  <ellipse cx="69" cy="104" rx="6" ry="10" fill="#e9bfa5"/><ellipse cx="131" cy="104" rx="6" ry="10" fill="#e9bfa5"/>
+  <ellipse cx="100" cy="103" rx="31" ry="41" fill="#f3d0bb"/>
+  <ellipse class="blush" cx="81" cy="117" rx="7" ry="4.5" fill="#f08080"/>
+  <ellipse class="blush" cx="119" cy="117" rx="7" ry="4.5" fill="#f08080"/>
+  <path d="M68 100 Q60 62 88 52 Q106 46 123 54 Q141 64 133 100 Q132 88 128 82 Q122 84 116 81 Q108 85 100 82 Q92 86 85 82 Q77 86 72 86 Q69 92 68 100 Z" fill="#7a5a42"/>
+  <path d="M78 68 Q98 56 122 63 Q104 61 92 70 Q86 70 78 68 Z" fill="#96714f"/>
+  <path d="M90 60 Q104 55 116 58" stroke="#5f4532" stroke-width="1.2" fill="none"/>
+  <g class="hairL"><path d="M68 86 Q63 94 66 106 Q69 98 71 92 Z" fill="#7a5a42"/></g>
+  <g class="hairR"><path d="M132 86 Q137 94 134 106 Q131 98 129 92 Z" fill="#7a5a42"/></g>
+  <path class="brow browL" d="M77 90 Q85 86 93 89" stroke="#6a4b35" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path class="brow browR" d="M107 89 Q115 86 123 90" stroke="#6a4b35" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <g class="eyes"><ellipse cx="85" cy="98" rx="4.6" ry="3.4" fill="#fff"/><ellipse cx="115" cy="98" rx="4.6" ry="3.4" fill="#fff"/>
+   <circle cx="85.4" cy="98.3" r="2.7" fill="#3b3a36"/><circle cx="115.4" cy="98.3" r="2.7" fill="#3b3a36"/>
+   <circle cx="86.4" cy="97.3" r="0.9" fill="#fff"/><circle cx="116.4" cy="97.3" r="0.9" fill="#fff"/></g>
+  <path d="M100 104 Q97 116 100 120 Q104 122 107 119" stroke="#cf9d84" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <path class="mo n" d="M90 129 Q100 133 110 129" stroke="#9b5a4a" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path class="mo s" d="M88 127 Q100 141 112 127 Q100 131 88 127 Z" fill="#9b3a2c" stroke="#8a4a3a" stroke-width="1.5" stroke-linejoin="round"/>
+  <path class="mo f" d="M90 134 Q100 126 110 134" stroke="#9b5a4a" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path class="sweat" d="M136 74 Q141 84 136 88 Q131 84 136 74 Z" fill="#7cc3f0"/>
+  <text class="spark" x="30" y="44" font-size="18" fill="#f0b400">✦</text>
+  <text class="spark" x="160" y="40" font-size="14" fill="#f0b400">✦</text>
+  <text class="spark" x="170" y="96" font-size="11" fill="#f0b400">✦</text>
+ </g></svg>`;
+function makeAvatar(el,bubble){
+  el.innerHTML=KJ_SVG;let tm=null;
+  function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
+  return {mood(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
+    if(m==='smile'){el.classList.add('smile');restart('hop');}
+    if(m==='frown'){el.classList.add('frown');restart('shake');}
+    if(text!==undefined){bubble.innerHTML=text;bubble.className='bubble'+(m==='smile'?' good':m==='frown'?' bad':'');}
+    if(!hold)tm=setTimeout(()=>{el.classList.remove('smile','frown');bubble.className='bubble';},3200);}};
+}
+var AV1=makeAvatar($('av1'),$('bub1')),AV2=makeAvatar($('av2'),$('bub2'));
+const QUOTES=[
+ '2024 年 12 月，我在部落格發表〈Muon: An optimizer for hidden layers in neural networks〉，介紹這個專門給隱藏層用的最佳化器。',
+ 'Muon 最早在 NanoGPT 訓練速度競賽（speedrun）裡刷新紀錄：用更短的時間把小型 GPT-2 訓練到同樣的驗證損失。',
+ '我也很喜歡 CIFAR-10 的訓練速度競賽：在一張 GPU 上只要幾秒鐘，就能把模型訓練到 94% 準確率。',
+ '五次多項式的係數 (3.4445, −4.7750, 2.0315) 是調出來的：目標是讓小的 σ 長得越快越好，不必精確等於 1。',
+ 'Jeremy Bernstein 等人從「範數」的角度解釋：Muon 就是在譜範數限制下的最速下降，也和 Shampoo 有密切關係。',
+ '2025 年 Moonshot AI 把 Muon 擴大到大型語言模型，加上 weight decay、調整更新尺度，訓練出 Moonlight 與 Kimi K2。'];
+let qi=0;$('av1').onclick=()=>AV1.mood('smile',QUOTES[qi++%QUOTES.length]);
+
+/* ============ 第 6 節：小測驗 ============ */
+const QZ=[
+ {q:'設動量矩陣 B = UΣVᵀ，Muon 的更新方向是什麼？',o:['U Vᵀ（奇異值全部變成 1）','U Σ² Vᵀ','sign(B)（逐元素取正負號）','Σ（只保留奇異值）'],e:'Muon 保留方向 U、V，把 Σ 換成單位矩陣：只保留旋轉，拿掉縮放。',h:'回想 SVD：旋轉 → 縮放 → 旋轉，Muon 拿掉哪一步？'},
+ {q:'為什麼要把動量矩陣正交化？',o:['梯度矩陣條件數很大，少數方向主導更新；正交化讓每個方向步長相同','為了讓權重矩陣變成正交矩陣','為了減少記憶體','為了讓梯度變成 0'],e:'被正交化的是「更新方向」，不是權重本身；目的是讓弱方向也能學到東西。',h:'看第 1 節：SGD 沿 u₁ 和 u₂ 走的距離差幾倍？'},
+ {q:'在「更新的譜範數 ≤ 1」的限制下，哪個方向讓 ⟨G, Δ⟩ 最大？',o:['U Vᵀ，最大值為 σ₁ + σ₂ + …','G / ‖G‖₂','sign(G)','任何方向都一樣'],e:'⟨G, Δ⟩ = Σσᵢ uᵢᵀΔvᵢ，每一項最多為 1，取 Δ = UVᵀ 剛好全部取滿。',h:'看第 2 節的長條圖：哪一個剛好碰到上限？'},
+ {q:'Muon 為什麼用 Newton–Schulz 迭代，而不直接做 SVD？',o:['只需要矩陣乘法，在 GPU 上快很多','SVD 的結果不正確','Newton–Schulz 可以精確算出 UVᵀ','SVD 只能用在方陣'],e:'SVD 很慢且難平行化；Newton–Schulz 只用矩陣乘法，bf16 也能跑。',h:'Newton–Schulz 每一步只做了哪一種運算？'},
+ {q:'進入 Newton–Schulz 迭代前，為什麼要先除以 Frobenius 範數？',o:['讓所有奇異值 ≤ 1，進入多項式能推向 1 的範圍','讓矩陣變成對稱','讓梯度變大','為了節省記憶體'],e:'‖B‖F = √(Σσᵢ²) ≥ σ₁，所以除完以後所有 σ 都在 (0, 1]。',h:'看第 3 節的 f(σ) 曲線：σ 太大時會怎樣？'},
+ {q:'Keller 的五次多項式迭代 5 次後，奇異值大約在哪裡？',o:['約 0.7～1.2，接近 1 但不精確','精確等於 1','全部變成 0','比原來更分散'],e:'它犧牲精確度，換取「小的 σ 快速長大」：0.002 也能在 5 步內接近 1。',h:'切換第 3 節的五次／三次係數，比較最後一列。'},
+ {q:'Muon 通常用在哪些參數上？',o:['隱藏層的 2D 權重矩陣；embedding、輸出層、bias 用 AdamW','所有參數','只有 bias','只有輸出層'],e:'正交化需要「矩陣」；向量參數與輸入輸出層仍用 AdamW 效果較好。',h:'正交化需要參數是什麼形狀？'},
+ {q:'和 Adam 相比，Muon 每個參數矩陣需要幾份額外的狀態？',o:['1 份（動量）','2 份（m 與 v）','0 份','3 份'],e:'Adam 要存一階動量 m 與二階動量 v；Muon 只存一份動量 B。',h:'Muon 的程式碼裡，除了 W 之外還存了哪個矩陣？'}];
+const PRAISE=['Nice！','正確！','觀念很清楚！','漂亮，正交化完成！','Exactly！'];
+let QS={ans:0,ok:0,streak:0};
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function buildQuiz(){
+  QS={ans:0,ok:0,streak:0};$('score').style.display='none';
+  $('quiz').innerHTML=QZ.map((z,qi)=>`<div class="q"><div><b>${qi+1}.</b> ${z.q}</div><div class="opts">${shuffle(z.o.map((t,k)=>({t,k}))).map(o=>`<button data-q="${qi}" data-k="${o.k}">${o.t}</button>`).join('')}</div><div class="fb" id="fb${qi}"></div></div>`).join('');
+  $('quiz').querySelectorAll('.opts button').forEach(b=>b.onclick=()=>{
+    const qi=+b.dataset.q,k=+b.dataset.k,z=QZ[qi],box=b.parentElement;if(box.dataset.done)return;box.dataset.done=1;
+    box.querySelectorAll('button').forEach(x=>{x.disabled=true;if(+x.dataset.k===0)x.classList.add('right');});
+    QS.ans++;
+    if(k===0){QS.ok++;QS.streak++;$('fb'+qi).innerHTML=`<span class="ok">✔ 正確！</span>${z.e}`;AV2.mood('smile',QS.streak>=3?`連對 ${QS.streak} 題！你的觀念已經被正交化了！`:PRAISE[Math.floor(Math.random()*PRAISE.length)]);}
+    else{QS.streak=0;b.classList.add('wrong');$('fb'+qi).innerHTML=`<span class="bad">✘ </span>${z.e}`;AV2.mood('frown',z.h);}
+    if(QS.ans===QZ.length){$('scoreTxt').textContent=`得分：${QS.ok} / ${QZ.length}`;$('score').style.display='flex';
+      setTimeout(()=>{const r=QS.ok/QZ.length;
+        if(r===1)AV2.mood('smile','全對！動量 → 正交化 → 更新，你已經懂 Muon 了！',true);
+        else if(r>=0.75)AV2.mood('smile','很好！錯的題目再回去對應的小節玩一下。',true);
+        else if(r>=0.5)AV2.mood('frown','還可以，建議回到第 1～3 節再看一次。',true);
+        else AV2.mood('frown','別灰心！先從第 1 節的橢圓變成圓開始看。',true);},3300);}
+  });}
+$('again').onclick=()=>{buildQuiz();AV2.mood('','新的一輪！選項順序換過了喔。');};
+
+/* ============ 啟動 ============ */
+function drawAll(){draw1();draw3();draw4();if(S5.res)draw5();}
+setB(PREB[0]);draw3();draw4();run5();buildQuiz();
+let rt=null;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(drawAll,120);});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',drawAll);
+</script>
+</body>
+</html>

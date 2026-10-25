@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SVD 低秩近似與影像壓縮</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    background: #f5f4ef; color: #1a1a18; margin: 0;
+    padding: 20px 14px 50px; display: flex; justify-content: center;
+  }
+  .wrap { width: 100%; max-width: 660px; }
+  h1 { font-size: 18px; font-weight: 500; margin: 0 0 4px; }
+  p.sub { font-size: 13px; color: #6b6a64; margin: 0 0 14px; line-height: 1.7; }
+  .theory {
+    background: #fff; border: 1px solid #e1e0d9; border-radius: 12px;
+    padding: 14px 16px; margin-bottom: 14px; font-size: 13px; line-height: 1.8; color: #33322e;
+  }
+  .theory .formula {
+    text-align: center; font-size: 15px; margin: 6px 0;
+    font-family: Georgia, "Times New Roman", serif;
+  }
+  .theory .formula b { color: #0c447c; }
+  .section-label { font-size: 12px; color: #6b6a64; margin: 14px 2px 6px; }
+  .fn-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .fn-btn {
+    padding: 7px 12px; font-size: 12.5px; border-radius: 8px;
+    border: 1px solid #c3c2b7; background: #fff; cursor: pointer;
+  }
+  .fn-btn.active { background: #0c447c; color: #fff; border-color: #0c447c; }
+  .ctrl-row { display: flex; align-items: center; gap: 10px; margin: 4px 0 12px; }
+  .ctrl-row label { font-size: 13px; color: #52514e; min-width: 70px; }
+  .ctrl-row input[type=range] { flex: 1; }
+  .ctrl-row .val { font-size: 13px; font-weight: 500; min-width: 46px; text-align: right; font-family: "SF Mono", Consolas, monospace; }
+  .imgs { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 4px; }
+  .img-box { text-align: center; }
+  .img-box .cap { font-size: 12px; color: #52514e; margin-top: 5px; }
+  canvas.view {
+    width: 220px; height: 220px; image-rendering: pixelated;
+    border: 1px solid #d8d7cf; border-radius: 8px; background: #000;
+  }
+  .plot-card { background: #fff; border: 1px solid #e1e0d9; border-radius: 12px; padding: 10px; margin-top: 14px; }
+  svg { display: block; width: 100%; height: auto; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+  .stat-box { background: #fff; border: 1px solid #e1e0d9; border-radius: 10px; padding: 10px 12px; }
+  .stat-label { font-size: 11.5px; color: #6b6a64; margin-bottom: 3px; }
+  .stat-value { font-size: 16px; font-weight: 500; font-family: "SF Mono", Consolas, monospace; }
+  .stat-value.good { color: #1e7e46; } .stat-value.warn { color: #b97708; }
+  .note { font-size: 12px; color: #6b6a64; margin-top: 12px; line-height: 1.7; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>SVD 低秩近似:影像壓縮實驗</h1>
+  <p class="sub">把一張 48×48 灰階圖片看成矩陣 A,做 SVD 後只保留前 r 個奇異值,重建出「秩 r 近似」。拖動滑桿,觀察需要多少個奇異值才能看清楚圖案。</p>
+
+  <div class="theory">
+    <div class="formula">A = <b>Σᵢ₌₁..n</b> σᵢ uᵢ vᵢᵀ &nbsp;≈&nbsp; A<sub>r</sub> = <b>Σᵢ₌₁..r</b> σᵢ uᵢ vᵢᵀ</div>
+    每個 σᵢ uᵢ vᵢᵀ 是一個秩 1 的「成分」,σᵢ 越大貢獻越多。奇異值衰減越快,用越少的成分就能還原原圖——這就是 <b>Eckart–Young 定理</b>:在所有秩 r 矩陣中,A<sub>r</sub> 是誤差最小的近似。
+  </div>
+
+  <div class="section-label">選擇測試圖案</div>
+  <div class="fn-row" id="preset-row"></div>
+
+  <div class="ctrl-row">
+    <label>保留秩 r</label>
+    <input id="rank" type="range" min="1" max="24" step="1" value="5">
+    <span class="val" id="rank-val">5</span>
+  </div>
+
+  <div class="imgs">
+    <div class="img-box"><canvas id="cv-orig" class="view" width="48" height="48"></canvas><div class="cap">原圖(48×48 = 2304 個數值)</div></div>
+    <div class="img-box"><canvas id="cv-approx" class="view" width="48" height="48"></canvas><div class="cap" id="cap-approx">秩 r 近似</div></div>
+  </div>
+
+  <div class="section-label">奇異值分布(長條:σᵢ 大小 / 曲線:累積能量百分比)</div>
+  <div class="plot-card">
+    <svg id="scree" viewBox="0 0 660 160" preserveAspectRatio="xMidYMid meet"></svg>
+  </div>
+
+  <div class="stats">
+    <div class="stat-box"><div class="stat-label">保留能量 Σᵢ≤r σᵢ² / Σσᵢ²</div><div class="stat-value good" id="st-energy">–</div></div>
+    <div class="stat-box"><div class="stat-label">重建誤差(Frobenius 範數)= √(Σᵢ&gt;r σᵢ²)</div><div class="stat-value warn" id="st-err">–</div></div>
+    <div class="stat-box"><div class="stat-label">壓縮後儲存量 r×(m+n+1)</div><div class="stat-value" id="st-store">–</div></div>
+    <div class="stat-box"><div class="stat-label">壓縮率(相對原圖 2304 個數值)</div><div class="stat-value" id="st-ratio">–</div></div>
+  </div>
+
+  <p class="note">
+    觀察重點:① 前幾個奇異值通常就帶走絕大部分「能量」(σᵢ²),所以 r 很小時圖案輪廓已經出現。
+    ② 幾何圖形(低頻、結構簡單)的 σ 衰減快、容易壓縮;細節越多、越雜亂的圖需要越大 r。
+    ③ 同樣的想法用在 m×n 大矩陣上:只要 σ 衰減夠快,r(m+n+1) ≪ mn,就能大幅省空間——這是 PCA、推薦系統、Latent Semantic Analysis 的共同核心。
+  </p>
+</div>
+
+<script>
+const N = 48;
+const NS = "http://www.w3.org/2000/svg";
+
+/* ---------- 產生測試圖案(灰階 0~1) ---------- */
+function drawPreset(name){
+  const c = document.createElement('canvas'); c.width = c.height = N;
+  const g = c.getContext('2d');
+  g.fillStyle = '#000'; g.fillRect(0, 0, N, N);
+  g.strokeStyle = '#fff'; g.fillStyle = '#fff'; g.lineCap = 'round';
+  if (name === 'smile'){
+    g.lineWidth = 3;
+    g.beginPath(); g.arc(24, 24, 18, 0, 2*Math.PI); g.stroke();
+    g.beginPath(); g.arc(17, 19, 2.6, 0, 2*Math.PI); g.fill();
+    g.beginPath(); g.arc(31, 19, 2.6, 0, 2*Math.PI); g.fill();
+    g.lineWidth = 2.6;
+    g.beginPath(); g.arc(24, 26, 10, 0.25*Math.PI, 0.75*Math.PI); g.stroke();
+  } else if (name === 'text'){
+    g.font = 'bold 21px "PingFang TC", "Microsoft JhengHei", sans-serif';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText('工數', 24, 25);
+  } else if (name === 'shapes'){
+    g.fillRect(6, 6, 15, 13);
+    g.lineWidth = 4;
+    g.beginPath(); g.arc(33, 31, 9, 0, 2*Math.PI); g.stroke();
+    g.lineWidth = 3;
+    g.beginPath(); g.moveTo(7, 41); g.lineTo(41, 6); g.stroke();
+    g.beginPath(); g.moveTo(26, 7); g.lineTo(40, 15); g.stroke();
+  } else { // gradient: 平滑漸層 + 圓
+    const grad = g.createLinearGradient(0, 0, 48, 48);
+    grad.addColorStop(0, '#222'); grad.addColorStop(1, '#eee');
+    g.fillStyle = grad; g.fillRect(0, 0, 48, 48);
+    g.fillStyle = '#fff';
+    g.beginPath(); g.arc(16, 18, 8, 0, 2*Math.PI); g.fill();
+    g.fillStyle = '#000';
+    g.beginPath(); g.arc(34, 32, 7, 0, 2*Math.PI); g.fill();
+  }
+  const data = g.getImageData(0, 0, N, N).data;
+  const A = [];
+  for (let i = 0; i < N; i++){
+    A.push(new Float64Array(N));
+    for (let j = 0; j < N; j++) A[i][j] = data[(i*N + j)*4] / 255;
+  }
+  return A;
+}
+
+/* ---------- Jacobi 特徵值分解(對稱矩陣) ---------- */
+function jacobiEigen(Min){
+  const n = Min.length;
+  const A = Min.map(r => Float64Array.from(r));
+  const V = [];
+  for (let i = 0; i < n; i++){ V.push(new Float64Array(n)); V[i][i] = 1; }
+  for (let sweep = 0; sweep < 200; sweep++){
+    let off = 0;
+    for (let p = 0; p < n-1; p++) for (let q = p+1; q < n; q++) off += A[p][q]*A[p][q];
+    if (off < 1e-16) break;
+    for (let p = 0; p < n-1; p++) for (let q = p+1; q < n; q++){
+      const apq = A[p][q];
+      if (Math.abs(apq) < 1e-15) continue;
+      const phi = 0.5 * Math.atan2(2*apq, A[q][q] - A[p][p]);
+      const c = Math.cos(phi), s = Math.sin(phi);
+      for (let k = 0; k < n; k++){ const x=A[k][p], y=A[k][q]; A[k][p]=c*x-s*y; A[k][q]=s*x+c*y; }
+      for (let k = 0; k < n; k++){ const x=A[p][k], y=A[q][k]; A[p][k]=c*x-s*y; A[q][k]=s*x+c*y; }
+      for (let k = 0; k < n; k++){ const x=V[k][p], y=V[k][q]; V[k][p]=c*x-s*y; V[k][q]=s*x+c*y; }
+    }
+  }
+  const d = new Float64Array(n);
+  for (let i = 0; i < n; i++) d[i] = A[i][i];
+  return { d, V };
+}
+
+/* ---------- 計算 SVD(經由 AᵀA 的特徵分解) ---------- */
+function computeSVD(A){
+  // M = AᵀA
+  const M = [];
+  for (let i = 0; i < N; i++){
+    M.push(new Float64Array(N));
+    for (let j = 0; j <= i; j++){
+      let s = 0;
+      for (let k = 0; k < N; k++) s += A[k][i]*A[k][j];
+      M[i][j] = s; M[j][i] = s;
+    }
+  }
+  const { d, V } = jacobiEigen(M);
+  const idx = [...Array(N).keys()].sort((x, y) => d[y] - d[x]);
+  const Vs = [], Us = [];
+  const sigArr = idx.map(i => Math.sqrt(Math.max(0, d[i])));
+  for (let r = 0; r < N; r++){
+    const i = idx[r];
+    const v = new Float64Array(N);
+    for (let k = 0; k < N; k++) v[k] = V[k][i];
+    Vs.push(v);
+    const s = sigArr[r];
+    const u = new Float64Array(N);
+    if (s > 1e-10){
+      for (let k = 0; k < N; k++){
+        let acc = 0;
+        for (let j = 0; j < N; j++) acc += A[k][j]*v[j];
+        u[k] = acc / s;
+      }
+    }
+    Us.push(u);
+  }
+  return { sig: Float64Array.from(sigArr), U: Us, V: Vs };
+}
+
+/* ---------- 顯示 ---------- */
+let curSVD = null, curA = null;
+
+function renderImage(canvas, Mat){
+  const g = canvas.getContext('2d');
+  const img = g.createImageData(N, N);
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++){
+    const v = Math.max(0, Math.min(255, Math.round(Mat[i][j]*255)));
+    const o = (i*N + j)*4;
+    img.data[o] = img.data[o+1] = img.data[o+2] = v; img.data[o+3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+}
+
+function reconstruct(r){
+  const { sig, U, V } = curSVD;
+  const out = [];
+  for (let i = 0; i < N; i++){ out.push(new Float64Array(N)); }
+  for (let k = 0; k < r; k++){
+    const s = sig[k], u = U[k], v = V[k];
+    if (s < 1e-12) continue;
+    for (let i = 0; i < N; i++){
+      const su = s*u[i];
+      for (let j = 0; j < N; j++) out[i][j] += su*v[j];
+    }
+  }
+  return out;
+}
+
+function drawScree(r){
+  const svg = document.getElementById('scree');
+  svg.innerHTML = "";
+  const W = 660, H = 160, PL = 44, PR = 44, PT = 12, PB = 24;
+  const iw = W - PL - PR, ih = H - PT - PB;
+  const { sig } = curSVD;
+  const show = 24;
+  const maxS = sig[0] || 1;
+  let tot = 0; for (let i = 0; i < N; i++) tot += sig[i]*sig[i];
+  let cum = 0; const cumArr = [];
+  for (let i = 0; i < N; i++){ cum += sig[i]*sig[i]; cumArr.push(cum/tot); }
+  const bw = iw/show;
+  for (let i = 0; i < show; i++){
+    const h = (sig[i]/maxS)*ih;
+    const bar = document.createElementNS(NS, 'rect');
+    bar.setAttribute('x', PL + i*bw + 1); bar.setAttribute('y', PT + ih - h);
+    bar.setAttribute('width', bw - 2); bar.setAttribute('height', Math.max(h, 0.5));
+    bar.setAttribute('fill', i < r ? '#378add' : '#d8d7cf');
+    bar.setAttribute('rx', 2);
+    svg.appendChild(bar);
+  }
+  // cumulative energy curve
+  const pts = [];
+  for (let i = 0; i < show; i++) pts.push((PL + (i+0.5)*bw).toFixed(1) + "," + (PT + ih*(1 - cumArr[i])).toFixed(1));
+  const line = document.createElementNS(NS, 'polyline');
+  line.setAttribute('points', pts.join(" "));
+  line.setAttribute('fill', 'none'); line.setAttribute('stroke', '#c0392b'); line.setAttribute('stroke-width', 2);
+  svg.appendChild(line);
+  // r marker
+  const mk = document.createElementNS(NS, 'line');
+  mk.setAttribute('x1', PL + r*bw); mk.setAttribute('x2', PL + r*bw);
+  mk.setAttribute('y1', PT); mk.setAttribute('y2', PT + ih);
+  mk.setAttribute('stroke', '#1e7e46'); mk.setAttribute('stroke-width', 1.6); mk.setAttribute('stroke-dasharray', '4 3');
+  svg.appendChild(mk);
+  // axis labels
+  const mkText = (x, y, txt, anchor, color) => {
+    const t = document.createElementNS(NS, 'text');
+    t.setAttribute('x', x); t.setAttribute('y', y); t.setAttribute('font-size', 11);
+    t.setAttribute('fill', color || '#6b6a64'); t.setAttribute('text-anchor', anchor || 'start');
+    t.textContent = txt; svg.appendChild(t);
+  };
+  mkText(PL - 6, PT + 8, "σᵢ", 'end');
+  mkText(W - PR + 6, PT + 8, "能量", 'start', '#c0392b');
+  mkText(W - PR + 6, PT + 20, "100%", 'start', '#c0392b');
+  mkText(PL, PT + ih + 16, "1");
+  mkText(PL + show*bw, PT + ih + 16, "24", 'end');
+  mkText(PL + r*bw, PT - 1, "r=" + r, 'middle', '#1e7e46');
+}
+
+function update(){
+  const r = parseInt(document.getElementById('rank').value);
+  document.getElementById('rank-val').textContent = r;
+  document.getElementById('cap-approx').textContent = `秩 ${r} 近似(r×(48+48+1) = ${r*(N+N+1)} 個數值)`;
+  renderImage(document.getElementById('cv-approx'), reconstruct(r));
+  drawScree(r);
+  const { sig } = curSVD;
+  let tot = 0, kept = 0;
+  for (let i = 0; i < N; i++){ tot += sig[i]*sig[i]; if (i < r) kept += sig[i]*sig[i]; }
+  document.getElementById('st-energy').textContent = (100*kept/tot).toFixed(1) + " %";
+  document.getElementById('st-err').textContent = Math.sqrt(Math.max(0, tot - kept)).toFixed(2);
+  document.getElementById('st-store').textContent = `${r}×97 = ${r*97} 個數值`;
+  document.getElementById('st-ratio').textContent = (100*r*97/(N*N)).toFixed(0) + " %";
+}
+
+function loadPreset(name, btn){
+  document.querySelectorAll('.fn-btn').forEach(b => b.classList.toggle('active', b === btn));
+  curA = drawPreset(name);
+  renderImage(document.getElementById('cv-orig'), curA);
+  curSVD = computeSVD(curA);
+  update();
+}
+
+const presets = [ ['smile','笑臉'], ['text','文字「工數」'], ['shapes','幾何圖形'], ['gradient','漸層+圓'] ];
+const row = document.getElementById('preset-row');
+presets.forEach(([key, label], i) => {
+  const btn = document.createElement('button');
+  btn.className = 'fn-btn'; btn.textContent = label;
+  btn.onclick = () => loadPreset(key, btn);
+  row.appendChild(btn);
+});
+document.getElementById('rank').addEventListener('input', update);
+loadPreset('smile', row.children[0]);
+</script>
+</body>
+</html>

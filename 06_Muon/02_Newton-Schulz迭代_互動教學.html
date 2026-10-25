@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Newton–Schulz 迭代與 GPU 互動教學</title>
+<style>
+:root{--bg:#f7f6f2;--card:#fff;--ink:#1d2330;--mute:#667085;--line:#e3e1da;--ok:#1f9d6b;--bad:#d6334f;
+  --c3:#2f6fdf;--c5:#e07b1a;--cm:#8a4bd6;--svd:#c2410c;--gpu:#2f6fdf;--soft:#f1efe8;--hl:#fff4e5;--codebg:#1e2230;--grid:#e9e7e0}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --c3:#6ea0ff;--c5:#ffa24d;--cm:#b98cff;--svd:#ff8a5c;--gpu:#6ea0ff;--soft:#232834;--hl:#3a2f1f;--codebg:#11141b;--grid:#2a303c}}
+:root[data-theme="dark"]{--bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --c3:#6ea0ff;--c5:#ffa24d;--cm:#b98cff;--svd:#ff8a5c;--gpu:#6ea0ff;--soft:#232834;--hl:#3a2f1f;--codebg:#11141b;--grid:#2a303c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.75rem;line-height:1.35}
+header .sub{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin:18px 0;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.card h2{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-size:1.3rem;line-height:1.4}
+.num{flex:none;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:var(--ink);color:var(--card);font-size:1rem}
+.mute{color:var(--mute)}
+.small{font-size:.9rem}
+.note{background:var(--soft);border-left:4px solid var(--c5);border-radius:8px;padding:10px 14px;margin:12px 0}
+.key{background:var(--soft);border-radius:12px;padding:12px 16px;margin:10px 0;font-size:1.08rem}
+.chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+.chip{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--card)}
+.chip b{display:block;margin-bottom:2px}
+.grid2{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px;align-items:start}
+.grid2>*{min-width:0}
+canvas{width:100%;display:block;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.ctrl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+button,select{font:inherit;font-size:.95rem;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--mute)}
+select{max-width:100%;min-width:0}
+button.pri{background:var(--ink);color:var(--card);border-color:var(--ink)}
+.sl{display:grid;grid-template-columns:auto minmax(0,1fr) 4.2em;gap:8px;align-items:center;margin:6px 0}
+.sl input{width:100%}
+.sl output{font-variant-numeric:tabular-nums;text-align:right}
+.stat{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
+.stat div{background:var(--soft);border-radius:10px;padding:6px 10px}
+.stat b{font-variant-numeric:tabular-nums}
+.explain{background:var(--hl);border-radius:10px;padding:8px 12px;min-height:3.2em;margin:8px 0}
+.mat{display:inline-grid;grid-template-columns:repeat(2,auto);gap:2px 12px;padding:4px 10px;border-left:2px solid var(--ink);border-right:2px solid var(--ink);border-radius:6px;font-variant-numeric:tabular-nums;vertical-align:middle;font-size:.95rem}
+.formula{font-size:1.06rem;margin:8px 0;overflow-x:auto}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.9rem;margin:6px 0}
+.legend span::before{content:"";display:inline-block;width:14px;height:4px;border-radius:2px;background:currentColor;margin-right:6px;vertical-align:middle}
+.flow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.flow>div{border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}
+.flow h3{margin:0 0 6px;font-size:1.05rem}
+.flow ol{margin:0;padding-left:1.3em}
+.flow li{margin:3px 0}
+.tag{display:inline-block;font-size:.78rem;border-radius:6px;padding:0 6px;margin-left:4px;vertical-align:1px}
+.tag.seq{background:rgba(214,51,79,.13);color:var(--bad)}
+.tag.par{background:rgba(31,157,107,.14);color:var(--ok)}
+.bars{display:grid;grid-template-columns:5.5em minmax(0,1fr) 6.5em;gap:6px 10px;align-items:center;margin:8px 0}
+.bar{height:20px;border-radius:6px;background:var(--soft);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:6px;transition:width .35s}
+.tblwrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:center;white-space:nowrap}
+th{color:var(--mute);font-weight:600}
+.adv{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:10px;margin-top:12px}
+.adv div{border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.adv b{display:block}
+/* 小測驗 */
+.q{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:10px 0}
+.q .qt{font-weight:600;margin-bottom:6px}
+.opt{display:block;width:100%;text-align:left;margin:5px 0;padding:8px 12px;border-radius:10px}
+.opt.right{border-color:var(--ok);background:rgba(31,157,107,.12)}
+.opt.wrong{border-color:var(--bad);background:rgba(214,51,79,.10)}
+.opt:disabled{cursor:default;color:var(--ink)}
+.fb{margin-top:6px;font-size:.93rem}
+.fb.good{color:var(--ok)}.fb.badc{color:var(--bad)}
+.score{font-size:1.15rem;font-weight:700;margin-top:10px}
+footer{text-align:center;color:var(--mute);font-size:.88rem;margin-top:24px}
+/* 卡通老師 */
+.avwrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.avname{font-size:.8rem;color:var(--mute);margin-top:2px;text-align:center;line-height:1.35}
+.av{width:100%;max-width:160px;cursor:pointer;user-select:none;padding:14px 10px 6px}
+.av .cov{position:relative;animation:bob 3.2s ease-in-out infinite}
+.av img{width:100%;display:block;border-radius:6px;border:3px solid var(--line);box-shadow:0 4px 12px rgba(0,0,0,.15);transition:border-color .3s,filter .3s,transform .3s}
+.av.smile img{border-color:var(--ok);transform:rotate(-3deg) scale(1.03)}
+.av.frown img{border-color:var(--bad);filter:saturate(.45)}
+.av .spark,.av .sweat{position:absolute;opacity:0;transition:opacity .3s;pointer-events:none}
+.av .spark{color:#f0b400;animation:twinkle 1s ease-in-out infinite}
+.av .s1{left:-10px;top:-8px;font-size:22px}.av .s2{right:-10px;top:-12px;font-size:16px}.av .s3{right:-14px;top:42%;font-size:13px}
+.av .sweat{right:-8px;top:6px;font-size:20px}
+.av.smile .spark{opacity:1}.av.frown .sweat{opacity:.95}
+.av.hop .cov{animation:hop .7s ease}
+.av.shake .cov{animation:shake .55s ease}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+@keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.bubble{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.95rem;margin-bottom:10px;min-height:2.6em;max-width:260px;text-align:center;transition:border-color .3s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--line);border-bottom:0}
+.bubble.good{border-color:var(--ok)}.bubble.good::after{border-top-color:var(--ok)}
+.bubble.bad{border-color:var(--bad)}.bubble.bad::after{border-top-color:var(--bad)}
+.intro{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:center}
+.intro>*,.qgrid>*{min-width:0}
+.intro .avwrap{flex-direction:row;gap:10px}.intro .bubble{flex:1;margin:0;max-width:none}.intro .bubble::after{display:none}.intro .avcol{display:flex;flex-direction:column;align-items:center;flex:none;width:150px}
+.qgrid{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:18px;align-items:start}
+.qgrid .avwrap{position:sticky;top:12px}
+@media (max-width:860px){
+  .intro,.qgrid,.grid2,.flow{grid-template-columns:minmax(0,1fr)}
+  .chips{grid-template-columns:minmax(0,1fr)}
+  .intro .avwrap{flex-direction:column}.intro .bubble{margin-bottom:10px}.intro .bubble::after{display:block}
+  .intro .avcol{width:auto;max-width:140px}.qgrid .av{max-width:140px}
+  .qgrid .avwrap{position:static;order:-1}
+}
+</style>
+<style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line,#e3e1da);border-radius:12px;background:var(--card,var(--surface,#fff));color:var(--ink,#1d2330);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+.pu-badge img{width:58px;height:58px;display:block}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute,var(--muted,#667085))}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="pu-hd">
+  <div class="pu-hd-main">
+  <h1>Newton–Schulz 迭代：只用矩陣乘法的正交化，為什麼 GPU 這麼愛它</h1>
+  <p class="sub">工程數學 ・ 互動教學：Newton–Schulz 迭代的涵義、優點與 GPU 計算</p>
+</div>
+  <div class="pu-badge"><img alt="靜宜大學校徽" src="data:image/webp;base64,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"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</header>
+
+<!-- 0 -->
+<section class="card">
+  <h2><span class="num">0</span><span>一句話：反覆做矩陣乘法，把矩陣「正交化」</span></h2>
+  <div class="intro">
+    <div>
+      <p>任何矩陣都可以寫成 SVD：<b>G = U Σ Vᵀ</b>（旋轉 → 伸縮 → 旋轉）。把中間的伸縮 Σ 全部換成 1，得到</p>
+      <div class="key">Q = U Vᵀ　（G 的<b>極分解正交因子</b>，polar factor）</div>
+      <p><b>Newton–Schulz 迭代</b>不做 SVD，只用矩陣乘法就能逼近 Q。最經典的三次版本：</p>
+      <div class="key">X₀ = G / ‖G‖<sub>F</sub>，　X<sub>k+1</sub> = 1.5 X<sub>k</sub> − 0.5 X<sub>k</sub> X<sub>k</sub>ᵀ X<sub>k</sub></div>
+      <div class="chips">
+        <div class="chip"><b>涵義</b>只改「伸縮」不改「方向」：把橢圓拉回圓（第 1、2 節）</div>
+        <div class="chip"><b>優點</b>只有矩陣乘法、步數固定、低精度也穩（第 3、5 節）</div>
+        <div class="chip"><b>適合 GPU</b>上千個核心可以同時算，SVD 卻得一步等一步（第 4 節）</div>
+      </div>
+    </div>
+    <div class="avwrap">
+      <div class="bubble" id="bub1">這是 Kovarik 1970 年論文刊登的期刊《SIAM Journal on Numerical Analysis》。這一頁帶你看 Newton–Schulz 迭代在做什麼、為什麼 GPU 特別適合它。點封面聽小故事！</div>
+      <div class="avcol"><div class="av" id="av1"></div><div class="avname">SIAM J. Numer. Anal.<br>Kovarik（1970）</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 1 -->
+<section class="card">
+  <h2><span class="num">1</span><span>幾何涵義：每一步都把橢圓拉得更圓</span></h2>
+  <p>2×2 矩陣 X 會把單位圓變成橢圓：橢圓的<b>軸方向</b>是奇異向量，<b>軸長</b>是奇異值。正交矩陣 Q = UVᵀ 把圓變成同樣大小的圓。按「下一步」，看 Newton–Schulz 迭代怎麼把橢圓變回圓。</p>
+  <div class="grid2">
+    <div><canvas id="cv1" height="420"></canvas>
+      <div class="legend"><span style="color:var(--mute)">單位圓（目標）</span><span style="color:var(--c3)">目前 X<sub>k</sub> 的橢圓</span><span style="color:var(--c5)">橢圓的軸（奇異向量 × 奇異值）</span></div>
+    </div>
+    <div>
+      <div class="small mute">調整矩陣 G 的四個元素：</div>
+      <div class="sl"><span>g₁₁</span><input type="range" id="g11" min="-2" max="2" step="0.1" value="1.2"><output id="o11"></output></div>
+      <div class="sl"><span>g₁₂</span><input type="range" id="g12" min="-2" max="2" step="0.1" value="0.9"><output id="o12"></output></div>
+      <div class="sl"><span>g₂₁</span><input type="range" id="g21" min="-2" max="2" step="0.1" value="0.2"><output id="o21"></output></div>
+      <div class="sl"><span>g₂₂</span><input type="range" id="g22" min="-2" max="2" step="0.1" value="0.5"><output id="o22"></output></div>
+      <div class="ctrl">
+        <select id="m1"><option value="c3">三次 NS</option><option value="c5">五次 NS</option><option value="cm">五次 Muon</option></select>
+        <button id="r1">⟲ 重來</button><button id="p1">◀ 上一步</button><button id="n1" class="pri">下一步 ▶</button><button id="a1">▶ 自動播放</button>
+      </div>
+      <div class="stat">
+        <div>迭代次數 k：<b id="k1">0</b></div>
+        <div>X<sub>k</sub>：<span id="mx1"></span></div>
+        <div>σ₁（長軸）：<b id="s11"></b></div>
+        <div>σ₂（短軸）：<b id="s12"></b></div>
+        <div>正交性誤差 ‖XᵀX − I‖<sub>F</sub>：<b id="e11"></b></div>
+        <div>和 UVᵀ 的距離 ‖X − UVᵀ‖<sub>F</sub>：<b id="e12"></b></div>
+      </div>
+      <div class="explain" id="x1"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="card">
+  <h2><span class="num">2</span><span>代數涵義：只改奇異值，不改奇異向量</span></h2>
+  <p>因為 X<sub>k</sub>X<sub>k</sub>ᵀ = UΣ²Uᵀ，每一步都只是對<b>每個奇異值</b>做同一個純量函數 σ ↦ f(σ)，U 和 V 完全不變。所以只要看奇異值怎麼走，就知道整個矩陣怎麼走。下面是一個 8×8 矩陣的 8 個奇異值（已除以 ‖G‖<sub>F</sub>）。</p>
+  <div class="grid2">
+    <div><canvas id="cv2" height="330"></canvas></div>
+    <div>
+      <canvas id="cv2b" height="260"></canvas>
+      <div class="small mute">右圖：f(σ) 曲線（虛線是 y = σ）。點是目前的 8 個奇異值，每一步都沿著曲線往 1 移動。</div>
+    </div>
+  </div>
+  <div class="sl"><span>條件數 κ</span><input type="range" id="kap2" min="0" max="4" step="0.1" value="2"><output id="ok2"></output></div>
+  <div class="ctrl">
+    <select id="m2"><option value="c3">三次 NS：f(σ) = 1.5σ − 0.5σ³</option><option value="c5">五次 NS：f(σ) = (15σ − 10σ³ + 3σ⁵)/8</option><option value="cm" selected>五次 Muon：f(σ) = 3.4445σ − 4.7750σ³ + 2.0315σ⁵</option></select>
+    <button id="r2">⟲ 重來</button><button id="p2">◀ 上一步</button><button id="n2" class="pri">下一步 ▶</button><button id="a2">▶ 自動播放</button>
+    <span>k = <b id="k2">0</b>　｜　誤差 ‖X − UVᵀ‖<sub>F</sub>/√n = <b id="e2"></b></span>
+  </div>
+  <div class="explain" id="x2"></div>
+</section>
+
+<!-- 3 -->
+<section class="card">
+  <h2><span class="num">3</span><span>優點：算得比 SVD 多，卻跑得比 SVD 快</span></h2>
+  <div class="flow">
+    <div>
+      <h3 style="color:var(--svd)">SVD 求 UVᵀ</h3>
+      <ol>
+        <li>Householder 雙對角化：n 個反射<b>一個接一個</b><span class="tag seq">循序</span></li>
+        <li>QR／分治迭代把雙對角矩陣對角化，<b>迭代到收斂</b>，次數不固定<span class="tag seq">要判斷</span></li>
+        <li>累積出 U、V，再算 UVᵀ</li>
+      </ol>
+      <p class="small mute">運算量約 21n³ + 2n³ 個浮點運算（方陣，Golub &amp; Van Loan 的估計）。</p>
+    </div>
+    <div>
+      <h3 style="color:var(--gpu)">Newton–Schulz（五次，5 回）</h3>
+      <ol>
+        <li>X ← G / ‖G‖<sub>F</sub></li>
+        <li>重複 5 次：A = XXᵀ、B = bA + cA²、X = aX + BX<span class="tag par">全是矩陣乘法</span></li>
+        <li>結束（不用判斷收斂）<span class="tag par">步數固定</span></li>
+      </ol>
+      <p class="small mute">每回 3 次矩陣乘法 ≈ 6n³，5 回 ≈ 30n³ 個浮點運算。</p>
+    </div>
+  </div>
+  <div class="sl" style="margin-top:12px"><span>矩陣大小 n</span><input type="range" id="n3" min="7" max="13" step="1" value="10"><output id="on3"></output></div>
+  <div class="sl"><span>迭代次數</span><input type="range" id="k3" min="1" max="10" step="1" value="5"><output id="ok3"></output></div>
+  <div class="bars">
+    <span>SVD</span><div class="bar"><i id="bs3" style="background:var(--svd)"></i></div><span id="ts3"></span>
+    <span>NS（五次）</span><div class="bar"><i id="bn3" style="background:var(--gpu)"></i></div><span id="tn3"></span>
+  </div>
+  <div class="explain" id="x3"></div>
+  <div class="note"><b>本課程 Colab 實測（T4 GPU，n = 1024）</b>：SVD 約 150 ms；五次 NS 迭代 5 次約 10 ms（快約 15 倍），迭代 3 次快 23～35 倍。<br>
+  換算實際算力：NS 約 30·1024³ ÷ 0.010 s ≈ <b>3.2 TFLOPS</b>，SVD 約 23·1024³ ÷ 0.15 s ≈ <b>0.16 TFLOPS</b>。T4 的 float32 峰值約 8 TFLOPS：<b>NS 用到了 GPU 的四成算力，SVD 只用到 2%</b>。GPU 的瓶頸不是「要算多少」，而是「能不能同時算」。</div>
+</section>
+
+<!-- 4 -->
+<section class="card">
+  <h2><span class="num">4</span><span>為什麼適合 GPU：上千個核心能不能同時有事做？</span></h2>
+  <p>GPU 有上千個小核心（T4 有 2560 個 CUDA 核心、320 個 Tensor Core），要快就得讓它們<b>同時</b>有事做。下面是一個簡化模型，把兩種算法拆成「小任務」，相依的任務必須等前一層做完：</p>
+  <ul class="small">
+    <li><b style="color:var(--gpu)">NS</b>：15 次矩陣乘法，每次拆成 64 個互不相依的區塊 → 共 960 個任務，但只有 <b>15 層</b>相依。</li>
+    <li><b style="color:var(--svd)">SVD</b>：雙對角化 16 層（越做越窄）＋ QR 掃描 40 層（每層只有 6 個任務）＋ 組回 U、V 4 層 → 共 562 個任務（比較少），但有 <b>60 層</b>相依。</li>
+  </ul>
+  <div class="sl"><span>核心數</span><input type="range" id="c4" min="0" max="8" step="1" value="6"><output id="oc4"></output></div>
+  <div class="ctrl"><button id="r4">⟲ 重來</button><button id="a4" class="pri">▶ 播放</button><span class="small mute">每一欄是一個時間步，欄的高度＝這一步有多少比例的核心在工作。</span></div>
+  <canvas id="cv4" height="300"></canvas>
+  <div class="stat" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+    <div><b style="color:var(--gpu)">NS</b>：<span id="t4n"></span></div>
+    <div><b style="color:var(--svd)">SVD</b>：<span id="t4s"></span></div>
+  </div>
+  <div class="grid2">
+    <div><canvas id="cv4b" height="260"></canvas></div>
+    <div class="explain" id="x4" style="margin-top:0"></div>
+  </div>
+  <div class="adv">
+    <div><b>① 全是 GEMM</b>矩陣乘法是 GPU 最佳化得最徹底的運算（cuBLAS、Tensor Core），資料讀一次可以重複用很多次。</div>
+    <div><b>② 步數固定、沒有分支</b>不用判斷「收斂了沒」，GPU 不必停下來等結果，也容易用 torch.compile 合併成少數幾個 kernel。</div>
+    <div><b>③ 低精度也穩</b>每一步都把奇異值往 1 推，前一步的小捨入誤差會被後面的迭代拉回來，所以可以用 bf16／fp16 走 Tensor Core。</div>
+    <div><b>④ 可以批次</b>神經網路裡很多層的矩陣形狀相同，可以疊成一批一次算完，核心更滿。</div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="card">
+  <h2><span class="num">5</span><span>代價：只是近似，要選對迭代次數</span></h2>
+  <p>NS 的誤差先平後陡降：前幾回在把很小的奇異值放大（每回只放大 f′(0) 倍），等所有奇異值都接近 1 才會急速收斂。最小的奇異值越小（條件數 κ 越大），要的回數越多。下圖是 512×512 矩陣（奇異值在 1 到 1/κ 之間等比分布）用精確算術計算的誤差。</p>
+  <div class="sl"><span>條件數 κ</span><input type="range" id="kap5" min="1" max="4" step="0.1" value="2"><output id="ok5"></output></div>
+  <div class="ctrl">正規化：<select id="nm5"><option value="fro">除以 ‖G‖<sub>F</sub>（Muon 的作法）</option><option value="spec">除以 ‖G‖₂ = 最大奇異值（譜範數）</option></select></div>
+  <canvas id="cv5" height="320"></canvas>
+  <div class="legend"><span style="color:var(--c3)">三次 NS</span><span style="color:var(--c5)">五次 NS</span><span style="color:var(--cm)">五次 Muon</span><span style="color:var(--mute)">灰色直線：迭代 5 次</span></div>
+  <div class="tblwrap"><table id="tb5"></table></div>
+  <div class="explain" id="x5"></div>
+</section>
+
+<!-- 6 -->
+<section class="card">
+  <h2><span class="num">6</span><span>小測驗</span></h2>
+  <div class="qgrid">
+    <div id="quiz"></div>
+    <div class="avwrap"><div class="bubble" id="bub2">來考考你！答對封面會跳起來，答錯會搖頭喔。</div><div class="av" id="av2"></div><div class="avname">SIAM J. Numer. Anal.<br>Kovarik（1970）</div></div>
+  </div>
+</section>
+
+<footer>Newton–Schulz 迭代與 GPU 互動教學 ・ 單一 HTML 檔，可離線開啟<br>頭像為 Kovarik 論文刊登期刊《SIAM Journal on Numerical Analysis》的封面（現行版設計，非 1970 年原版）；對話框文字為教學用說明，並非本人發言。</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const COEF={c3:[1.5,-0.5,0],c5:[15/8,-10/8,3/8],cm:[3.4445,-4.7750,2.0315]};
+const NAME={c3:'三次 NS',c5:'五次 NS',cm:'五次 Muon'};
+const fmap=(s,co)=>co[0]*s+co[1]*s**3+co[2]*s**5;
+const fmt=(v,d=3)=>Math.abs(v)<1e-3&&v!==0?v.toExponential(1):v.toFixed(d);
+function setupCanvas(cv){const r=window.devicePixelRatio||1;cv.style.width='';const w=cv.clientWidth,h=+(cv.dataset.h||(cv.dataset.h=cv.getAttribute('height')));  // 記住原始高度，避免高解析度螢幕上越畫越高
+  cv.width=w*r;cv.height=h*r;cv.style.height=h+'px';const c=cv.getContext('2d');c.setTransform(r,0,0,r,0,0);return [c,w,h];}
+const REDRAW=[];
+
+/* ---------- 第 1 節：2×2 幾何 ---------- */
+const m2={mul:(A,B)=>[A[0]*B[0]+A[1]*B[2],A[0]*B[1]+A[1]*B[3],A[2]*B[0]+A[3]*B[2],A[2]*B[1]+A[3]*B[3]],
+  T:A=>[A[0],A[2],A[1],A[3]],add:(A,B,s=1)=>A.map((v,i)=>v+s*B[i]),sc:(A,s)=>A.map(v=>v*s),fro:A=>Math.hypot(...A),
+  inv:A=>{const d=A[0]*A[3]-A[1]*A[2];return [A[3]/d,-A[1]/d,-A[2]/d,A[0]/d];}};
+function svals2(X){const M=m2.mul(m2.T(X),X),tr=M[0]+M[3],det=M[0]*M[3]-M[1]*M[2],q=Math.sqrt(Math.max(tr*tr/4-det,0));
+  return [Math.sqrt(Math.max(tr/2+q,0)),Math.sqrt(Math.max(tr/2-q,0))];}
+function leftvecs(X){ // XXᵀ 的特徵向量（橢圓的軸方向）
+  const M=m2.mul(X,m2.T(X)),a=M[0],b=M[1],d=M[3],th=0.5*Math.atan2(2*b,a-d);
+  return [[Math.cos(th),Math.sin(th)],[-Math.sin(th),Math.cos(th)]];}
+function polar2(G){const M=m2.mul(m2.T(G),G),det=M[0]*M[3]-M[1]*M[2];if(Math.abs(G[0]*G[3]-G[1]*G[2])<1e-9)return null;
+  const s=Math.sqrt(det),t=Math.sqrt(M[0]+M[3]+2*s),R=[(M[0]+s)/t,M[1]/t,M[2]/t,(M[3]+s)/t];return m2.mul(G,m2.inv(R));}
+function nsStep2(X,co){const A=m2.mul(X,m2.T(X)),B=m2.add(m2.sc(A,co[1]),m2.sc(m2.mul(A,A),co[2]));return m2.add(m2.sc(X,co[0]),m2.mul(B,X));}
+let S1={hist:[],Q:null,timer:null};
+function G1(){return ['g11','g12','g21','g22'].map(id=>+$(id).value);}
+function reset1(){const G=G1();['11','12','21','22'].forEach(k=>$('o'+k).textContent=(+$('g'+k).value).toFixed(1));
+  const f=m2.fro(G)||1;S1.hist=[m2.sc(G,1/f)];S1.Q=polar2(G);draw1();}
+function next1(){if(S1.hist.length>40)return;S1.hist.push(nsStep2(S1.hist[S1.hist.length-1],COEF[$('m1').value]));draw1();}
+function prev1(){if(S1.hist.length>1){S1.hist.pop();draw1();}}
+function draw1(){const [c,w,h]=setupCanvas($('cv1'));const X=S1.hist[S1.hist.length-1],k=S1.hist.length-1;
+  const cx=w/2,cy=h/2,R=Math.min(w,h)/2/1.45;const P=(x,y)=>[cx+x*R,cy-y*R];
+  c.strokeStyle=css('--grid');c.lineWidth=1;c.beginPath();for(let i=-1;i<=1;i+=0.5){let a=P(i,-1.4),b=P(i,1.4);c.moveTo(...a);c.lineTo(...b);a=P(-1.4,i);b=P(1.4,i);c.moveTo(...a);c.lineTo(...b);}c.stroke();
+  c.setLineDash([5,5]);c.strokeStyle=css('--mute');c.lineWidth=1.6;c.beginPath();c.arc(cx,cy,R,0,2*Math.PI);c.stroke();c.setLineDash([]);
+  const ell=(Y,col,lw,al)=>{c.globalAlpha=al;c.strokeStyle=col;c.lineWidth=lw;c.beginPath();for(let t=0;t<=64;t++){const th=t/64*2*Math.PI,x=Y[0]*Math.cos(th)+Y[1]*Math.sin(th),y=Y[2]*Math.cos(th)+Y[3]*Math.sin(th);const p=P(x,y);t?c.lineTo(...p):c.moveTo(...p);}c.stroke();c.globalAlpha=1;};
+  S1.hist.slice(0,-1).forEach((Y,i)=>ell(Y,css('--c3'),1.2,0.18+0.3*i/Math.max(1,S1.hist.length)));
+  ell(X,css('--c3'),3,1);
+  const s=svals2(X),U=leftvecs(X);const Mx=m2.mul(X,m2.T(X));
+  // 依特徵值對應長短軸
+  const lam=v=>v[0]*(Mx[0]*v[0]+Mx[1]*v[1])+v[1]*(Mx[2]*v[0]+Mx[3]*v[1]);
+  let ax=U.map(v=>[v,Math.sqrt(Math.max(lam(v),0))]);
+  c.strokeStyle=css('--c5');c.lineWidth=2.4;ax.forEach(([v,l])=>{const a=P(-v[0]*l,-v[1]*l),b=P(v[0]*l,v[1]*l);c.beginPath();c.moveTo(...a);c.lineTo(...b);c.stroke();});
+  // 方向參考線（奇異向量不變）
+  const U0=leftvecs(S1.hist[0]);c.setLineDash([2,6]);c.strokeStyle=css('--c5');c.lineWidth=1;U0.forEach(v=>{const a=P(-v[0]*1.4,-v[1]*1.4),b=P(v[0]*1.4,v[1]*1.4);c.beginPath();c.moveTo(...a);c.lineTo(...b);c.stroke();});c.setLineDash([]);
+  $('k1').textContent=k;$('mx1').innerHTML='<span class="mat">'+X.map(v=>'<span>'+v.toFixed(3)+'</span>').join('')+'</span>';
+  $('s11').textContent=s[0].toFixed(4);$('s12').textContent=s[1].toFixed(4);
+  const E=m2.add(m2.mul(m2.T(X),X),[1,0,0,1],-1);$('e11').textContent=fmt(m2.fro(E),4);
+  $('e12').textContent=S1.Q?fmt(m2.fro(m2.add(X,S1.Q,-1)),4):'—（G 不可逆）';
+  let msg;
+  if(!S1.Q) msg='G 不可逆（det = 0）時有一個奇異值是 0，f(0) = 0，它永遠長不大；UVᵀ 也不唯一。把滑桿調離這個狀態試試。';
+  else if(k===0) msg=`先除以 ‖G‖<sub>F</sub>，讓兩個奇異值都 ≤ 1：σ₁ = ${s[0].toFixed(3)}、σ₂ = ${s[1].toFixed(3)}。橢圓整個縮在單位圓裡面。`;
+  else{const done=m2.fro(E)<1e-3;msg=`第 ${k} 步（${NAME[$('m1').value]}）：σ₁ = ${s[0].toFixed(3)}、σ₂ = ${s[1].toFixed(3)}。注意橘色<b>軸的方向完全沒變</b>（和點線重合），只有軸長在變 —— 這就是「只改伸縮、不改方向」。`+(done?' 橢圓已經變成單位圓：X<sub>k</sub> ≈ UVᵀ！':'');
+    if($('m1').value==='cm'&&k>=3) msg+=' Muon 的係數不會收斂到 1，σ 會在 0.7～1.2 之間擺盪，所以橢圓「差不多圓」就停了。';}
+  $('x1').innerHTML=msg;}
+['g11','g12','g21','g22'].forEach(id=>$(id).addEventListener('input',()=>{stopAuto(S1,'a1');reset1();}));
+$('m1').addEventListener('change',()=>{stopAuto(S1,'a1');reset1();});
+$('r1').onclick=()=>{stopAuto(S1,'a1');reset1();};$('n1').onclick=()=>{stopAuto(S1,'a1');next1();};$('p1').onclick=()=>{stopAuto(S1,'a1');prev1();};
+function stopAuto(S,btn){if(S.timer){clearInterval(S.timer);S.timer=null;$(btn).textContent='▶ 自動播放';}}
+function toggleAuto(S,btn,step,maxK){if(S.timer){stopAuto(S,btn);return;}$(btn).textContent='⏸ 暫停';
+  S.timer=setInterval(()=>{if(S.hist.length-1>=maxK){stopAuto(S,btn);return;}step();},1200);}
+$('a1').onclick=()=>toggleAuto(S1,'a1',next1,8);
+REDRAW.push(draw1);
+
+/* ---------- 第 2 節：8 個奇異值 ---------- */
+let S2={hist:[],timer:null};
+function sig0(n,kappa){const s=[];for(let i=0;i<n;i++)s.push(Math.pow(kappa,-i/(n-1)));const f=Math.hypot(...s);return s.map(v=>v/f);}
+function reset2(){const kap=Math.pow(10,+$('kap2').value);$('ok2').textContent=kap<10?kap.toFixed(1):Math.round(kap);S2.hist=[sig0(8,kap)];draw2();}
+function next2(){if(S2.hist.length>30)return;const co=COEF[$('m2').value];S2.hist.push(S2.hist[S2.hist.length-1].map(s=>fmap(s,co)));draw2();}
+function prev2(){if(S2.hist.length>1){S2.hist.pop();draw2();}}
+function draw2(){const s=S2.hist[S2.hist.length-1],s0=S2.hist[0],k=S2.hist.length-1,co=COEF[$('m2').value],col=css('--'+$('m2').value);
+  let [c,w,h]=setupCanvas($('cv2'));const L=44,B=h-30,T=14,Y=v=>B-(B-T)*v/1.3;
+  c.fillStyle=css('--mute');c.font='12px sans-serif';c.strokeStyle=css('--grid');c.lineWidth=1;
+  for(let v=0;v<=1.2001;v+=0.2){c.beginPath();c.moveTo(L,Y(v));c.lineTo(w-8,Y(v));c.stroke();c.fillText(v.toFixed(1),8,Y(v)+4);}
+  const bw=(w-L-16)/8;
+  s.forEach((v,i)=>{const x=L+i*bw+bw*0.15;c.fillStyle=css('--line');c.fillRect(x,Y(s0[i]),bw*0.7,B-Y(s0[i]));
+    c.fillStyle=col;c.globalAlpha=.85;c.fillRect(x+bw*0.12,Y(Math.min(v,1.3)),bw*0.46,B-Y(Math.min(v,1.3)));c.globalAlpha=1;
+    c.fillStyle=css('--ink');c.textAlign='center';c.fillText('σ'+(i+1),x+bw*0.35,B+16);c.fillText(v.toFixed(2),x+bw*0.35,Y(Math.min(v,1.3))-5);c.textAlign='left';});
+  c.setLineDash([6,4]);c.strokeStyle=css('--ok');c.lineWidth=2;c.beginPath();c.moveTo(L,Y(1));c.lineTo(w-8,Y(1));c.stroke();c.setLineDash([]);
+  c.fillStyle=css('--ok');c.fillText('目標 1',w-56,Y(1)-6);
+  // f 曲線
+  [c,w,h]=setupCanvas($('cv2b'));const L2=36,B2=h-26,T2=10,R2=w-10,X2=v=>L2+(R2-L2)*v/1.25,Y2=v=>B2-(B2-T2)*v/1.3;
+  c.strokeStyle=css('--grid');c.fillStyle=css('--mute');c.font='11px sans-serif';
+  for(let v=0;v<=1.2001;v+=0.25){c.beginPath();c.moveTo(X2(v),T2);c.lineTo(X2(v),B2);c.moveTo(L2,Y2(v));c.lineTo(R2,Y2(v));c.stroke();c.fillText(v.toFixed(2),X2(v)-12,B2+14);}
+  c.setLineDash([4,4]);c.strokeStyle=css('--mute');c.beginPath();c.moveTo(X2(0),Y2(0));c.lineTo(X2(1.25),Y2(1.25));c.stroke();c.setLineDash([]);
+  c.strokeStyle=col;c.lineWidth=2.4;c.beginPath();for(let i=0;i<=120;i++){const x=1.25*i/120;const y=fmap(x,co);const p=[X2(x),Y2(Math.max(Math.min(y,1.3),0))];i?c.lineTo(...p):c.moveTo(...p);}c.stroke();
+  c.fillStyle=css('--ink');s.forEach(v=>{if(v<=1.25){c.beginPath();c.arc(X2(v),Y2(Math.min(fmap(v,co),1.3)),4,0,7);c.fill();}});
+  c.fillText('σ',R2-10,B2-4);c.fillText('f(σ)',L2+4,T2+10);
+  const err=Math.sqrt(s.reduce((a,v)=>a+(v-1)**2,0)/s.length);$('k2').textContent=k;$('e2').textContent=fmt(err,4);
+  const mn=Math.min(...s),gain=co[0];
+  $('x2').innerHTML=k===0?`除以 ‖G‖<sub>F</sub> 之後，最大的奇異值只有 ${s0[0].toFixed(3)}，最小的只有 ${fmt(Math.min(...s0),4)}。小奇異值每一步大約只能放大 f′(0) = ${gain} 倍。`
+   :`第 ${k} 步：最小的奇異值變成 ${fmt(mn,4)}。`+(mn<0.5?`它還在「放大期」，每步約放大 ${gain} 倍，誤差降得很慢。`:$('m2').value==='cm'?'所有奇異值都進到 0.7～1.2 附近了：Muon 的目標就是「差不多是 1」，它不會精確收斂。':'所有奇異值都接近 1，進入快速收斂期，誤差每步掉好幾個數量級。');}
+$('kap2').addEventListener('input',()=>{stopAuto(S2,'a2');reset2();});$('m2').addEventListener('change',()=>{stopAuto(S2,'a2');reset2();});
+$('r2').onclick=()=>{stopAuto(S2,'a2');reset2();};$('n2').onclick=()=>{stopAuto(S2,'a2');next2();};$('p2').onclick=()=>{stopAuto(S2,'a2');prev2();};
+$('a2').onclick=()=>toggleAuto(S2,'a2',next2,12);REDRAW.push(draw2);
+
+/* ---------- 第 3 節：運算量 ---------- */
+function upd3(){const n=2**(+$('n3').value),k=+$('k3').value;$('on3').textContent=n;$('ok3').textContent=k+' 回';
+  const fs=23*n**3,fn=6*k*n**3,mx=Math.max(fs,fn);const g=v=>(v/1e9>=1000?(v/1e12).toFixed(2)+' TFLOP':(v/1e9).toFixed(1)+' GFLOP');
+  $('bs3').style.width=(100*fs/mx)+'%';$('bn3').style.width=(100*fn/mx)+'%';$('ts3').textContent=g(fs);$('tn3').textContent=g(fn);
+  $('x3').innerHTML=`n = ${n}、迭代 ${k} 回：NS 的浮點運算量是 SVD 的 <b>${(fn/fs).toFixed(2)} 倍</b>。`+(fn>fs?'NS 算得<b>比較多</b>，但在 GPU 上卻快很多 —— 因為它的每一個浮點運算都能同時做（見下方實測與第 4 節）。':'迭代次數少時，NS 連運算量都比 SVD 少。');}
+['n3','k3'].forEach(id=>$(id).addEventListener('input',upd3));
+
+/* ---------- 第 4 節：平行模型 ---------- */
+const CORES=[1,2,4,8,16,32,64,128,256];
+const NS_ST=Array(15).fill(64);
+const SVD_ST=[32,28,28,24,24,20,20,16,16,12,12,8,8,4,4,2].concat(Array(40).fill(6),Array(4).fill(16));
+function sched(st,c){const out=[];st.forEach(w=>{let r=w;while(r>0){const b=Math.min(r,c);out.push(b/c);r-=b;}});return out;}
+const sum=a=>a.reduce((x,y)=>x+y,0);
+let S4={t:0,timer:null};
+function cores4(){return CORES[+$('c4').value];}
+function draw4(){const c4=cores4();$('oc4').textContent=c4;const A=sched(NS_ST,c4),Bs=sched(SVD_ST,c4),Tm=Math.max(A.length,Bs.length),t=Math.min(S4.t,Tm);
+  const [c,w,h]=setupCanvas($('cv4'));const L=56,R=w-10,lane=(h-40)/2;
+  const draw=(arr,y0,col,label)=>{c.fillStyle=css('--soft');c.fillRect(L,y0,R-L,lane-14);c.fillStyle=css('--ink');c.font='13px sans-serif';c.fillText(label,6,y0+lane/2);
+    const cw=(R-L)/Tm;c.fillStyle=col;for(let i=0;i<Math.min(t,arr.length);i++){const hh=(lane-14)*arr[i];c.fillRect(L+i*cw,y0+(lane-14)-hh,Math.max(cw-(cw>3?1:0),0.6),hh);}
+    if(t>=arr.length){c.fillStyle=css('--ink');c.font='bold 12px sans-serif';c.fillText('完成！',Math.min(L+arr.length*cw+4,R-40),y0+12);}};
+  draw(A,10,css('--gpu'),'NS');draw(Bs,10+lane+6,css('--svd'),'SVD');
+  c.fillStyle=css('--mute');c.font='12px sans-serif';c.fillText('時間步 →（共 '+Tm+' 步，目前 '+t+'）',L,h-8);
+  const u=a=>(100*sum(a)/a.length).toFixed(0);
+  $('t4n').innerHTML=`${A.length} 個時間步，核心平均使用率 <b>${u(A)}%</b>`;
+  $('t4s').innerHTML=`${Bs.length} 個時間步，核心平均使用率 <b>${u(Bs)}%</b>`;
+  // 時間 vs 核心數
+  const [d,w2,h2]=setupCanvas($('cv4b'));const L2=50,B2=h2-34,T2=28,R2=w2-12;
+  const ts=CORES.map(cc=>[sched(NS_ST,cc).length,sched(SVD_ST,cc).length]);const ymax=Math.log10(1000),ymin=Math.log10(10);
+  const X=i=>L2+(R2-L2)*i/(CORES.length-1),Y=v=>B2-(B2-T2)*(Math.log10(v)-ymin)/(ymax-ymin);
+  d.strokeStyle=css('--grid');d.fillStyle=css('--mute');d.font='11px sans-serif';
+  [10,30,100,300,1000].forEach(v=>{d.beginPath();d.moveTo(L2,Y(v));d.lineTo(R2,Y(v));d.stroke();d.fillText(v,8,Y(v)+4);});
+  CORES.forEach((cc,i)=>{d.fillText(cc,X(i)-8,B2+14);});d.fillText('核心數',R2-40,B2+28);d.save();d.translate(12,T2+80);d.rotate(-Math.PI/2);d.restore();
+  d.fillText('時間步（對數）',L2,12);
+  [[0,css('--gpu'),'NS'],[1,css('--svd'),'SVD']].forEach(([j,col,lab])=>{d.strokeStyle=col;d.lineWidth=2.4;d.beginPath();ts.forEach((p,i)=>{i?d.lineTo(X(i),Y(p[j])):d.moveTo(X(i),Y(p[j]));});d.stroke();
+    d.fillStyle=col;ts.forEach((p,i)=>{d.beginPath();d.arc(X(i),Y(p[j]),i===+$('c4').value?6:3,0,7);d.fill();});d.fillText(lab,R2-26,Y(ts[ts.length-1][j])-8);});
+  const cross=CORES.find((cc,i)=>ts[i][0]<ts[i][1]);
+  $('x4').innerHTML=`<b>${c4} 個核心</b>：NS 需要 ${A.length} 步，SVD 需要 ${Bs.length} 步。`+
+   (A.length>Bs.length?'核心很少時，SVD 的任務比較少，反而比較快 —— 這就是 CPU 上的情況。':`NS 快 ${(Bs.length/A.length).toFixed(1)} 倍。`)+
+   `<br>看「時間步 vs 核心數」那張圖：核心越多，NS 的時間幾乎等比例下降，最後只剩 15 層相依；SVD 很快就卡在 60 層相依，再多核心也沒用（Amdahl 定律）。在這個模型裡，核心數 ≥ ${cross} 時 NS 就比較快。真正的 GPU 有上千個核心，差距就更大了。`;}
+$('c4').addEventListener('input',()=>{stop4();S4.t=1e9;draw4();});
+function stop4(){if(S4.timer){clearInterval(S4.timer);S4.timer=null;$('a4').textContent='▶ 播放';}}
+$('r4').onclick=()=>{stop4();S4.t=0;draw4();};
+$('a4').onclick=()=>{if(S4.timer){stop4();return;}const Tm=Math.max(sched(NS_ST,cores4()).length,sched(SVD_ST,cores4()).length);if(S4.t>=Tm)S4.t=0;
+  $('a4').textContent='⏸ 暫停';const dt=Math.max(1,Math.ceil(Tm/90));S4.timer=setInterval(()=>{S4.t+=dt;draw4();if(S4.t>=Tm)stop4();},60);};
+REDRAW.push(draw4);
+
+/* ---------- 第 5 節：誤差 vs 迭代次數 ---------- */
+function errCurve(co,kappa,norm,K=15,n=512){let s=[];for(let i=0;i<n;i++)s.push(Math.pow(kappa,-i/(n-1)));
+  const sc=norm==='fro'?Math.hypot(...s):s[0]*1.0;s=s.map(v=>v/sc);const out=[];
+  for(let k=1;k<=K;k++){s=s.map(v=>fmap(v,co));out.push(Math.sqrt(s.reduce((a,v)=>a+(v-1)**2,0)/n));}return out;}
+function draw5(){const kap=Math.pow(10,+$('kap5').value),norm=$('nm5').value;$('ok5').textContent=Math.round(kap);
+  const cur={};for(const m in COEF)cur[m]=errCurve(COEF[m],kap,norm);
+  const [c,w,h]=setupCanvas($('cv5'));const L=50,R=w-12,T=12,B=h-30,ymin=-8,ymax=0.3,K=15;
+  const X=k=>L+(R-L)*(k-1)/(K-1),Y=v=>B-(B-T)*(Math.log10(Math.max(v,1e-8))-ymin)/(ymax-ymin);
+  c.strokeStyle=css('--grid');c.fillStyle=css('--mute');c.font='11px sans-serif';
+  for(let e=-8;e<=0;e+=2){c.beginPath();c.moveTo(L,Y(10**e));c.lineTo(R,Y(10**e));c.stroke();c.fillText('1e'+e,8,Y(10**e)+4);}
+  for(let k=1;k<=K;k++){c.fillText(k,X(k)-4,B+14);}c.fillText('迭代次數',R-48,B+27);
+  c.strokeStyle=css('--mute');c.lineWidth=1.2;c.beginPath();c.moveTo(X(5),T);c.lineTo(X(5),B);c.stroke();
+  for(const m in cur){c.strokeStyle=css('--'+m);c.fillStyle=css('--'+m);c.lineWidth=2.6;c.beginPath();cur[m].forEach((v,i)=>{i?c.lineTo(X(i+1),Y(v)):c.moveTo(X(i+1),Y(v));});c.stroke();
+    cur[m].forEach((v,i)=>{c.beginPath();c.arc(X(i+1),Y(v),2.6,0,7);c.fill();});}
+  const ks=[3,5,8,12];let tb='<tr><th>方法</th>'+ks.map(k=>`<th>${k} 回</th>`).join('')+'<th>誤差 &lt; 10⁻³ 需要</th></tr>';
+  for(const m in cur){const hit=cur[m].findIndex(v=>v<1e-3);tb+=`<tr><td style="color:var(--${m});font-weight:700">${NAME[m]}</td>`+ks.map(k=>`<td>${fmt(cur[m][k-1],3)}</td>`).join('')+`<td>${hit<0?'&gt; 15 回':(hit+1)+' 回'}</td></tr>`;}
+  $('tb5').innerHTML=tb;
+  const m5=cur.cm[4],n5=cur.c5[4];
+  $('x5').innerHTML=`κ = ${Math.round(kap)}、迭代 5 回：Muon 誤差 ${fmt(m5,3)}，五次 NS 誤差 ${fmt(n5,3)}。`+
+   (m5<n5?'只能跑很少回時 <b>Muon 最划算</b>：它的 f′(0) = 3.44，小奇異值長得最快。':'這個條件下五次 NS 已經追過 Muon 了。')+
+   ' 但 Muon 會停在約 0.2，不會再降；經典 NS 迭代夠多回後會一路降到捨入誤差（實際的 float32 約 10⁻⁶）。'+(norm==='fro'?' 改用譜範數正規化，經典 NS 可以少跑約 4 回。':'');}
+['kap5','nm5'].forEach(id=>$(id).addEventListener('input',draw5));$('nm5').addEventListener('change',draw5);REDRAW.push(draw5);
+
+/* ---------- 卡通老師 ---------- */
+const COVER_SRC="data:image/webp;base64,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";
+function makeAvatar(el,bubble){
+  el.innerHTML='<div class="cov"><img alt="SIAM Journal on Numerical Analysis 封面" src="'+COVER_SRC+'">'
+    +'<span class="spark s1">✦</span><span class="spark s2">✦</span><span class="spark s3">✦</span><span class="sweat">💧</span></div>';
+  let tm=null;
+  function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
+  return {mood(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
+    if(m==='smile'){el.classList.add('smile');restart('hop');}
+    if(m==='frown'){el.classList.add('frown');restart('shake');}
+    if(text!==undefined){bubble.innerHTML=text;bubble.className='bubble'+(m==='smile'?' good':m==='frown'?' bad':'');}
+    if(!hold)tm=setTimeout(()=>{el.classList.remove('smile','frown');bubble.className='bubble';},3200);}};}
+var AV1=makeAvatar($('av1'),$('bub1')),AV2=makeAvatar($('av2'),$('bub2'));
+const QUOTES=[
+ '小故事①：1933 年，德國的 Günther Schulz 提出 X ← X(2I − AX) 來求反矩陣 A⁻¹，整個過程只用矩陣乘法。名字裡的「Schulz」就是他。',
+ '小故事②：1970 年，Kovarik 在 SIAM Journal on Numerical Analysis 第 7 卷發表〈Some Iterative Methods for Improving Orthonormality〉，研究怎麼用迭代把「差不多正交」的一組向量修成真正正交 —— 正是這一頁在做的事。',
+ '小故事③：隔年（1971）Björck 與 Bowie 也發表了把矩陣迭代成正交矩陣的方法。數值線性代數的書常把這類正交化迭代追溯到這兩篇論文。',
+ '小故事④：Kovarik 1971 年在多倫多大學拿到博士（指導教授是 Chandler Davis），1973 年到加拿大 McMaster 大學數學與統計系任教，2010 年退休。',
+ '小故事⑤：2007 年，Popa 把 Kovarik 方法中每一步要做的「正定矩陣求反」換成奇次多項式，證明一樣會收斂 —— 只剩矩陣乘法，和今天的 Newton–Schulz 形式非常接近。',
+ '小故事⑥：2024 年，Keller Jordan 提出的 Muon 優化器每一步都用 5 次五次 Newton–Schulz 迭代把動量矩陣正交化，在 GPU 上又快又好，讓這個半世紀前的方法重新紅起來。'];
+let qi=0;$('av1').onclick=()=>AV1.mood('smile',QUOTES[qi++%QUOTES.length]);
+
+/* ---------- 小測驗 ---------- */
+const QZ=[
+ {q:'Newton–Schulz 迭代的每一步，對矩陣 X = UΣVᵀ 做了什麼？',o:['只把每個奇異值 σ 換成 f(σ)，U、V 不變','把 U 和 V 各旋轉一點，Σ 不變','把每個元素各自往 ±1 推','先做 SVD，再把 Σ 換成 I'],a:0,e:'因為 XXᵀ = UΣ²Uᵀ，多項式只作用在 Σ 上，奇異向量完全不變。',h:'回第 2 節：右圖的點只沿著 f(σ) 曲線移動。'},
+ {q:'目標矩陣 Q = UVᵀ 的幾何意義是？',o:['保留 G 的旋轉方向，把所有伸縮倍數都變成 1（橢圓變回圓）','把 G 的所有元素正規化成長度 1','G 的反矩陣','把 G 的最大奇異值變成 0'],a:0,e:'G 把圓變成橢圓；UVᵀ 只保留旋轉，所以把圓變成同樣大小的圓。',h:'回第 1 節：看橢圓最後變成什麼形狀。'},
+ {q:'為什麼迭代前要先除以 ‖G‖<sub>F</sub>？',o:['讓所有奇異值 ≤ 1，落在迭代會收斂的範圍','讓矩陣變成對稱矩陣','讓矩陣乘法比較快','讓結果變成單位矩陣'],a:0,e:'f(σ) 只在一定範圍內把 σ 推向 1；‖G‖<sub>F</sub> ≥ σ<sub>max</sub>，除完後所有 σ 都 ≤ 1。',h:'第 1 節的第 0 步：橢圓整個縮到單位圓裡面。'},
+ {q:'五次 NS 迭代 5 回的浮點運算量（約 30n³）比 SVD（約 23n³）還多，為什麼在 GPU 上反而快很多？',o:['GPU 的瓶頸是能不能同時算；NS 全是可平行的矩陣乘法，SVD 有一長串相依的步驟','GPU 會自動跳過 NS 一半的運算','SVD 在 GPU 上不能執行','NS 不需要讀取記憶體'],a:0,e:'實測 NS 用到 T4 約四成算力，SVD 只用到約 2%：核心大多在等前一步做完。',h:'回第 4 節：比較兩條時間線的「欄高」（核心使用率）。'},
+ {q:'在第 4 節的模型裡，核心數從 64 增加到 256，SVD 的時間幾乎不變，原因是？',o:['它有 60 層必須依序完成的步驟，每層任務太少，多的核心只能閒著','SVD 的運算量變多了','核心數太多會讓 GPU 過熱降速','SVD 改用 CPU 計算'],a:0,e:'這就是 Amdahl 定律：循序的部分決定了最短時間。',h:'看第 4 節的右圖：SVD 那條線最後變成水平。'},
+ {q:'Muon 用的五次係數 (3.4445, −4.7750, 2.0315) 和經典五次 NS 相比，特點是？',o:['前幾回把小奇異值拉上來最快，但最後停在約 0.7～1.2，不會精確收斂到 1','每一回需要的矩陣乘法比較少','一定比經典 NS 更精確','只能用在方陣'],a:0,e:'f′(0) = 3.4445 讓小 σ 長得快，代價是 f(1) ≠ 1，誤差停在約 0.2。',h:'回第 5 節：紫色曲線在 5 回後變成水平。'},
+ {q:'NS 迭代適合用 bf16／fp16 低精度在 Tensor Core 上算，主要原因是？',o:['每一步都把奇異值往 1 推，前一步的小捨入誤差會被後面的迭代修正','低精度會讓結果變成精確的正交矩陣','低精度可以減少迭代次數到 1 次','SVD 也只能用低精度'],a:0,e:'迭代會「自我修正」，而且 Muon 只需要大致正交，所以低精度很划算。',h:'回第 4 節下方的「③ 低精度也穩」。'},
+ {q:'條件數 κ 從 10 變成 1000（最小奇異值小 100 倍），經典 NS 需要的迭代次數大約會？',o:['多出固定的幾回（約和 log κ 成正比）','變成 100 倍','完全不變','減少'],a:0,e:'放大期每回把小 σ 放大 f′(0) 倍，需要約 ln(1/σ<sub>min</sub>)/ln f′(0) 回，和 log κ 成正比。',h:'回第 5 節：把 κ 滑桿往右拉，看曲線往右移多少。'}];
+const PRAISE=['答對了！','完全正確 ✦','很好，觀念很清楚！','沒錯！','漂亮！'];
+let QS={ans:0,score:0,streak:0};
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function buildQuiz(){QS={ans:0,score:0,streak:0};const box=$('quiz');box.innerHTML='';
+  QZ.forEach((z,qi)=>{const d=document.createElement('div');d.className='q';d.innerHTML=`<div class="qt">${qi+1}. ${z.q}</div>`;
+    const fb=document.createElement('div');fb.className='fb';
+    shuffle(z.o.map((t,i)=>i)).forEach(i=>{const b=document.createElement('button');b.className='opt';b.textContent=z.o[i];
+      b.onclick=()=>{d.querySelectorAll('.opt').forEach((x,j)=>{x.disabled=true;});
+        const ok=i===z.a;b.classList.add(ok?'right':'wrong');if(!ok)[...d.querySelectorAll('.opt')].find(x=>x.textContent===z.o[z.a]).classList.add('right');
+        fb.className='fb '+(ok?'good':'badc');fb.innerHTML=(ok?'✔ 正確！':'✘ ')+z.e;QS.ans++;
+        if(ok){QS.score++;QS.streak++;AV2.mood('smile',QS.streak>=3?`連對 ${QS.streak} 題！你已經掌握 GPU 的思考方式了 ✦`:PRAISE[Math.floor(Math.random()*PRAISE.length)]);}
+        else{QS.streak=0;AV2.mood('frown',z.h);}
+        if(QS.ans===QZ.length)finish();};d.appendChild(b);});
+    d.appendChild(fb);box.appendChild(d);});
+  const sc=document.createElement('div');sc.id='score';sc.className='score';box.appendChild(sc);}
+function finish(){const s=QS.score,N=QZ.length;$('score').innerHTML=`得分：${s} / ${N}　<button id="again">再做一次</button>`;
+  $('again').onclick=()=>{buildQuiz();AV2.mood('','新的一輪！選項順序打亂了，再試一次。');};
+  setTimeout(()=>{if(s===N)AV2.mood('smile','滿分！涵義、優點、GPU 平行，你都懂了 ✦',true);
+    else if(s>=N-2)AV2.mood('smile',`${s} 分，很不錯！錯的題目回頭看一下對應的小節。`,true);
+    else AV2.mood('frown',`${s} 分。建議回去玩一下第 1、2 節（涵義）和第 4 節（GPU 平行）再來挑戰。`,true);},3300);}
+
+/* ---------- 初始化 ---------- */
+reset1();reset2();upd3();S4.t=1e9;draw4();draw5();buildQuiz();
+let rt=null;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>REDRAW.forEach(f=>f()),120);});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>REDRAW.forEach(f=>f()));
+</script>
+</body>
+</html>
