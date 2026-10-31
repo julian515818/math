@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>指數函數收斂與發散互動教學</title>
+<style>
+:root{
+  --bg:#f7f6f2;--card:#fff;--ink:#1d2330;--mute:#667085;--line:#e3e1da;--ok:#1f9d6b;--bad:#d6334f;
+  --grid:#eceae4;--axis:#9aa0ab;--accent:#2f6fdb;--tint:#eaf1fc;
+  --c1:#2f6fdb;--c2:#e07a1f;--c3:#8b45d6;--warn:#c98a00;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+    --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+    --c1:#6c9dff;--c2:#ffa552;--c3:#b98bff;--warn:#ffd166;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+  --c1:#6c9dff;--c2:#ffa552;--c3:#b98bff;--warn:#ffd166;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.9rem}
+header p{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:18px}
+.card h2{margin:0 0 12px;font-size:1.22rem;line-height:1.5}
+.num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:.9rem;margin-right:10px;vertical-align:2px}
+h3{margin:0 0 6px;font-size:1.05rem}
+p{margin:.4em 0}
+.m{font-family:"Times New Roman","Cambria Math",serif;font-style:italic;white-space:nowrap}
+.m sup{font-size:.72em}
+.def{font-size:1.2rem;text-align:center;padding:12px;border-radius:10px;background:var(--tint);line-height:2.2}
+.note{color:var(--mute);font-size:.92rem}
+.c1{color:var(--c1)}.c2{color:var(--c2)}.c3{color:var(--c3)}.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+.frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;line-height:1.15;margin:0 2px}
+.frac>span:first-child{border-bottom:1px solid currentColor;padding:0 3px}
+.frac>span:last-child{padding:0 3px}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start}
+.two>*{min-width:0}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.three>div{border:2px solid var(--line);border-radius:12px;padding:10px 14px;min-width:0;text-align:center}
+.three svg{width:100%;max-width:170px;height:70px;display:block;margin:4px auto}
+@media (max-width:860px){.two,.three{grid-template-columns:minmax(0,1fr)}}
+.cvbox{width:100%;min-width:0}
+.cvbox canvas{display:block;border-radius:10px;touch-action:none}
+.cap{text-align:center;font-size:.9rem;color:var(--mute);margin-top:4px}
+.ctl{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;margin:8px 0 10px}
+.ctl label{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ctl input[type=range]{width:190px;max-width:100%;accent-color:var(--accent)}
+.ctl b.v{display:inline-block;min-width:3.4em;font-family:Consolas,monospace}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:9px;padding:5px 12px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.out{border-radius:10px;padding:10px 14px;background:var(--tint);margin-top:10px;line-height:1.9}
+.verdict{font-weight:700;font-size:1.08rem}
+.tbl{overflow-x:auto;margin-top:10px}
+table{border-collapse:collapse;min-width:100%;font-size:.95rem}
+td,th{border:1px solid var(--line);padding:4px 8px;text-align:center;white-space:nowrap}
+th{background:var(--tint)}
+.pill{display:inline-block;padding:1px 10px;border-radius:99px;font-size:.88rem;font-weight:700;color:#fff}
+.pill.ok{background:var(--ok)}.pill.bad{background:var(--bad)}.pill.warn{background:var(--warn)}
+/* quiz */
+.q{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px}
+.q .qt{font-weight:700;margin-bottom:6px}
+.opt{display:block;width:100%;text-align:left;margin:6px 0;padding:7px 12px}
+.opt.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,transparent)}
+.opt.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,transparent)}
+.opt:disabled{cursor:default;color:var(--ink)}
+.exp{margin-top:6px;font-size:.95rem}
+#score{font-size:1.15rem;font-weight:700;margin-top:6px}
+footer{text-align:center;color:var(--mute);font-size:.88rem;margin-top:30px}
+/* avatar */
+.avwrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.av{width:100%;max-width:220px;cursor:pointer;user-select:none}
+.av svg{width:100%;display:block;overflow:visible;background:none}
+.av .bodyg{animation:bob 3.2s ease-in-out infinite;transform-origin:100px 200px}
+.av .eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+.av .hairL{animation:sway 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:top center}
+.av .hairR{animation:sway 3.2s ease-in-out infinite reverse;transform-box:fill-box;transform-origin:top center}
+.av .brow{transition:transform .3s;transform-box:fill-box}
+.av .browL{transform-origin:right center}.av .browR{transform-origin:left center}
+.av .mo{opacity:0;transition:opacity .25s}.av .mo.n{opacity:1}
+.av .blush,.av .sweat,.av .spark{opacity:0;transition:opacity .3s}
+.av.smile .mo.n,.av.frown .mo.n{opacity:0}
+.av.smile .mo.s{opacity:1}.av.frown .mo.f{opacity:1}
+.av.smile .blush{opacity:.55}.av.smile .spark{opacity:1}.av.frown .sweat{opacity:.9}
+.av.smile .brow{transform:translateY(-3px)}
+.av.frown .browL{transform:rotate(14deg) translateY(2px)}.av.frown .browR{transform:rotate(-14deg) translateY(2px)}
+.av.hop svg{animation:hop .7s ease}
+.av.shake svg{animation:shake .55s ease}
+.av .spark{animation:twinkle 1s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}
+@keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+@keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.bubble{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.95rem;margin-bottom:10px;min-height:2.6em;max-width:260px;text-align:center;transition:border-color .3s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--line);border-bottom:0}
+.bubble.good{border-color:var(--ok)}.bubble.good::after{border-top-color:var(--ok)}
+.bubble.bad{border-color:var(--bad)}.bubble.bad::after{border-top-color:var(--bad)}
+.intro{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:center}
+.intro>*,.qgrid>*,.side>*{min-width:0}
+.intro .avwrap{flex-direction:row;gap:10px}.intro .bubble{flex:1;margin:0}.intro .bubble::after{display:none}.intro .av{width:125px;flex:none}
+.qgrid{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:18px;align-items:start}
+.qgrid .avwrap{position:sticky;top:12px}
+.side{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:18px;align-items:start}
+.side .av{max-width:150px}
+@media (max-width:860px){.intro,.qgrid,.side{grid-template-columns:minmax(0,1fr)}.intro .avwrap{flex-direction:column}.intro .bubble{margin-bottom:10px}.intro .bubble::after{display:block}.intro .av,.qgrid .av,.side .av{width:auto;max-width:140px}.qgrid .avwrap{position:static;order:-1}}
+</style>
+<style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line,#e3e1da);border-radius:12px;background:var(--card,var(--surface,#fff));color:var(--ink,#1d2330);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+.pu-badge img{width:58px;height:58px;display:block}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute,var(--muted,#667085))}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="pu-hd">
+  <div class="pu-hd-main">
+  <h1>指數函數 e<sup>at</sup> 的收斂與發散</h1>
+  <p>工程數學 ・ 互動教學：e<sup>at</sup> 什麼時候收斂、什麼時候發散？歐拉老師帶你動手看</p>
+</div>
+  <div class="pu-badge"><img alt="靜宜大學校徽" src="data:image/webp;base64,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"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</header>
+
+<!-- 0 -->
+<section class="card">
+  <h2><span class="num">0</span>一句話直覺：a 的正負決定一切</h2>
+  <div class="intro">
+    <div>
+      <div class="def"><span class="m">f</span>(<span class="m">t</span>) = <span class="m">e<sup>at</sup></span>，&nbsp; <span class="m">t</span> ≥ 0</div>
+      <p>指數函數的命運只看指數裡的 <span class="m">a</span>：<b>a &lt; 0 收斂到 0、a = 0 不動、a &gt; 0 發散到 ∞</b>。Laplace 轉換的核心就是拿另一個指數 <span class="m">e<sup>−st</sup></span> 去和它比賽。</p>
+      <div class="three">
+        <div style="border-color:var(--ok)"><b class="ok">a &lt; 0：收斂（Convergent）</b>
+          <svg viewBox="0 0 170 70"><path d="M8 8 Q40 58 160 62" fill="none" stroke="var(--ok)" stroke-width="3"/><line x1="8" y1="62" x2="164" y2="62" stroke="var(--axis)"/></svg>
+          <span class="m">e<sup>−t</sup></span> → 0</div>
+        <div style="border-color:var(--warn)"><b class="warn">a = 0：常數</b>
+          <svg viewBox="0 0 170 70"><path d="M8 34 L160 34" fill="none" stroke="var(--warn)" stroke-width="3"/><line x1="8" y1="62" x2="164" y2="62" stroke="var(--axis)"/></svg>
+          <span class="m">e</span><sup class="m">0</sup> = 1</div>
+        <div style="border-color:var(--bad)"><b class="bad">a &gt; 0：發散（Divergent）</b>
+          <svg viewBox="0 0 170 70"><path d="M8 60 Q120 58 160 4" fill="none" stroke="var(--bad)" stroke-width="3"/><line x1="8" y1="62" x2="164" y2="62" stroke="var(--axis)"/></svg>
+          <span class="m">e<sup>t</sup></span> → ∞</div>
+      </div>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub1">Salve！我是歐拉（Leonhard Euler）。字母 <i>e</i> 就是我開始用的喔～點我聽故事！</div><div class="av" id="av1" title="點我聽故事"></div></div>
+  </div>
+</section>
+
+<!-- 1 -->
+<section class="card">
+  <h2><span class="num">1</span>動手調 a：看 e<sup>at</sup> 往上衝還是往下掉</h2>
+  <div class="ctl">
+    <label>a = <input type="range" id="a1" min="-2" max="2" step="0.1" value="0.6"><b class="v" id="a1v">0.6</b></label>
+    <button data-a1="-1">a = −1</button><button data-a1="0">a = 0</button><button data-a1="0.5">a = 0.5</button>
+  </div>
+  <div class="two">
+    <div class="cvbox"><canvas id="cv1"></canvas><div class="cap">灰色虛線：a = −1、0、1 的參考曲線</div></div>
+    <div>
+      <div class="out" id="out1"></div>
+      <div class="tbl"><table id="tb1"></table></div>
+      <p class="note">觀察：a &gt; 0 時每隔固定時間 <span class="frac"><span>ln 2</span><span>a</span></span> 就「加倍」；a &lt; 0 時每隔 <span class="frac"><span>ln 2</span><span>|a|</span></span> 就「減半」。指數函數的增長或衰減是<b>等比例</b>的。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="card">
+  <h2><span class="num">2</span>拔河比賽：e<sup>−σt</sup> 能不能壓住 e<sup>at</sup>？</h2>
+  <p>Laplace 轉換 <span class="m">F</span>(<span class="m">s</span>) = ∫<sub>0</sub><sup>∞</sup> <span class="m">e<sup>−st</sup></span><span class="m">f</span>(<span class="m">t</span>) <span class="m">dt</span>。先只看實數 <span class="m">s</span> = σ：被積函數是
+    <span class="m">e<sup>at</sup></span> · <span class="m">e<sup>−σt</sup></span> = <span class="m c3">e<sup>(a−σ)t</sup></span>，紫色面積就是積分值。</p>
+  <div class="ctl">
+    <label><span class="c1">a</span> = <input type="range" id="a2" min="-2" max="2" step="0.1" value="1"><b class="v" id="a2v">1</b></label>
+    <label><span class="c2">σ</span> = <input type="range" id="s2" min="-1" max="3" step="0.1" value="2"><b class="v" id="s2v">2</b></label>
+    <label>積到 T = <input type="range" id="T2" min="0" max="10" step="0.05" value="10"><b class="v" id="T2v">10</b></label>
+    <button class="pri" id="play2">▶ 播放 T：0 → 10</button>
+  </div>
+  <div class="side">
+    <div>
+      <div class="two">
+        <div class="cvbox"><canvas id="cv2"></canvas><div class="cap"><span class="c1">藍：e<sup>at</sup></span>　<span class="c2">橘：e<sup>−σt</sup></span>　<span class="c3">紫：相乘 e<sup>(a−σ)t</sup></span></div></div>
+        <div class="cvbox"><canvas id="cv2b"></canvas><div class="cap">累積面積 ∫<sub>0</sub><sup>T</sup> 隨 T 的變化（虛線＝極限值）</div></div>
+      </div>
+      <div class="out" id="out2"></div>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub3">拖動 σ，看看誰贏！</div><div class="av" id="av3"></div></div>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="card">
+  <h2><span class="num">3</span>觀念小測驗</h2>
+  <div class="qgrid">
+    <div><div id="quiz"></div><div id="score"></div><button id="retry" style="display:none">⟲ 再做一次</button></div>
+    <div class="avwrap"><div class="bubble" id="bub2">來考考你！答對我會笑，答錯我會皺眉喔。</div><div class="av" id="av2"></div></div>
+  </div>
+</section>
+
+<footer>指數函數收斂與發散互動教學 ・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+
+<script>
+var $=function(id){return document.getElementById(id);};
+function col(n){return getComputedStyle(document.documentElement).getPropertyValue('--'+n).trim();}
+function nf(x,d){if(d===undefined)d=3;if(!isFinite(x))return '∞';var s=Math.abs(x)>=1e5?x.toExponential(2):(+x.toFixed(d)).toString();return s.replace(/-/g,'−');}
+function fit(cv,h){cv.style.width='0px';var w=Math.max(220,cv.parentElement.clientWidth);cv.style.width=w+'px';cv.style.height=h+'px';
+  var dpr=window.devicePixelRatio||1;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);var c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);
+  c.fillStyle=col('card');c.fillRect(0,0,w,h);return {c:c,w:w,h:h};}
+function frame(g,xr,yr,xt,yt,opt){opt=opt||{};var c=g.c,L=opt.l||38,R=g.w-(opt.r||12),T=opt.t||12,B=g.h-(opt.b||26);
+  var X=function(x){return L+(x-xr[0])/(xr[1]-xr[0])*(R-L);},Y=function(y){return B-(y-yr[0])/(yr[1]-yr[0])*(B-T);};
+  c.lineWidth=1;c.strokeStyle=col('grid');c.fillStyle=col('mute');c.font='11px system-ui,sans-serif';
+  xt.forEach(function(x){c.beginPath();c.moveTo(X(x),T);c.lineTo(X(x),B);c.stroke();c.textAlign='center';c.fillText(x,X(x),B+15);});
+  yt.forEach(function(y){c.beginPath();c.moveTo(L,Y(y));c.lineTo(R,Y(y));c.stroke();c.textAlign='right';c.fillText(y,L-5,Y(y)+4);});
+  c.strokeStyle=col('axis');c.lineWidth=1.3;c.beginPath();
+  var y0=Math.min(Math.max(0,yr[0]),yr[1]),x0=Math.min(Math.max(0,xr[0]),xr[1]);
+  c.moveTo(L,Y(y0));c.lineTo(R,Y(y0));c.moveTo(X(x0),T);c.lineTo(X(x0),B);c.stroke();
+  if(opt.xl){c.textAlign='right';c.fillText(opt.xl,R,B-5);}if(opt.yl){c.textAlign='left';c.fillText(opt.yl,L+4,T+10);}
+  return {X:X,Y:Y,L:L,R:R,T:T,B:B};}
+function curve(g,F,f,x0,x1,color,lw,dash){var c=g.c;c.save();c.beginPath();c.rect(F.L,F.T,F.R-F.L,F.B-F.T);c.clip();
+  c.strokeStyle=color;c.lineWidth=lw||2;c.setLineDash(dash||[]);c.beginPath();var n=300;
+  for(var i=0;i<=n;i++){var x=x0+(x1-x0)*i/n,y=f(x);var py=F.Y(y);if(!isFinite(py))py=y>0?-1e4:1e4;py=Math.max(-1e4,Math.min(1e4,py));if(i)c.lineTo(F.X(x),py);else c.moveTo(F.X(x),py);}
+  c.stroke();c.restore();}
+function alpha(hex,a){var c=hex.trim();if(c[0]==='#'&&c.length===7){var r=parseInt(c.substr(1,2),16),g=parseInt(c.substr(3,2),16),b=parseInt(c.substr(5,2),16);return 'rgba('+r+','+g+','+b+','+a+')';}return c;}
+function ek(k){k=+k.toFixed(2);return k===0?'1':'e<sup>'+(k===1?'':k===-1?'−':nf(k,2))+'t</sup>';}
+function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+
+/* ---------- 1 ---------- */
+function draw1(){
+  var a=+$('a1').value;$('a1v').textContent=nf(a,1);
+  var g=fit($('cv1'),300),F=frame(g,[0,5],[0,6],[0,1,2,3,4,5],[0,1,2,3,4,5,6],{xl:'t'});
+  [-1,0,1].forEach(function(k){curve(g,F,function(t){return Math.exp(k*t);},0,5,col('axis'),1.2,[5,4]);});
+  var cc=a>1e-9?col('bad'):a<-1e-9?col('ok'):col('warn');
+  curve(g,F,function(t){return Math.exp(a*t);},0,5,cc,3.2);
+  if(a>0){var te=Math.log(6)/a;if(te<5){g.c.fillStyle=cc;g.c.font='bold 12px system-ui';g.c.textAlign='left';g.c.fillText('↑ 衝出圖面 (t≈'+te.toFixed(2)+')',Math.min(F.X(te)+4,F.R-120),F.T+14);}}
+  var o;
+  if(Math.abs(a)<1e-9)o='<span class="pill warn">常數</span> <span class="verdict">e<sup>0·t</sup> = 1，不增也不減</span><br>t → ∞ 時極限為 1（有界，但不衰減）。';
+  else if(a>0)o='<span class="pill bad">發散</span> <span class="verdict">e<sup>'+nf(a,1)+'t</sup> → ∞</span><br>加倍時間 ln2 / a = <b>'+nf(Math.LN2/a,3)+'</b>：每過這麼久，數值就變成 2 倍。';
+  else o='<span class="pill ok">收斂</span> <span class="verdict">e<sup>'+nf(a,1).replace('-','−')+'t</sup> → 0</span><br>半衰期 ln2 / |a| = <b>'+nf(Math.LN2/(-a),3)+'</b>：每過這麼久，數值就減半。';
+  $('out1').innerHTML=o;
+  var h='<tr><th>t</th>',r='<tr><th>e<sup>at</sup></th>';
+  for(var t=0;t<=10;t+=2){h+='<td>'+t+'</td>';r+='<td>'+nf(Math.exp(a*t),4)+'</td>';}
+  $('tb1').innerHTML=h+'</tr>'+r+'</tr>';
+}
+$('a1').oninput=draw1;
+document.querySelectorAll('[data-a1]').forEach(function(b){b.onclick=function(){$('a1').value=b.dataset.a1;draw1();};});
+
+/* ---------- 2 ---------- */
+var say3T=null,last3='';
+function area(d,T){return Math.abs(d)<1e-9?T:(1-Math.exp(-d*T))/d;}
+function draw2(){
+  var a=+$('a2').value,s=+$('s2').value,T=+$('T2').value,d=+(s-a).toFixed(6);
+  $('a2v').textContent=nf(a,1);$('s2v').textContent=nf(s,1);$('T2v').textContent=nf(T,2);
+  var g=fit($('cv2'),260),F=frame(g,[0,10],[0,3],[0,2,4,6,8,10],[0,1,2,3],{xl:'t'}),c=g.c;
+  // fill area
+  c.save();c.beginPath();c.rect(F.L,F.T,F.R-F.L,F.B-F.T);c.clip();
+  c.fillStyle=alpha(col('c3'),.25);c.beginPath();c.moveTo(F.X(0),F.Y(0));
+  for(var i=0;i<=200;i++){var t=T*i/200;c.lineTo(F.X(t),Math.max(-1e4,F.Y(Math.exp(-d*t))));}
+  c.lineTo(F.X(T),F.Y(0));c.closePath();c.fill();c.restore();
+  curve(g,F,function(t){return Math.exp(a*t);},0,10,col('c1'),1.6,[6,4]);
+  curve(g,F,function(t){return Math.exp(-s*t);},0,10,col('c2'),1.6,[6,4]);
+  curve(g,F,function(t){return Math.exp(-d*t);},0,10,col('c3'),3);
+  c.strokeStyle=col('ink');c.setLineDash([2,3]);c.beginPath();c.moveTo(F.X(T),F.T);c.lineTo(F.X(T),F.B);c.stroke();c.setLineDash([]);
+  // area vs T
+  var lim=d>0?1/d:Infinity,ymax=d>0?Math.max(1.2,Math.ceil(lim*1.3)):Math.max(4,Math.ceil(area(d,10)*1.1));
+  if(!isFinite(ymax)||ymax>60)ymax=60;
+  var step=ymax<=4?1:ymax<=12?2:ymax<=30?5:10,yt=[];for(var y=0;y<=ymax+1e-9;y+=step)yt.push(y);
+  var g2=fit($('cv2b'),260),F2=frame(g2,[0,10],[0,ymax],[0,2,4,6,8,10],yt,{xl:'T'});
+  if(d>0){g2.c.strokeStyle=col('ok');g2.c.setLineDash([6,4]);g2.c.lineWidth=1.5;g2.c.beginPath();g2.c.moveTo(F2.L,F2.Y(lim));g2.c.lineTo(F2.R,F2.Y(lim));g2.c.stroke();g2.c.setLineDash([]);
+    g2.c.fillStyle=col('ok');g2.c.textAlign='right';g2.c.fillText('極限 1/(σ−a) = '+nf(lim,3),F2.R-4,F2.Y(lim)-5);}
+  curve(g2,F2,function(t){return area(d,t);},0,10,alpha(col('c3'),.35),2);
+  curve(g2,F2,function(t){return area(d,t);},0,T,col('c3'),3);
+  var A=area(d,T);g2.c.fillStyle=col('c3');g2.c.beginPath();g2.c.arc(F2.X(T),clamp(F2.Y(A),F2.T,F2.B),4.5,0,7);g2.c.fill();
+  var dd=nf(d,2),v,txt;
+  if(d>0){v='<span class="pill ok">收斂</span> <span class="verdict">σ − a = '+dd+' &gt; 0：e<sup>−σt</sup> 贏了</span>';txt='∫<sub>0</sub><sup>∞</sup> e<sup>(a−σ)t</sup> dt = 1/(σ−a) = <b>'+nf(lim,4)+'</b>';}
+  else if(d===0){v='<span class="pill bad">發散</span> <span class="verdict">σ − a = 0：平手</span>';txt='被積函數恆為 1，面積 = T，T → ∞ 時 → ∞';}
+  else{v='<span class="pill bad">發散</span> <span class="verdict">σ − a = '+dd+' &lt; 0：e<sup>at</sup> 跑太快</span>';txt='被積函數本身就在增長，面積 → ∞';}
+  $('out2').innerHTML=v+'<br>被積函數：'+ek(a)+' · '+ek(-s)+' = '+ek(-d)+'　｜　目前面積 ∫<sub>0</sub><sup>'+nf(T,2)+'</sup> = <b>'+nf(A,4)+'</b><br>'+txt;
+  var key=d>0?'w':d===0?'t':'l';
+  if(key!==last3&&window.AV3){last3=key;clearTimeout(say3T);say3T=setTimeout(function(){
+    if(key==='w')AV3.mood('smile','e<sup>−σt</sup> 贏了！面積停在 1/(σ−a) = '+nf(lim,3)+'，收斂！',true);
+    else if(key==='t')AV3.mood('frown','平手……被積函數恆為 1，面積一直長大，發散！',true);
+    else AV3.mood('frown','e<sup>at</sup> 跑太快，e<sup>−σt</sup> 壓不住，發散！',true);},250);}
+}
+['a2','s2','T2'].forEach(function(id){$(id).oninput=draw2;});
+function player(btn,slider,max,dur,draw){var raf=null;$(btn).onclick=function(){if(raf){cancelAnimationFrame(raf);raf=null;return;}
+  var t0=performance.now();$(slider).value=0;function step(now){var p=Math.min(1,(now-t0)/dur);$(slider).value=(p*max).toFixed(2);draw();if(p<1)raf=requestAnimationFrame(step);else raf=null;}raf=requestAnimationFrame(step);};}
+player('play2','T2',10,3500,draw2);
+
+/* ---------- 歐拉老師 ---------- */
+var EULER_SVG='<svg viewBox="0 0 200 230" aria-label="歐拉老師動畫"><defs><pattern id="__ID__st" patternUnits="userSpaceOnUse" width="30" height="30" patternTransform="rotate(28)"><rect width="30" height="30" fill="#3f8fc4"/><rect width="10" height="30" fill="#34465f"/><rect x="10" width="3" height="30" fill="#5aa6d6"/></pattern></defs>'+
+'<g class="bodyg">'+
+'<rect x="85" y="128" width="30" height="22" rx="10" fill="#e8b99c"/><g transform="translate(0,-8)"><path d="M8 242 Q14 172 100 160 Q186 172 192 242 Z" fill="url(#__ID__st)"/>'+
+'<path d="M74 162 Q86 150 92 152 L98 196 L88 200 Q80 182 74 162 Z" fill="#6f7680"/>'+
+'<path d="M126 162 Q114 150 108 152 L102 196 L112 200 Q120 182 126 162 Z" fill="#6f7680"/>'+
+''+
+'<path d="M86 150 Q100 158 114 150 L116 166 Q108 170 112 180 Q104 186 100 200 Q96 186 88 180 Q92 170 84 166 Z" fill="#f4f2ee" stroke="#c9c3b8" stroke-width="1.2"/>'+
+'<path d="M92 162 Q100 170 108 162 M94 176 Q100 182 106 176" stroke="#c9c3b8" stroke-width="1.2" fill="none"/>'+
+'<circle cx="100" cy="214" r="3" fill="#34465f"/></g>'+
+'<g class="hairR"><path d="M132 86 Q154 88 157 110 Q158 128 150 142 Q142 134 134 130 Q140 112 130 98 Z" fill="#dcd8cf" stroke="#a9a397" stroke-width="1.3"/><path d="M140 96 Q150 112 146 134" stroke="#9e988c" stroke-width="3" fill="none" opacity=".45"/><path d="M134 104 Q142 118 138 128" stroke="#a9a397" stroke-width="1.1" fill="none"/></g>'+
+'<ellipse cx="100" cy="106" rx="34" ry="37" fill="#f0c6aa"/><path d="M68 112 Q72 140 100 146 Q128 140 132 112 Z" fill="#f0c6aa"/>'+
+'<path d="M84 140 Q100 150 116 140" stroke="#d9a888" stroke-width="1.6" fill="none"/><path d="M92 120 Q86 126 88 132 M110 120 Q115 126 113 132" stroke="#dba98b" stroke-width="1.4" fill="none"/>'+
+'<ellipse class="blush" cx="80" cy="120" rx="7" ry="4.5" fill="#f08080"/>'+
+'<ellipse class="blush" cx="120" cy="120" rx="7" ry="4.5" fill="#f08080"/>'+
+'<g class="hairL"><path d="M68 88 Q60 94 62 106 Q66 100 71 96 Z" fill="#dcd8cf" stroke="#a9a397" stroke-width="1.1"/></g>'+
+'<path d="M63 96 Q52 72 68 56 Q76 38 98 40 Q112 28 128 38 Q148 34 154 52 Q166 64 157 84 Q150 96 137 96 Q120 82 100 82 Q80 82 66 96 Z" fill="#ecebe6" stroke="#a9a397" stroke-width="1.5"/><path d="M70 62 Q90 52 106 62 Q90 72 70 74 Z M118 56 Q140 48 152 66 Q136 72 120 66 Z M134 80 Q148 76 156 84 Q148 92 138 92 Z" fill="#c9c4ba" opacity=".75"/>'+
+'<path d="M66 94 Q82 76 100 76 Q122 76 136 94 Q120 84 100 84 Q80 84 66 94 Z" fill="#c7c2b8"/>'+
+'<path d="M124 40 Q144 24 160 36 Q172 48 162 62 Q148 52 124 40 Z" fill="#f6f5f1" stroke="#a9a397" stroke-width="1.4"/>'+
+'<path d="M74 58 Q92 46 110 54 M108 66 Q126 58 146 70 M136 42 Q150 40 158 50" stroke="#a9a397" stroke-width="1.3" fill="none"/>'+
+'<path d="M74 80 Q92 66 120 72" stroke="#b5b0a5" stroke-width="2" fill="none"/>'+
+'<path class="brow browL" d="M75 92 Q84 88 92 91" stroke="#9c8268" stroke-width="2.8" fill="none" stroke-linecap="round"/>'+
+'<path class="brow browR" d="M108 90 Q116 86 125 90" stroke="#9c8268" stroke-width="2.8" fill="none" stroke-linecap="round"/>'+
+'<g class="eyes"><ellipse cx="84" cy="101" rx="5" ry="2.2" fill="#fff"/><circle cx="85" cy="101" r="1.9" fill="#4d86c0"/>'+
+'<ellipse cx="116" cy="100" rx="5.4" ry="3.6" fill="#fff"/><circle cx="117" cy="100" r="2.7" fill="#4d86c0"/><circle cx="117" cy="100" r="1.2" fill="#1d2a3a"/><circle cx="118" cy="99" r=".8" fill="#fff"/></g>'+
+'<path d="M78 98.5 Q84 97 90 99" stroke="#a7795f" stroke-width="1.6" fill="none"/>'+
+'<path d="M110 96 Q116 94 122 97" stroke="#a7795f" stroke-width="1.2" fill="none"/>'+
+'<path d="M101 102 Q97 116 97 122 Q102 126 109 122" stroke="#c48d70" stroke-width="2.3" fill="none" stroke-linecap="round"/>'+
+'<path class="mo n" d="M90 132 Q100 136 110 131" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>'+
+'<path class="mo s" d="M88 129 Q100 143 112 129 Q100 134 88 129 Z" fill="#9b3a2c" stroke="#8a4a3a" stroke-width="1.5" stroke-linejoin="round"/>'+
+'<path class="mo f" d="M90 135 Q100 128 110 135" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>'+
+'<path class="sweat" d="M60 106 Q65 116 60 120 Q55 116 60 106 Z" fill="#7cc3f0"/>'+
+'<text class="spark" x="30" y="44" font-size="18" fill="#f0b400">✦</text>'+
+'<text class="spark" x="170" y="40" font-size="14" fill="#f0b400">✦</text>'+
+'<text class="spark" x="172" y="100" font-size="11" fill="#f0b400">✦</text>'+
+'</g></svg>';
+function makeAvatar(el,bubble,id){
+  el.innerHTML=EULER_SVG.replace(/__ID__/g,id);var tm=null;
+  function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
+  return {mood:function(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
+    if(m==='smile'){el.classList.add('smile');restart('hop');}
+    if(m==='frown'){el.classList.add('frown');restart('shake');}
+    if(text!==undefined){bubble.innerHTML=text;bubble.className='bubble'+(m==='smile'?' good':m==='frown'?' bad':'');}
+    if(!hold)tm=setTimeout(function(){el.classList.remove('smile','frown');bubble.className='bubble';},3200);}};
+}
+var AV1=makeAvatar($('av1'),$('bub1'),'e1'),AV2=makeAvatar($('av2'),$('bub2'),'e2'),AV3=makeAvatar($('av3'),$('bub3'),'e3');
+var QUOTES=[
+ '我 1707 年生於瑞士巴塞爾，年輕時跟著約翰・白努利（Johann Bernoulli）學數學。',
+ '大約 1727 年起，我開始用字母 <i>e</i> 表示自然對數的底，後來大家就一直沿用了。',
+ '在《無窮分析引論》（1748）裡，我寫下 e<sup>iθ</sup> = cos θ + i sin θ，把指數和三角函數連在一起。',
+ '我也算過 e ≈ 2.71828182845904523536028…，一路算到小數點後 23 位。',
+ '早在 1740 年代，我就研究過 ∫X(x)e<sup>ax</sup>dx 這類積分來解微分方程，後來拉普拉斯把這個想法發揚光大。',
+ '我右眼很早就失明，晚年幾乎全盲，但論文反而寫得更多。拉普拉斯據說常勸學生：「讀歐拉吧，他是我們所有人的老師。」'
+];
+var qi=0;$('av1').onclick=function(){AV1.mood('smile',QUOTES[qi++%QUOTES.length]);};
+
+/* ---------- 小測驗 ---------- */
+var QZ=[
+ {q:'f(t) = e<sup>−0.5t</sup>，當 t → ∞ 時會怎樣？',o:['趨近 0（收斂）','趨近 1','趨近 ∞（發散）','在 −1 與 1 之間振盪'],a:0,e:'a = −0.5 < 0，指數衰減，每隔 ln2/0.5 ≈ 1.39 就減半，最後趨近 0。',h:'看指數 a 的正負號就好！回去玩第 1 節。'},
+ {q:'e<sup>at</sup> 收斂或發散，主要由什麼決定？',o:['a 的正負號','t 的大小','e 的數值 2.718…','初始值 f(0)'],a:0,e:'不論 a 是多少，f(0) = 1；t → ∞ 時的命運只看 a：負收斂、零不變、正發散。',h:'把滑桿 a 從負拉到正，看曲線怎麼變。'},
+ {q:'a = 0 時，e<sup>at</sup> 會怎樣？',o:['恆等於 1，既不收斂到 0 也不發散','趨近 0','趨近 ∞','無法定義'],a:0,e:'e<sup>0·t</sup> = 1，是有界的常數，但不會衰減到 0。',h:'把 a 代 0 進去算算看。'},
+ {q:'a = −2 和 a = −0.5，哪一個衰減得比較快？',o:['a = −2','a = −0.5','一樣快','要看 t 的單位'],a:0,e:'半衰期 ln2/|a|：a = −2 時約 0.35，a = −0.5 時約 1.39。|a| 越大，衰減越快。',h:'比較兩者的半衰期 ln2/|a|。'},
+ {q:'∫<sub>0</sub><sup>∞</sup> e<sup>at</sup>·e<sup>−σt</sup> dt 在什麼條件下收斂？',o:['σ > a','σ < a','σ = a','任何 σ 都收斂'],a:0,e:'被積函數是 e<sup>(a−σ)t</sup>，只有指數 a − σ < 0（也就是 σ > a）時才衰減，面積才有限。',h:'回第 2 節，看紫色曲線什麼時候往下掉。'},
+ {q:'a = 1、σ = 3 時，∫<sub>0</sub><sup>∞</sup> e<sup>(a−σ)t</sup> dt 等於多少？',o:['0.5','2','1/3','∞'],a:0,e:'σ − a = 2 > 0，積分 = 1/(σ − a) = 1/2 = 0.5。',h:'收斂時面積的極限是 1/(σ − a)。'},
+ {q:'當 σ = a 剛好平手時，積分 ∫<sub>0</sub><sup>∞</sup> e<sup>(a−σ)t</sup> dt 會怎樣？',o:['被積函數恆為 1，面積 = T → ∞，發散','等於 1','等於 0','剛好收斂到 1/a'],a:0,e:'e<sup>0·t</sup> = 1，0 到 T 的面積就是 T，T → ∞ 時發散。',h:'把第 2 節的 σ 拉到和 a 一樣，看右圖的面積。'}
+];
+var PRAISE=['Optime！（太好了！）','完全正確！','你算得比我還快！','漂亮！收斂到正確答案了。','Bene！很好！'];
+var answered=0,score=0,streak=0;
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function buildQuiz(){answered=0;score=0;streak=0;$('score').textContent='';$('retry').style.display='none';var box=$('quiz');box.innerHTML='';
+  QZ.forEach(function(z,qn){var d=document.createElement('div');d.className='q';d.innerHTML='<div class="qt">'+(qn+1)+'. '+z.q+'</div>';
+    shuffle(z.o.map(function(t,i){return i;})).forEach(function(i){var b=document.createElement('button');b.className='opt';b.innerHTML=z.o[i];b.dataset.i=i;
+      b.onclick=function(){var bs=d.querySelectorAll('.opt');bs.forEach(function(x){x.disabled=true;if(+x.dataset.i===z.a)x.classList.add('right');});
+        var ex=document.createElement('div');ex.className='exp';answered++;
+        if(i===z.a){score++;streak++;ex.innerHTML='<span class="ok">✔ 正確！</span>'+z.e;AV2.mood('smile',streak>=3?'連對 '+streak+' 題！你已經比 e<sup>at</sup> 還「發」了！':PRAISE[Math.floor(Math.random()*PRAISE.length)]);}
+        else{streak=0;b.classList.add('wrong');ex.innerHTML='<span class="bad">✘ </span>'+z.e;AV2.mood('frown',z.h);}
+        d.appendChild(ex);
+        if(answered===QZ.length){$('score').textContent='得分：'+score+' / '+QZ.length;$('retry').style.display='inline-block';
+          setTimeout(function(){if(score===QZ.length)AV2.mood('smile','滿分！你已經完全掌握收斂與發散了！',true);
+            else if(score>=5)AV2.mood('smile','很不錯！答錯的題目再看一次解釋就好。',true);
+            else AV2.mood('frown','建議回到第 1、2 節再玩一玩 a 和 σ 的滑桿喔。',true);},3300);}
+      };d.appendChild(b);});box.appendChild(d);});}
+$('retry').onclick=function(){buildQuiz();AV2.mood('','新的一輪！選項順序已經打亂囉。');window.scrollTo({top:$('quiz').getBoundingClientRect().top+scrollY-80,behavior:'smooth'});};
+buildQuiz();
+
+/* ---------- init ---------- */
+function drawAll(){draw1();draw2();}
+drawAll();
+var rt=null;window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(drawAll,120);});
+if(window.matchMedia){var mq=matchMedia('(prefers-color-scheme: dark)');if(mq.addEventListener)mq.addEventListener('change',drawAll);}
+</script>
+</body>
+</html>

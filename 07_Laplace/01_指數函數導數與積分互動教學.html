@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>指數函數導數與積分互動教學</title>
+<style>
+:root{
+  --bg:#f7f6f2;--card:#fff;--ink:#1d2330;--mute:#667085;--line:#e3e1da;--ok:#1f9d6b;--bad:#d6334f;
+  --grid:#eceae4;--axis:#9aa0ab;--accent:#2f6fdb;--tint:#eaf1fc;
+  --c1:#2f6fdb;--c2:#e07a1f;--c3:#8b45d6;--warn:#c98a00;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+    --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+    --c1:#6c9dff;--c2:#ffa552;--c3:#b98bff;--warn:#ffd166;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+  --c1:#6c9dff;--c2:#ffa552;--c3:#b98bff;--warn:#ffd166;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.9rem}
+header p{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:18px}
+.card h2{margin:0 0 12px;font-size:1.22rem;line-height:1.5}
+.num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:.9rem;margin-right:10px;vertical-align:2px}
+h3{margin:0 0 6px;font-size:1.05rem}
+p{margin:.4em 0}
+.m{font-family:"Times New Roman","Cambria Math",serif;font-style:italic;white-space:nowrap}
+.m sup{font-size:.72em}
+.def{font-size:1.2rem;text-align:center;padding:12px;border-radius:10px;background:var(--tint);line-height:2.2}
+.note{color:var(--mute);font-size:.92rem}
+.c1{color:var(--c1)}.c2{color:var(--c2)}.c3{color:var(--c3)}.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+.frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;line-height:1.15;margin:0 2px}
+.frac>span:first-child{border-bottom:1px solid currentColor;padding:0 3px}
+.frac>span:last-child{padding:0 3px}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start}
+.two>*{min-width:0}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.three>div{border:2px solid var(--line);border-radius:12px;padding:10px 14px;min-width:0;text-align:center}
+.three svg{width:100%;max-width:170px;height:70px;display:block;margin:4px auto}
+@media (max-width:860px){.two,.three{grid-template-columns:minmax(0,1fr)}}
+.cvbox{width:100%;min-width:0}
+.cvbox canvas{display:block;border-radius:10px;touch-action:none}
+.cap{text-align:center;font-size:.9rem;color:var(--mute);margin-top:4px}
+.ctl{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;margin:8px 0 10px}
+.ctl label{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ctl input[type=range]{width:190px;max-width:100%;accent-color:var(--accent)}
+.ctl b.v{display:inline-block;min-width:3.4em;font-family:Consolas,monospace}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:9px;padding:5px 12px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.out{border-radius:10px;padding:10px 14px;background:var(--tint);margin-top:10px;line-height:1.9}
+.verdict{font-weight:700;font-size:1.08rem}
+.tbl{overflow-x:auto;margin-top:10px}
+table{border-collapse:collapse;min-width:100%;font-size:.95rem}
+td,th{border:1px solid var(--line);padding:4px 8px;text-align:center;white-space:nowrap}
+th{background:var(--tint)}
+.pill{display:inline-block;padding:1px 10px;border-radius:99px;font-size:.88rem;font-weight:700;color:#fff}
+.pill.ok{background:var(--ok)}.pill.bad{background:var(--bad)}.pill.warn{background:var(--warn)}
+/* quiz */
+.q{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px}
+.q .qt{font-weight:700;margin-bottom:6px}
+.opt{display:block;width:100%;text-align:left;margin:6px 0;padding:7px 12px}
+.opt.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,transparent)}
+.opt.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,transparent)}
+.opt:disabled{cursor:default;color:var(--ink)}
+.exp{margin-top:6px;font-size:.95rem}
+#score{font-size:1.15rem;font-weight:700;margin-top:6px}
+footer{text-align:center;color:var(--mute);font-size:.88rem;margin-top:30px}
+/* avatar */
+.avwrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.av{width:100%;max-width:220px;cursor:pointer;user-select:none}
+.av svg{width:100%;display:block;overflow:visible;background:none}
+.av .bodyg{animation:bob 3.2s ease-in-out infinite;transform-origin:100px 200px}
+.av .eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+.av .hairL{animation:sway 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:top center}
+.av .hairR{animation:sway 3.2s ease-in-out infinite reverse;transform-box:fill-box;transform-origin:top center}
+.av .brow{transition:transform .3s;transform-box:fill-box}
+.av .browL{transform-origin:right center}.av .browR{transform-origin:left center}
+.av .mo{opacity:0;transition:opacity .25s}.av .mo.n{opacity:1}
+.av .blush,.av .sweat,.av .spark{opacity:0;transition:opacity .3s}
+.av.smile .mo.n,.av.frown .mo.n{opacity:0}
+.av.smile .mo.s{opacity:1}.av.frown .mo.f{opacity:1}
+.av.smile .blush{opacity:.55}.av.smile .spark{opacity:1}.av.frown .sweat{opacity:.9}
+.av.smile .brow{transform:translateY(-3px)}
+.av.frown .browL{transform:rotate(14deg) translateY(2px)}.av.frown .browR{transform:rotate(-14deg) translateY(2px)}
+.av.hop svg{animation:hop .7s ease}
+.av.shake svg{animation:shake .55s ease}
+.av .spark{animation:twinkle 1s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}
+@keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+@keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.bubble{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.95rem;margin-bottom:10px;min-height:2.6em;max-width:260px;text-align:center;transition:border-color .3s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--line);border-bottom:0}
+.bubble.good{border-color:var(--ok)}.bubble.good::after{border-top-color:var(--ok)}
+.bubble.bad{border-color:var(--bad)}.bubble.bad::after{border-top-color:var(--bad)}
+.intro{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:center}
+.intro>*,.qgrid>*,.side>*{min-width:0}
+.intro .avwrap{flex-direction:row;gap:10px}.intro .bubble{flex:1;margin:0}.intro .bubble::after{display:none}.intro .av{width:125px;flex:none}
+.qgrid{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:18px;align-items:start}
+.qgrid .avwrap{position:sticky;top:12px}
+.side{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:18px;align-items:start}
+.side .av{max-width:150px}
+@media (max-width:860px){.intro,.qgrid,.side{grid-template-columns:minmax(0,1fr)}.intro .avwrap{flex-direction:column}.intro .bubble{margin-bottom:10px}.intro .bubble::after{display:block}.intro .av,.qgrid .av,.side .av{width:auto;max-width:140px}.qgrid .avwrap{position:static;order:-1}}
+.big{font-family:"Times New Roman","Cambria Math",serif;font-size:1.35rem;text-align:center;padding:12px;border-radius:10px;background:var(--tint);line-height:2.3}
+.big .frac{font-size:.95em}
+.big{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 40px}
+.bx{white-space:nowrap}
+.three .big3{font-family:"Times New Roman",serif;font-style:italic;font-size:1.5rem}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:5px 12px}
+.seg button.sel{background:var(--accent);color:#fff}
+.series{display:grid;grid-template-columns:5.5em repeat(7,minmax(0,1fr));gap:6px 6px;align-items:center;margin-top:10px;font-family:"Times New Roman","Cambria Math",serif;font-size:1.1rem}
+.series .lab{font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;font-size:.85rem;color:var(--mute);text-align:right}
+.chip{border:2px solid var(--line);border-radius:10px;padding:4px 2px;text-align:center;min-height:2.6em;display:flex;align-items:center;justify-content:center;transition:all .45s;min-width:0}
+.chip.k0{border-color:var(--c1)}.chip.k1{border-color:var(--c2)}.chip.k2{border-color:var(--c3)}.chip.k3{border-color:var(--ok)}.chip.k4{border-color:var(--warn)}.chip.k5{border-color:var(--bad)}
+.chip.hide{opacity:0;transform:translateY(-6px)}
+.chip.zero{border-style:dashed;color:var(--mute)}
+.chip.plus{border-color:transparent;color:var(--mute)}
+.series-wrap{overflow-x:auto}
+.series-wrap .series{min-width:560px}
+.stepbar{height:6px;border-radius:6px;background:var(--line);overflow:hidden;margin:8px 0}
+.stepbar>div{height:100%;background:var(--accent);transition:width .4s}
+.stepbox{border-left:4px solid var(--accent);background:var(--tint);border-radius:8px;padding:8px 12px;margin-top:10px}
+</style>
+<style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line,#e3e1da);border-radius:12px;background:var(--card,var(--surface,#fff));color:var(--ink,#1d2330);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+.pu-badge img{width:58px;height:58px;display:block}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute,var(--muted,#667085))}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="pu-hd">
+  <div class="pu-hd-main">
+  <h1>指數函數 e<sup>x</sup>：微分是自己，積分也是自己</h1>
+  <p>工程數學 ・ 互動教學：切線斜率＝高度＝左邊的面積，歐拉老師帶你看 e<sup>x</sup> 為什麼這麼特別</p>
+</div>
+  <div class="pu-badge"><img alt="靜宜大學校徽" src="data:image/webp;base64,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"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</header>
+
+<!-- 0 -->
+<section class="card">
+  <h2><span class="num">0</span>一句話直覺：在 e<sup>x</sup> 上，三個數字永遠一樣</h2>
+  <div class="intro">
+    <div>
+      <div class="big">
+        <span class="bx"><span class="frac"><span>d</span><span>dx</span></span> <span class="m">e<sup>x</sup></span> = <span class="m">e<sup>x</sup></span></span>
+        <span class="bx">∫<sub>−∞</sub><sup class="m">x</sup> <span class="m">e<sup>t</sup></span> <span class="m">dt</span> = <span class="m">e<sup>x</sup></span></span>
+        <span class="bx">∫ <span class="m">e<sup>x</sup></span> <span class="m">dx</span> = <span class="m">e<sup>x</sup></span> + <span class="m">C</span></span>
+      </div>
+      <div class="three">
+        <div style="border-color:var(--c1)"><b class="c1">高度</b><br>曲線在 x 的高度<br><span class="big3">e<sup>x</sup></span></div>
+        <div style="border-color:var(--c2)"><b class="c2">切線斜率（導數）</b><br>曲線在 x 有多陡<br><span class="big3">e<sup>x</sup></span></div>
+        <div style="border-color:var(--ok)"><b class="ok">左邊的面積（積分）</b><br>從 −∞ 累積到 x<br><span class="big3">e<sup>x</sup></span></div>
+      </div>
+      <p class="note" style="margin-top:8px">「成長的速度」等於「目前的大小」：大小越大、長得越快。這正是人口、複利、細菌繁殖的規則，也是解微分方程時處處遇到 e<sup>x</sup> 的原因。</p>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub1">Salve！我是歐拉。e<sup>x</sup> 是唯一（只差一個倍數）「微分後不變」的函數～點我聽故事！</div><div class="av" id="av1" title="點我聽故事"></div></div>
+  </div>
+</section>
+
+<!-- 1 -->
+<section class="card">
+  <h2><span class="num">1</span>切線斜率＝高度：斜率三角形的底永遠是 1</h2>
+  <div class="ctl">
+    <label>x = <input type="range" id="x1" min="-3" max="2" step="0.01" value="1"><b class="v" id="x1v">1</b></label>
+    <button data-x1="-2">x = −2</button><button data-x1="0">x = 0</button><button data-x1="1">x = 1</button><button data-x1="2">x = 2</button>
+    <button class="pri" id="play1">▶ 沿曲線滑動</button>
+  </div>
+  <div class="two">
+    <div class="cvbox"><canvas id="cv1"></canvas><div class="cap"><span class="c1">藍：y = e<sup>x</sup></span>　<span class="c2">橘：切線</span>　<span class="c3">紫：斜率三角形（底 1、高 e<sup>x</sup>）</span></div></div>
+    <div>
+      <div class="out" id="out1"></div>
+      <p class="note">觀察：切線和 x 軸的交點，永遠在 <b>x − 1</b>。所以斜率三角形的底是 1、高是 e<sup>x</sup>，斜率 = <span class="frac"><span>高</span><span>底</span></span> = <span class="frac"><span>e<sup>x</sup></span><span>1</span></span> = e<sup>x</sup>。不論點滑到哪裡，這個三角形只會「長高」，底永遠是 1。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="card">
+  <h2><span class="num">2</span>面積＝高度：e<sup>x</sup> 左邊的面積也是 e<sup>x</sup></h2>
+  <div class="ctl">
+    <label>右端點 x = <input type="range" id="x3" min="-2" max="2" step="0.01" value="1"><b class="v" id="x3v">1</b></label>
+    <span class="seg"><button id="lo_inf" class="sel">從 −∞ 開始累積</button><button id="lo_0">從 0 開始累積</button></span>
+    <button class="pri" id="play3">▶ 往右推</button>
+  </div>
+  <div class="two">
+    <div class="cvbox"><canvas id="cv3"></canvas><div class="cap"><span class="ok">綠色區域＝累積面積</span>　<span class="c1">藍：y = e<sup>t</sup></span>　<span class="c3">紫色長條＝面積換算成的高度</span></div></div>
+    <div>
+      <div class="out" id="out3"></div>
+      <p class="note" id="note3"></p>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="card">
+  <h2><span class="num">3</span>為什麼成立？用級數一項一項微分、積分</h2>
+  <p>歐拉在 1748 年把 e<sup>x</sup> 寫成無窮級數：<span class="m">e<sup>x</sup></span> = 1 + <span class="m">x</span> + <span class="frac"><span class="m">x<sup>2</sup></span><span>2!</span></span> + <span class="frac"><span class="m">x<sup>3</sup></span><span>3!</span></span> + ⋯。關鍵：<span class="frac"><span>d</span><span>dx</span></span><span class="frac"><span class="m">x<sup>k</sup></span><span>k!</span></span> = <span class="frac"><span class="m">x<sup>k−1</sup></span><span>(k−1)!</span></span>──每一項微分後，剛好變成<b>前一項</b>。</p>
+  <div class="ctl">
+    <button id="s_reset">⟲ 重來</button><button id="s_prev">◀ 上一步</button><button id="s_next" class="pri">下一步 ▶</button><button id="s_auto">▶ 自動播放</button>
+  </div>
+  <div class="stepbar"><div id="sbar" style="width:0%"></div></div>
+  <div class="series-wrap"><div class="series" id="ser"></div></div>
+  <div class="stepbox" id="sbox"></div>
+</section>
+
+<!-- 5 -->
+<section class="card">
+  <h2><span class="num">4</span>觀念小測驗</h2>
+  <div class="qgrid">
+    <div><div id="quiz"></div><div id="score"></div><button id="retry" style="display:none">⟲ 再做一次</button></div>
+    <div class="avwrap"><div class="bubble" id="bub2">來考考你！答對我會笑，答錯我會皺眉喔。</div><div class="av" id="av2"></div></div>
+  </div>
+</section>
+
+<footer>指數函數導數與積分互動教學 ・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+
+<script>
+var $=function(id){return document.getElementById(id);};
+function col(n){return getComputedStyle(document.documentElement).getPropertyValue('--'+n).trim();}
+function nf(x,d){if(d===undefined)d=3;if(!isFinite(x))return '∞';var s=(+x.toFixed(d)).toString();if(s==='-0')s='0';return s.replace(/-/g,'−');}
+function alpha(hex,a){var c=hex.trim();if(c[0]==='#'&&c.length===7){return 'rgba('+parseInt(c.substr(1,2),16)+','+parseInt(c.substr(3,2),16)+','+parseInt(c.substr(5,2),16)+','+a+')';}return c;}
+function fit(cv,h){cv.style.width='0px';var w=Math.max(220,cv.parentElement.clientWidth);cv.style.width=w+'px';cv.style.height=h+'px';
+  var dpr=window.devicePixelRatio||1;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);var c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);
+  c.fillStyle=col('card');c.fillRect(0,0,w,h);return {c:c,w:w,h:h};}
+function frame(g,xr,yr,xt,yt,opt){opt=opt||{};var c=g.c,L=opt.l||34,R=g.w-(opt.r||12),T=opt.t||12,B=g.h-(opt.b||24);
+  var X=function(x){return L+(x-xr[0])/(xr[1]-xr[0])*(R-L);},Y=function(y){return B-(y-yr[0])/(yr[1]-yr[0])*(B-T);};
+  c.lineWidth=1;c.strokeStyle=col('grid');c.fillStyle=col('mute');c.font='11px system-ui';
+  xt.forEach(function(x){c.beginPath();c.moveTo(X(x),T);c.lineTo(X(x),B);c.stroke();c.textAlign='center';c.fillText(nf(x,1),X(x),B+15);});
+  yt.forEach(function(y){c.beginPath();c.moveTo(L,Y(y));c.lineTo(R,Y(y));c.stroke();c.textAlign='right';c.fillText(nf(y,1),L-5,Y(y)+4);});
+  c.strokeStyle=col('axis');c.lineWidth=1.3;c.beginPath();var y0=Math.min(Math.max(0,yr[0]),yr[1]),x0=Math.min(Math.max(0,xr[0]),xr[1]);
+  c.moveTo(L,Y(y0));c.lineTo(R,Y(y0));c.moveTo(X(x0),T);c.lineTo(X(x0),B);c.stroke();
+  if(opt.xl){c.textAlign='right';c.fillText(opt.xl,R,Y(y0)-5);}
+  return {X:X,Y:Y,L:L,R:R,T:T,B:B,c:c};}
+function curve(F,f,x0,x1,color,lw,dash){var c=F.c;c.save();c.beginPath();c.rect(F.L,F.T,F.R-F.L,F.B-F.T);c.clip();
+  c.strokeStyle=color;c.lineWidth=lw||2;c.setLineDash(dash||[]);c.beginPath();for(var i=0;i<=300;i++){var x=x0+(x1-x0)*i/300,py=Math.max(-1e4,Math.min(1e4,F.Y(f(x))));if(i)c.lineTo(F.X(x),py);else c.moveTo(F.X(x),py);}
+  c.stroke();c.restore();}
+function dot(F,x,y,color,r){F.c.fillStyle=color;F.c.beginPath();F.c.arc(F.X(x),F.Y(y),r||5,0,7);F.c.fill();}
+function txt(F,s,x,y,color,align,font){var c=F.c;c.fillStyle=color;c.font=font||'bold 12px system-ui';c.textAlign=align||'left';c.fillText(s,x,y);}
+function tween(slider,target,draw,ms){var from=+$(slider).value,t0=performance.now();ms=ms||700;
+  (function step(now){var p=Math.min(1,(now-t0)/ms),e=p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;$(slider).value=from+(target-from)*e;draw();if(p<1)requestAnimationFrame(step);})(t0);}
+function player(btn,slider,lo,hi,dur,draw){var raf=null;$(btn).onclick=function(){if(raf){cancelAnimationFrame(raf);raf=null;return;}
+  var t0=performance.now();function step(now){var p=Math.min(1,(now-t0)/dur);$(slider).value=(lo+(hi-lo)*p).toFixed(3);draw();if(p<1)raf=requestAnimationFrame(step);else raf=null;}raf=requestAnimationFrame(step);};}
+
+/* ---------- 1 切線 ---------- */
+function draw1(){
+  var a=+$('x1').value;$('x1v').textContent=nf(a,2);
+  var H=Math.min(340,Math.max(280,$('cv1').parentElement.clientWidth*0.75));
+  var g=fit($('cv1'),H),F=frame(g,[-4,2.6],[0,8],[-4,-3,-2,-1,0,1,2],[0,2,4,6,8],{xl:'x'}),c=g.c,ea=Math.exp(a);
+  curve(F,Math.exp,-4,2.6,col('c1'),3);
+  curve(F,function(x){return ea*(x-a+1);},-4,2.6,col('c2'),2);
+  // slope triangle
+  c.save();c.beginPath();c.rect(F.L,F.T,F.R-F.L,F.B-F.T);c.clip();
+  c.fillStyle=alpha(col('c3'),.16);c.strokeStyle=col('c3');c.lineWidth=2;c.beginPath();
+  c.moveTo(F.X(a-1),F.Y(0));c.lineTo(F.X(a),F.Y(0));c.lineTo(F.X(a),F.Y(ea));c.closePath();c.fill();c.stroke();c.restore();
+  txt(F,'底 = 1',(F.X(a-1)+F.X(a))/2,F.Y(0)-6,col('c3'),'center');
+  var hy=F.Y(Math.min(ea,8)/2);txt(F,'高 = '+nf(ea,2),F.X(a)+6,Math.max(F.T+12,hy),col('c3'),'left');
+  dot(F,a-1,0,col('c2'),4.5);dot(F,a,ea,col('c1'),6);
+  if(ea>8)txt(F,'↑ 點在圖外（e^x = '+nf(ea,2)+'）',F.X(a)-6,F.T+14,col('c1'),'right');
+  $('out1').innerHTML='點 (x, e<sup>x</sup>) = (<b>'+nf(a,2)+'</b>, <b class="c1">'+nf(ea,4)+'</b>)<br>'+
+    '切線斜率（導數）= <b class="c2">'+nf(ea,4)+'</b>　（數值檢查：<span class="frac"><span>e<sup>x+0.0001</sup> − e<sup>x</sup></span><span>0.0001</span></span> = '+nf((Math.exp(a+1e-4)-ea)/1e-4,4)+'）<br>'+
+    '切線與 x 軸交於 x = <b>'+nf(a-1,2)+'</b>，正好是 x − 1<br><b>高度 = 斜率</b>：兩個都是 '+nf(ea,4);
+}
+$('x1').oninput=draw1;
+document.querySelectorAll('[data-x1]').forEach(function(b){b.onclick=function(){tween('x1',+b.dataset.x1,draw1);};});
+player('play1','x1',-3,2,5000,draw1);
+
+/* ---------- 3 面積 ---------- */
+var LO='inf';
+function area(x){return LO==='inf'?Math.exp(x):Math.exp(x)-1;}
+function simpson(a,b){var n=2000,h=(b-a)/n,s=Math.exp(a)+Math.exp(b);for(var i=1;i<n;i++)s+=(i%2?4:2)*Math.exp(a+i*h);return s*h/3;}
+function draw3(){
+  var x=+$('x3').value;$('x3v').textContent=nf(x,2);
+  var H=Math.min(340,Math.max(280,$('cv3').parentElement.clientWidth*0.75));
+  var g=fit($('cv3'),H),F=frame(g,[-5,2.6],[0,8],[-5,-4,-3,-2,-1,0,1,2],[0,2,4,6,8],{xl:'t'}),c=g.c,ex=Math.exp(x);
+  var a0=LO==='inf'?-5:0,lo=Math.min(a0,x),hi=Math.max(a0,x);
+  c.save();c.beginPath();c.rect(F.L,F.T,F.R-F.L,F.B-F.T);c.clip();
+  c.fillStyle=alpha(col('ok'),LO==='0'&&x<0?.18:.32);c.beginPath();c.moveTo(F.X(lo),F.Y(0));
+  for(var i=0;i<=200;i++){var t=lo+(hi-lo)*i/200;c.lineTo(F.X(t),F.Y(Math.exp(t)));}
+  c.lineTo(F.X(hi),F.Y(0));c.closePath();c.fill();c.restore();
+  if(LO==='inf')txt(F,'← 一直延伸到 −∞',F.L+4,F.Y(0)-8,col('ok'),'left');
+  curve(F,Math.exp,-5,2.6,col('c1'),3);
+  // purple bar = area as height
+  var A=area(x),bx=F.X(x)+10,base=LO==='inf'?0:1;
+  c.fillStyle=alpha(col('c3'),.85);
+  var y1=F.Y(base),y2=F.Y(base+A);c.fillRect(bx,Math.min(y1,y2),9,Math.abs(y1-y2));
+  if(LO==='0'){c.strokeStyle=col('mute');c.setLineDash([4,4]);c.lineWidth=1.2;c.beginPath();c.moveTo(F.L,F.Y(1));c.lineTo(F.R,F.Y(1));c.stroke();c.setLineDash([]);
+    txt(F,'y = 1',F.R-4,F.Y(1)-5,col('mute'),'right','11px system-ui');
+    c.strokeStyle=col('ok');c.lineWidth=2;c.beginPath();c.moveTo(F.X(0),F.Y(0));c.lineTo(F.X(0),F.Y(1));c.stroke();}
+  dot(F,x,ex,col('c1'),6);
+  txt(F,(LO==='inf'?'面積 = ':'面積 = ')+nf(A,3),bx+14,Math.max(F.T+12,(y1+y2)/2+4),col('c3'),'left');
+  var num=LO==='inf'?simpson(-40,x):(x>=0?simpson(0,x):-simpson(x,0));
+  if(LO==='inf'){
+    $('out3').innerHTML='綠色面積 ∫<sub>−∞</sub><sup>'+nf(x,2)+'</sup> e<sup>t</sup> dt = <b class="ok">'+nf(A,4)+'</b>　（數值積分：'+nf(num,4)+'）<br>'+
+      '右端點高度 e<sup>'+nf(x,2)+'</sup> = <b class="c1">'+nf(ex,4)+'</b><br><b>面積 = 高度</b>：紫色長條的高度剛好碰到曲線上的藍點。';
+    $('note3').innerHTML='為什麼從 −∞ 也算得出有限的面積？因為往左 e<sup>t</sup> 衰減得很快：每往左 1 格，高度只剩 1/e ≈ 0.368 倍，加起來是有限的。';
+  }else{
+    $('out3').innerHTML='綠色面積 ∫<sub>0</sub><sup>'+nf(x,2)+'</sup> e<sup>t</sup> dt = <b class="ok">'+nf(A,4)+'</b>　（數值積分：'+nf(num,4)+'）<br>'+
+      '= e<sup>'+nf(x,2)+'</sup> − e<sup>0</sup> = '+nf(ex,4)+' − 1'+(x<0?'<br><span class="note">x &lt; 0 時是從右往左積，面積帶負號。</span>':'')+'<br>'+
+      '紫色長條從 y = 1 長到 y = e<sup>x</sup>：少掉的那 1，就是 0 左邊的面積 ∫<sub>−∞</sub><sup>0</sup> e<sup>t</sup> dt = 1。';
+    $('note3').innerHTML='不定積分寫成 ∫ e<sup>x</sup> dx = e<sup>x</sup> + C：起點不同，只差一個常數 C。從 −∞ 開始時 C = 0，從 0 開始時 C = −1。';
+  }
+}
+$('x3').oninput=draw3;
+$('lo_inf').onclick=function(){LO='inf';$('lo_inf').classList.add('sel');$('lo_0').classList.remove('sel');draw3();};
+$('lo_0').onclick=function(){LO='0';$('lo_0').classList.add('sel');$('lo_inf').classList.remove('sel');draw3();};
+player('play3','x3',-2,2,5000,draw3);
+
+/* ---------- 4 級數步驟 ---------- */
+function term(k,shift){if(k<0)return '0';if(k===0)return '1';if(k===1)return 'x';
+  return '<span class="frac"><span>x<sup>'+k+'</sup></span><span>'+k+'!</span></span>';}
+var N=6;
+function row(label,cells){var h='<div class="lab">'+label+'</div>';cells.forEach(function(c){h+='<div class="chip '+(c.cls||'')+'">'+c.h+'</div>';});return h;}
+function seriesCells(start,kcls){var a=[];for(var k=0;k<N;k++){var kk=k+start;a.push({h:term(kk),cls:kcls?'k'+((kk+60)%6):''});}a.push({h:'⋯',cls:'plus'});return a;}
+var STEPS=[
+ {t:'把 e<sup>x</sup> 寫成無窮多項相加。每一項的顏色代表它的「身分」。',rows:function(){return [['e<sup>x</sup> =',seriesCells(0,true)]];}},
+ {t:'<b>逐項微分</b>：1 微分變 0；x 變 1；<span class="frac"><span>x<sup>2</sup></span><span>2!</span></span> 變 <span class="frac"><span>2x</span><span>2!</span></span> = x；<span class="frac"><span>x<sup>3</sup></span><span>3!</span></span> 變 <span class="frac"><span>3x<sup>2</sup></span><span>3!</span></span> = <span class="frac"><span>x<sup>2</sup></span><span>2!</span></span>……每一項都變成<b>前一項</b>（顏色往左移一格）。',
+  rows:function(){var d=[];for(var k=0;k<N;k++)d.push(k===0?{h:'0',cls:'zero'}:{h:term(k-1),cls:'k'+(k-1)});d.push({h:'⋯',cls:'plus'});return [['e<sup>x</sup> =',seriesCells(0,true)],['微分後 =',d]];}},
+ {t:'把開頭的 0 拿掉、全部往左靠：得到的正是 1 + x + <span class="frac"><span>x<sup>2</sup></span><span>2!</span></span> + ⋯──<b>原來的 e<sup>x</sup></b>！所以 <span class="frac"><span>d</span><span>dx</span></span>e<sup>x</sup> = e<sup>x</sup>。（因為有無窮多項，拿掉一項不會「用完」。）',
+  rows:function(){return [['e<sup>x</sup> =',seriesCells(0,true)],['(e<sup>x</sup>)′ =',seriesCells(0,true)]];},hook:'d'},
+ {t:'<b>逐項積分</b>（從 0 積到 x）：1 → x；x → <span class="frac"><span>x<sup>2</sup></span><span>2!</span></span>；<span class="frac"><span>x<sup>2</sup></span><span>2!</span></span> → <span class="frac"><span>x<sup>3</sup></span><span>3!</span></span>……每一項都變成<b>後一項</b>（顏色往右移一格），最前面空出一格。',
+  rows:function(){var d=[{h:'（空）',cls:'zero'}];for(var k=0;k<N-1;k++)d.push({h:term(k+1),cls:'k'+(k+1)});d.push({h:'⋯',cls:'plus'});return [['e<sup>x</sup> =',seriesCells(0,true)],['∫<sub>0</sub><sup>x</sup> =',d]];}},
+ {t:'空出來的就是第一項 1：∫<sub>0</sub><sup>x</sup> e<sup>t</sup> dt = e<sup>x</sup> − 1。換句話說，<b>∫ e<sup>x</sup> dx = e<sup>x</sup> + C</b>：積分還是自己，只差一個常數。微分讓顏色往左走、積分讓顏色往右走，但整串永遠是同一串！',
+  rows:function(){var d=[{h:'1 不見了',cls:'zero'}];for(var k=1;k<N;k++)d.push({h:term(k),cls:'k'+k});d.push({h:'⋯',cls:'plus'});return [['e<sup>x</sup> =',seriesCells(0,true)],['e<sup>x</sup> − 1 =',d]];},hook:'i'}
+];
+var sk=0,sauto=null;
+function render4(){var S=STEPS[sk],h='';S.rows().forEach(function(r){h+=row(r[0],r[1]);});
+  var el=$('ser');el.innerHTML=h;el.querySelectorAll('.chip').forEach(function(ch,i){ch.classList.add('hide');setTimeout(function(){ch.classList.remove('hide');},30+i*25);});
+  $('sbar').style.width=(sk/(STEPS.length-1)*100)+'%';$('sbox').innerHTML='<b>步驟 '+sk+' / '+(STEPS.length-1)+'</b><br>'+S.t;
+  if(window.AV1&&S.hook==='d')AV1.mood('smile','微分把整串往左推一格，結果還是同一串──e<sup>x</sup> 不怕微分！');
+  if(window.AV1&&S.hook==='i')AV1.mood('smile','積分把整串往右推一格，只差開頭的常數。');}
+function go4(k){sk=Math.max(0,Math.min(STEPS.length-1,k));render4();}
+$('s_next').onclick=function(){go4(sk+1);};$('s_prev').onclick=function(){go4(sk-1);};
+$('s_reset').onclick=function(){clearInterval(sauto);sauto=null;$('s_auto').textContent='▶ 自動播放';go4(0);};
+$('s_auto').onclick=function(){if(sauto){clearInterval(sauto);sauto=null;$('s_auto').textContent='▶ 自動播放';return;}
+  if(sk>=STEPS.length-1)go4(0);$('s_auto').textContent='❚❚ 暫停';
+  sauto=setInterval(function(){if(sk>=STEPS.length-1){clearInterval(sauto);sauto=null;$('s_auto').textContent='▶ 自動播放';return;}go4(sk+1);},2600);};
+
+/* ---------- 歐拉老師 ---------- */
+var EULER_SVG='<svg viewBox="0 0 200 230" aria-label="歐拉老師動畫"><defs><pattern id="__ID__st" patternUnits="userSpaceOnUse" width="30" height="30" patternTransform="rotate(28)"><rect width="30" height="30" fill="#3f8fc4"/><rect width="10" height="30" fill="#34465f"/><rect x="10" width="3" height="30" fill="#5aa6d6"/></pattern></defs>'+
+'<g class="bodyg">'+
+'<rect x="85" y="128" width="30" height="22" rx="10" fill="#e8b99c"/><g transform="translate(0,-8)"><path d="M8 242 Q14 172 100 160 Q186 172 192 242 Z" fill="url(#__ID__st)"/>'+
+'<path d="M74 162 Q86 150 92 152 L98 196 L88 200 Q80 182 74 162 Z" fill="#6f7680"/>'+
+'<path d="M126 162 Q114 150 108 152 L102 196 L112 200 Q120 182 126 162 Z" fill="#6f7680"/>'+
+''+
+'<path d="M86 150 Q100 158 114 150 L116 166 Q108 170 112 180 Q104 186 100 200 Q96 186 88 180 Q92 170 84 166 Z" fill="#f4f2ee" stroke="#c9c3b8" stroke-width="1.2"/>'+
+'<path d="M92 162 Q100 170 108 162 M94 176 Q100 182 106 176" stroke="#c9c3b8" stroke-width="1.2" fill="none"/>'+
+'<circle cx="100" cy="214" r="3" fill="#34465f"/></g>'+
+'<g class="hairR"><path d="M132 86 Q154 88 157 110 Q158 128 150 142 Q142 134 134 130 Q140 112 130 98 Z" fill="#dcd8cf" stroke="#a9a397" stroke-width="1.3"/><path d="M140 96 Q150 112 146 134" stroke="#9e988c" stroke-width="3" fill="none" opacity=".45"/><path d="M134 104 Q142 118 138 128" stroke="#a9a397" stroke-width="1.1" fill="none"/></g>'+
+'<ellipse cx="100" cy="106" rx="34" ry="37" fill="#f0c6aa"/><path d="M68 112 Q72 140 100 146 Q128 140 132 112 Z" fill="#f0c6aa"/>'+
+'<path d="M84 140 Q100 150 116 140" stroke="#d9a888" stroke-width="1.6" fill="none"/><path d="M92 120 Q86 126 88 132 M110 120 Q115 126 113 132" stroke="#dba98b" stroke-width="1.4" fill="none"/>'+
+'<ellipse class="blush" cx="80" cy="120" rx="7" ry="4.5" fill="#f08080"/>'+
+'<ellipse class="blush" cx="120" cy="120" rx="7" ry="4.5" fill="#f08080"/>'+
+'<g class="hairL"><path d="M68 88 Q60 94 62 106 Q66 100 71 96 Z" fill="#dcd8cf" stroke="#a9a397" stroke-width="1.1"/></g>'+
+'<path d="M63 96 Q52 72 68 56 Q76 38 98 40 Q112 28 128 38 Q148 34 154 52 Q166 64 157 84 Q150 96 137 96 Q120 82 100 82 Q80 82 66 96 Z" fill="#ecebe6" stroke="#a9a397" stroke-width="1.5"/><path d="M70 62 Q90 52 106 62 Q90 72 70 74 Z M118 56 Q140 48 152 66 Q136 72 120 66 Z M134 80 Q148 76 156 84 Q148 92 138 92 Z" fill="#c9c4ba" opacity=".75"/>'+
+'<path d="M66 94 Q82 76 100 76 Q122 76 136 94 Q120 84 100 84 Q80 84 66 94 Z" fill="#c7c2b8"/>'+
+'<path d="M124 40 Q144 24 160 36 Q172 48 162 62 Q148 52 124 40 Z" fill="#f6f5f1" stroke="#a9a397" stroke-width="1.4"/>'+
+'<path d="M74 58 Q92 46 110 54 M108 66 Q126 58 146 70 M136 42 Q150 40 158 50" stroke="#a9a397" stroke-width="1.3" fill="none"/>'+
+'<path d="M74 80 Q92 66 120 72" stroke="#b5b0a5" stroke-width="2" fill="none"/>'+
+'<path class="brow browL" d="M75 92 Q84 88 92 91" stroke="#9c8268" stroke-width="2.8" fill="none" stroke-linecap="round"/>'+
+'<path class="brow browR" d="M108 90 Q116 86 125 90" stroke="#9c8268" stroke-width="2.8" fill="none" stroke-linecap="round"/>'+
+'<g class="eyes"><ellipse cx="84" cy="101" rx="5" ry="2.2" fill="#fff"/><circle cx="85" cy="101" r="1.9" fill="#4d86c0"/>'+
+'<ellipse cx="116" cy="100" rx="5.4" ry="3.6" fill="#fff"/><circle cx="117" cy="100" r="2.7" fill="#4d86c0"/><circle cx="117" cy="100" r="1.2" fill="#1d2a3a"/><circle cx="118" cy="99" r=".8" fill="#fff"/></g>'+
+'<path d="M78 98.5 Q84 97 90 99" stroke="#a7795f" stroke-width="1.6" fill="none"/>'+
+'<path d="M110 96 Q116 94 122 97" stroke="#a7795f" stroke-width="1.2" fill="none"/>'+
+'<path d="M101 102 Q97 116 97 122 Q102 126 109 122" stroke="#c48d70" stroke-width="2.3" fill="none" stroke-linecap="round"/>'+
+'<path class="mo n" d="M90 132 Q100 136 110 131" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>'+
+'<path class="mo s" d="M88 129 Q100 143 112 129 Q100 134 88 129 Z" fill="#9b3a2c" stroke="#8a4a3a" stroke-width="1.5" stroke-linejoin="round"/>'+
+'<path class="mo f" d="M90 135 Q100 128 110 135" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>'+
+'<path class="sweat" d="M60 106 Q65 116 60 120 Q55 116 60 106 Z" fill="#7cc3f0"/>'+
+'<text class="spark" x="30" y="44" font-size="18" fill="#f0b400">✦</text>'+
+'<text class="spark" x="170" y="40" font-size="14" fill="#f0b400">✦</text>'+
+'<text class="spark" x="172" y="100" font-size="11" fill="#f0b400">✦</text>'+
+'</g></svg>';
+function makeAvatar(el,bubble,id){
+  el.innerHTML=EULER_SVG.replace(/__ID__/g,id);var tm=null;
+  function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
+  return {mood:function(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
+    if(m==='smile'){el.classList.add('smile');restart('hop');}
+    if(m==='frown'){el.classList.add('frown');restart('shake');}
+    if(text!==undefined){bubble.innerHTML=text;bubble.className='bubble'+(m==='smile'?' good':m==='frown'?' bad':'');}
+    if(!hold)tm=setTimeout(function(){el.classList.remove('smile','frown');bubble.className='bubble';},3200);}};
+}
+var AV1=makeAvatar($('av1'),$('bub1'),'e1'),AV2=makeAvatar($('av2'),$('bub2'),'e2');
+var QUOTES=[
+ '我在 1748 年的《無窮分析引論》裡，用 (1 + x/n)<sup>n</sup> 的極限和無窮級數 1 + x + x²/2! + ⋯ 來定義 e<sup>x</sup>。',
+ '我也算出 e ≈ 2.71828182845904523536028，一路算到小數點後 23 位。',
+ '用字母 e 表示這個數的人就是我，大約在 1727–1728 年的手稿裡開始使用。',
+ '1755 年我出版《微分學原理》（Institutiones calculi differentialis），系統整理了指數函數和對數的微分法則。',
+ '我研究常係數微分方程時，就是用 e<sup>rx</sup> 去試解──因為微分只會多乘一個 r，方程式立刻變成代數方程。',
+ '我右眼很早就失明，晚年幾乎全盲，但論文反而寫得更多。'
+];
+var qi=0;$('av1').onclick=function(){AV1.mood('smile',QUOTES[qi++%QUOTES.length]);};
+
+/* ---------- 小測驗 ---------- */
+var QZ=[
+ {q:'y = e<sup>x</sup> 在 x = 2 的切線斜率是多少？',o:['e<sup>2</sup>（約 7.389）','2','2e','e'],a:0,e:'導數等於自己：(e<sup>x</sup>)′ = e<sup>x</sup>，在 x = 2 就是 e<sup>2</sup> ≈ 7.389。',h:'斜率＝高度，x = 2 的高度是多少？'},
+ {q:'e<sup>x</sup> 在 x = a 的切線，和 x 軸交在哪裡？',o:['x = a − 1','x = 0','x = a + 1','x = −1'],a:0,e:'斜率三角形的底永遠是 1：高 e<sup>a</sup> ÷ 斜率 e<sup>a</sup> = 1，所以交點在 a − 1。',h:'回第 1 節看紫色三角形的底。'},
+ {q:'「導數等於自己」用白話說，是什麼意思？',o:['成長的速度等於目前的大小','函數永遠不會改變','函數是一條直線','函數的值永遠是 1'],a:0,e:'斜率（成長速度）= 高度（目前大小）：越大長得越快，這就是複利、人口、細菌繁殖的規則。',h:'回第 0 節，看「高度」和「切線斜率」兩張卡片。'},
+ {q:'∫ e<sup>x</sup> dx 等於多少？',o:['e<sup>x</sup> + C','e<sup>x+1</sup>/(x+1) + C','x·e<sup>x</sup> + C','e<sup>x</sup>/x + C'],a:0,e:'積分還是自己，只差一個常數 C。注意 x<sup>n+1</sup>/(n+1) 是冪函數 x<sup>n</sup> 的積分公式，不能套在指數函數上。',h:'第 2 節：面積和高度是同一個數。'},
+ {q:'∫<sub>−∞</sub><sup>1</sup> e<sup>t</sup> dt 等於多少？',o:['e（約 2.718）','1','e − 1','∞'],a:0,e:'e<sup>t</sup> 左邊的面積等於右端點的高度：∫<sub>−∞</sub><sup>x</sup> e<sup>t</sup> dt = e<sup>x</sup>，代入 x = 1 得 e。',h:'面積＝右端點的高度。'},
+ {q:'∫<sub>0</sub><sup>1</sup> e<sup>t</sup> dt 等於多少？',o:['e − 1（約 1.718）','e','1','0'],a:0,e:'e<sup>1</sup> − e<sup>0</sup> = e − 1。少掉的 1 就是 0 左邊的面積。',h:'第 2 節切換到「從 0 開始累積」。'},
+ {q:'用級數 e<sup>x</sup> = 1 + x + x²/2! + x³/3! + ⋯ 逐項微分，會發生什麼事？',o:['每一項變成前一項，整串還是 e<sup>x</sup>','每一項變成後一項','每一項都變成 0','每一項乘上 x'],a:0,e:'(x<sup>k</sup>/k!)′ = x<sup>k−1</sup>/(k−1)!，每一項往前移一格，開頭的 1 變成 0，剩下的仍是 e<sup>x</sup>。',h:'看第 3 節步驟 1–2 的顏色怎麼移動。'}
+];
+var PRAISE=['Optime！（太好了！）','完全正確！','斜率和高度一樣漂亮！','漂亮！','Bene！很好！'];
+var answered=0,score=0,streak=0;
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function buildQuiz(){answered=0;score=0;streak=0;$('score').textContent='';$('retry').style.display='none';var box=$('quiz');box.innerHTML='';
+  QZ.forEach(function(z,qn){var d=document.createElement('div');d.className='q';d.innerHTML='<div class="qt">'+(qn+1)+'. '+z.q+'</div>';
+    shuffle(z.o.map(function(t,i){return i;})).forEach(function(i){var b=document.createElement('button');b.className='opt';b.innerHTML=z.o[i];b.dataset.i=i;
+      b.onclick=function(){var bs=d.querySelectorAll('.opt');bs.forEach(function(x){x.disabled=true;if(+x.dataset.i===z.a)x.classList.add('right');});
+        var ex=document.createElement('div');ex.className='exp';answered++;
+        if(i===z.a){score++;streak++;ex.innerHTML='<span class="ok">✔ 正確！</span>'+z.e;AV2.mood('smile',streak>=3?'連對 '+streak+' 題！你的分數像 e<sup>x</sup> 一樣成長！':PRAISE[Math.floor(Math.random()*PRAISE.length)]);}
+        else{streak=0;b.classList.add('wrong');ex.innerHTML='<span class="bad">✘ </span>'+z.e;AV2.mood('frown',z.h);}
+        d.appendChild(ex);
+        if(answered===QZ.length){$('score').textContent='得分：'+score+' / '+QZ.length;$('retry').style.display='inline-block';
+          setTimeout(function(){if(score===QZ.length)AV2.mood('smile','滿分！微分是自己、積分也是自己，你完全懂了！',true);
+            else if(score>=5)AV2.mood('smile','很不錯！答錯的題目再看一次解釋就好。',true);
+            else AV2.mood('frown','建議回到第 1、2 節，看斜率三角形和面積長條。',true);},3300);}
+      };d.appendChild(b);});box.appendChild(d);});}
+$('retry').onclick=function(){buildQuiz();AV2.mood('','新的一輪！選項順序已經打亂囉。');window.scrollTo({top:$('quiz').getBoundingClientRect().top+scrollY-80,behavior:'smooth'});};
+buildQuiz();
+
+/* ---------- init ---------- */
+function drawAll(){draw1();draw3();}
+drawAll();render4();
+var rt=null;window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(drawAll,120);});
+if(window.matchMedia){var mq=matchMedia('(prefers-color-scheme: dark)');if(mq.addEventListener)mq.addEventListener('change',drawAll);}
+</script>
+</body>
+</html>

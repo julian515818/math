@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RC 導線延遲互動教學</title>
+<style>
+:root{
+  --bg:#f7f6f2;--card:#fff;--ink:#1d2330;--mute:#667085;--line:#e3e1da;--ok:#1f9d6b;--bad:#d6334f;
+  --grid:#eceae4;--axis:#9aa0ab;--accent:#2f6fdb;--tint:#eaf1fc;
+  --c1:#2f6fdb;--c2:#e07a1f;--c3:#8b45d6;--warn:#c98a00;--wire:#b0752e;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+    --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+    --c1:#6c9dff;--c2:#ffa552;--c3:#b98bff;--warn:#ffd166;--wire:#e0a560;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+  --c1:#6c9dff;--c2:#ffa552;--c3:#b98bff;--warn:#ffd166;--wire:#e0a560;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.9rem}
+header p{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:18px}
+.card h2{margin:0 0 12px;font-size:1.22rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:.9rem;flex:none}
+h3{margin:0 0 6px;font-size:1.05rem}
+.m{font-family:"Times New Roman","Cambria Math",serif;font-style:italic}
+.def{font-size:1.2rem;text-align:center;padding:14px;border-radius:10px;background:var(--tint);line-height:2}
+.note{color:var(--mute);font-size:.92rem}
+.c1{color:var(--c1)}.c2{color:var(--c2)}.c3{color:var(--c3)}.ok{color:var(--ok)}.bad{color:var(--bad)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start}
+.two>*{min-width:0}
+@media (max-width:860px){.two{grid-template-columns:minmax(0,1fr)}}
+canvas{width:100%;display:block;border-radius:10px;background:var(--bg)}
+.cap{text-align:center;font-size:.9rem;color:var(--mute);margin-top:4px}
+label{font-size:.92rem;color:var(--mute);display:block}
+label b{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.pri{background:var(--accent);color:#fff;border-color:transparent}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:10px 18px;align-items:end;margin-top:6px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(130px,100%),1fr));gap:10px;margin-top:12px}
+.stats>div{padding:8px 12px;border-radius:10px;background:var(--bg)}
+.stats small{display:block;color:var(--mute);font-size:.82rem}
+.stats b{font-size:1.15rem;font-variant-numeric:tabular-nums}
+.say{margin-top:12px;padding:10px 14px;border-left:4px solid var(--ok);background:var(--bg);border-radius:8px}
+.say.warn{border-left-color:var(--bad)}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.schem{min-width:560px;width:100%;display:block}
+.calc{font-variant-numeric:tabular-nums;background:var(--bg);border-radius:10px;padding:10px 14px;margin-top:10px;line-height:2}
+.bar{display:flex;height:30px;border-radius:8px;overflow:hidden;margin-top:10px;border:1px solid var(--line)}
+.bar>div{display:grid;place-items:center;color:#fff;font-size:.82rem;white-space:nowrap;overflow:hidden;transition:flex-basis .25s}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.88rem;color:var(--mute);margin-top:6px}
+.legend i{display:inline-block;width:18px;height:4px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.legend i.dash{background:repeating-linear-gradient(90deg,var(--axis) 0 5px,transparent 5px 9px)!important}
+.pipe{display:grid;gap:8px;margin-top:6px}
+.pipe>div{border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-width:0}
+.pipe b.t{color:var(--accent)}
+.frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;margin:0 3px;line-height:1.15}
+.frac>span:first-child{border-bottom:1.5px solid currentColor;padding:0 3px}
+.frac>span:last-child{padding:0 3px}
+table.tb{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;margin-top:10px}
+.tb th,.tb td{border-bottom:1px solid var(--line);padding:6px 10px;text-align:center}
+.tb th{color:var(--mute);font-weight:600}
+.tb tr.hl td{background:var(--tint);font-weight:700}
+.chk{display:flex;gap:6px;align-items:center;font-size:.92rem;color:var(--ink);cursor:pointer}
+/* 小測驗 */
+.q{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px}
+.q p{margin:0 0 8px;font-weight:600}
+.opts{display:grid;gap:6px}
+.opts button{text-align:left;background:var(--bg)}
+.opts button.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--bg))}
+.opts button.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,var(--bg))}
+.opts button:disabled{cursor:default;color:var(--ink)}
+.exp{margin-top:8px;font-size:.92rem;display:none}
+.exp.show{display:block}
+.score{font-size:1.1rem;font-weight:700;margin-top:6px}
+/* 卡通老師 */
+.avwrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.av{width:100%;max-width:220px;cursor:pointer;user-select:none}
+.av svg{width:100%;display:block;overflow:visible;background:none}
+.av .bodyg{animation:bob 3.2s ease-in-out infinite;transform-origin:100px 200px}
+.av .eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+.av .hairL{animation:sway 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:top center}
+.av .hairR{animation:sway 3.2s ease-in-out infinite reverse;transform-box:fill-box;transform-origin:top center}
+.av .brow{transition:transform .3s;transform-box:fill-box}
+.av .browL{transform-origin:right center}.av .browR{transform-origin:left center}
+.av .mo{opacity:0;transition:opacity .25s}.av .mo.n{opacity:1}
+.av .blush,.av .sweat,.av .spark{opacity:0;transition:opacity .3s}
+.av.smile .mo.n,.av.frown .mo.n{opacity:0}
+.av.smile .mo.s{opacity:1}.av.frown .mo.f{opacity:1}
+.av.smile .blush{opacity:.55}.av.smile .spark{opacity:1}.av.frown .sweat{opacity:.9}
+.av.smile .brow{transform:translateY(-3px)}
+.av.frown .browL{transform:rotate(14deg) translateY(2px)}.av.frown .browR{transform:rotate(-14deg) translateY(2px)}
+.av.hop svg{animation:hop .7s ease}
+.av.shake svg{animation:shake .55s ease}
+.av .spark{animation:twinkle 1s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}
+@keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+@keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.bubble{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.95rem;margin-bottom:10px;min-height:2.6em;max-width:260px;text-align:center;transition:border-color .3s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--line);border-bottom:0}
+.bubble.good{border-color:var(--ok)}.bubble.good::after{border-top-color:var(--ok)}
+.bubble.bad{border-color:var(--bad)}.bubble.bad::after{border-top-color:var(--bad)}
+.intro{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:center}
+.intro>*,.qgrid>*{min-width:0}
+.intro .avwrap{flex-direction:row;gap:10px}.intro .bubble{flex:1;margin:0}.intro .bubble::after{display:none}.intro .av{width:125px;flex:none}
+.qgrid{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:18px;align-items:start}
+.qgrid .avwrap{position:sticky;top:12px}
+@media (max-width:860px){.intro,.qgrid{grid-template-columns:minmax(0,1fr)}.intro .avwrap{flex-direction:column}.intro .bubble{margin-bottom:10px}.intro .bubble::after{display:block}.intro .av,.qgrid .av{width:auto;max-width:140px}.qgrid .avwrap{position:static;order:-1}}
+.prog{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.prog>div{height:100%;background:var(--accent);transition:width .3s}
+.ic .flow{stroke-dasharray:100;stroke-dashoffset:100;animation:flow 2.6s ease-in infinite}
+@keyframes flow{0%{stroke-dashoffset:100}70%,100%{stroke-dashoffset:0}}
+.ic .fade{animation:fadein .5s ease}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.deriv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.deriv>div{border:1px solid var(--line);border-radius:12px;padding:10px 14px;min-width:0}
+.deriv h3{color:var(--accent)}
+.eq{padding:6px 10px;margin:6px 0;background:var(--bg);border-radius:8px;overflow-x:auto;white-space:nowrap;line-height:2.1}
+.eq.rule{border-left:4px solid var(--c2)}
+.hs{color:var(--c2);font-weight:700}
+@media (max-width:860px){.deriv{grid-template-columns:minmax(0,1fr)}}
+footer{text-align:center;color:var(--mute);font-size:.88rem;margin-top:26px}
+</style>
+<style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line,#e3e1da);border-radius:12px;background:var(--card,var(--surface,#fff));color:var(--ink,#1d2330);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+.pu-badge img{width:58px;height:58px;display:block}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute,var(--muted,#667085))}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="pu-hd">
+  <div class="pu-hd-main">
+  <h1>長導線為什麼這麼慢？RC 導線延遲互動教學</h1>
+  <p>工程數學 ・ 互動教學：用 Laplace 轉換看晶片導線：π 模型、Elmore delay、L² 定律與中繼器最佳化</p>
+</div>
+  <div class="pu-badge"><img alt="靜宜大學校徽" src="data:image/webp;base64,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"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</header>
+
+<!-- 0 -->
+<section class="card">
+  <h2><span class="num">0</span><span>一句話：導線不是一顆電容，而是一串 RC</span></h2>
+  <div class="intro">
+    <div>
+      <div class="def">一條 5 mm 長的晶片導線，延遲不是 <span class="m">R</span><sub>d</sub><span class="m">C</span>，而是<br>
+        <b>Elmore delay</b> ＝ Σ（每個電容 × 它上游的電阻總和）</div>
+      <p style="margin:12px 0 4px"><b>情境</b>：一個反相器把訊號送到晶片另一端，中間是長 <span class="m">L</span> 的金屬導線。</p>
+      <table class="tb">
+        <tr><th>驅動器電阻 <span class="m">R</span><sub>d</sub></th><th>接收閘電容 <span class="m">C</span><sub>in</sub></th><th>導線電阻 <span class="m">r</span></th><th>導線電容 <span class="m">c</span></th></tr>
+        <tr><td>250 Ω</td><td>40 fF</td><td>0.2 Ω/µm</td><td>0.2 fF/µm</td></tr>
+      </table>
+      <p class="note" style="margin:10px 0 0">數字是為教學取的整數，數量級接近中層金屬。下面每一節都可以拖動滑桿改參數。單位小技巧：Ω × fF = 10<sup>−15</sup> s，所以 1000 Ω × 1 fF = 1 ps。</p>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub1">Bonjour！我是 Laplace 老師。點我聽故事！</div><div class="av" id="av1"></div></div>
+  </div>
+</section>
+
+<!-- 1 -->
+<section class="card">
+  <h2><span class="num">1</span><span>先看電路：反向器 1 → 長導線 → 反向器 2</span></h2>
+  <p style="margin-top:0">晶片上最常見的情況：一個反向器（驅動端）透過一條長金屬導線，把訊號送到遠方另一個反向器（接收端）。一步一步把它化簡成可以計算的 RC 電路。</p>
+  <div class="row" style="margin-bottom:8px">
+    <button id="icReset">⟲ 重來</button><button id="icPrev">◀ 上一步</button><button id="icNext" class="pri">下一步 ▶</button><button id="icPlay">▶ 自動播放</button>
+    <span class="note" id="icCount"></span>
+  </div>
+  <div class="prog"><div id="icBar"></div></div>
+  <div class="scroll" style="margin-top:10px"><svg class="schem ic" id="icSvg" viewBox="0 0 760 250" aria-label="反向器－長導線－反向器 簡化模型"></svg></div>
+  <div class="say" id="icSay"></div>
+</section>
+
+<!-- 2 -->
+<section class="card">
+  <h2><span class="num">2</span><span>建模：用 π 模型代表導線，算 Elmore delay</span></h2>
+  <div class="ctl">
+    <label>導線長度 <span class="m">L</span> = <b id="vL"></b> mm<input type="range" id="sL" min="0.5" max="10" step="0.1" value="5"></label>
+    <label>驅動器電阻 <span class="m">R</span><sub>d</sub> = <b id="vRd"></b> Ω<input type="range" id="sRd" min="50" max="1000" step="10" value="250"></label>
+    <label>接收閘電容 <span class="m">C</span><sub>in</sub> = <b id="vCin"></b> fF<input type="range" id="sCin" min="5" max="100" step="5" value="40"></label>
+  </div>
+  <div class="scroll" style="margin-top:10px"><svg class="schem" id="schem" viewBox="0 0 720 210" aria-label="π 模型電路圖"></svg></div>
+  <p style="margin:8px 0 0"><b>Elmore 規則</b>：每個電容 × 「從電源到它，一路經過的電阻總和」，全部加起來。</p>
+  <div class="calc" id="calc1"></div>
+  <div class="bar" id="bar1"><div id="barD" style="background:var(--c1)"></div><div id="barW" style="background:var(--c2)"></div></div>
+  <div class="legend"><span><i style="background:var(--c1)"></i>驅動器項 <span class="m">R</span><sub>d</sub><span class="m">C</span><sub>total</sub></span><span><i style="background:var(--c2)"></i>導線項 <span class="m">R</span><sub>w</sub>(<span class="m">C</span><sub>w</sub>/2 + <span class="m">C</span><sub>in</sub>)</span></div>
+  <div class="stats">
+    <div><small>Elmore delay</small><b id="st1a"></b></div>
+    <div><small>50% 延遲 ≈ 0.69 × Elmore</small><b id="st1b"></b></div>
+    <div><small>只看總電容 <span class="m">R</span><sub>d</sub><span class="m">C</span><sub>total</sub></small><b id="st1c"></b></div>
+    <div><small>「一顆大電容」低估了</small><b id="st1d"></b></div>
+  </div>
+  <div class="say" id="say1"></div>
+</section>
+
+<!-- 2 -->
+<section class="card">
+  <h2><span class="num">3</span><span>Laplace 觀點：把 π 模型解出來，畫出步階響應</span></h2>
+  <div class="deriv">
+    <div>
+      <h3>① 原來的微分方程式（時域）</h3>
+      <svg id="nodeSvg" viewBox="0 0 470 150" style="width:100%;display:block" aria-label="π 模型節點標示"></svg>
+      <p class="note" style="margin:4px 0">電容電流 <span class="m">i</span> = <span class="m">C</span> <span class="frac"><span><span class="m">d</span><span class="m">v</span></span><span><span class="m">dt</span></span></span>。對兩個節點寫 KCL（流進電容的電流 ＝ 流進節點的淨電流）：</p>
+      <div class="eq">節點 1：<span class="m">C</span><sub>1</sub> <span class="frac"><span><span class="m">d</span><span class="m">v</span><sub>1</sub></span><span><span class="m">dt</span></span></span> = <span class="frac"><span><span class="m">v</span><sub>in</sub> − <span class="m">v</span><sub>1</sub></span><span><span class="m">R</span><sub>d</sub></span></span> − <span class="frac"><span><span class="m">v</span><sub>1</sub> − <span class="m">v</span><sub>2</sub></span><span><span class="m">R</span><sub>w</sub></span></span></div>
+      <div class="eq">節點 2：<span class="m">C</span><sub>2</sub> <span class="frac"><span><span class="m">d</span><span class="m">v</span><sub>2</sub></span><span><span class="m">dt</span></span></span> = <span class="frac"><span><span class="m">v</span><sub>1</sub> − <span class="m">v</span><sub>2</sub></span><span><span class="m">R</span><sub>w</sub></span></span></div>
+      <p class="note" style="margin:4px 0 0"><span class="m">C</span><sub>1</sub> = <span class="m">C</span><sub>w</sub>/2，<span class="m">C</span><sub>2</sub> = <span class="m">C</span><sub>w</sub>/2 + <span class="m">C</span><sub>in</sub>；初始條件 <span class="m">v</span><sub>1</sub>(0) = <span class="m">v</span><sub>2</sub>(0) = 0（電容一開始沒有電）。兩條<b>互相耦合</b>的微分方程式，直接在時域解很麻煩。</p>
+    </div>
+    <div>
+      <h3>② Laplace 轉換：微分變成乘以 <span class="m">s</span></h3>
+      <div class="eq rule">ℒ{ <span class="frac"><span><span class="m">d</span><span class="m">v</span></span><span><span class="m">dt</span></span></span> } = <span class="hs"><span class="m">s</span></span><span class="m">V</span>(<span class="m">s</span>) − <span class="m">v</span>(0) = <span class="hs"><span class="m">s</span></span><span class="m">V</span>(<span class="m">s</span>)</div>
+      <p class="note" style="margin:4px 0">兩邊同取 Laplace 轉換（小寫 <span class="m">v</span>(<span class="m">t</span>) → 大寫 <span class="m">V</span>(<span class="m">s</span>)），初始值為 0：</p>
+      <div class="eq">節點 1：<span class="hs"><span class="m">s</span></span><span class="m">C</span><sub>1</sub><span class="m">V</span><sub>1</sub> = <span class="frac"><span><span class="m">V</span><sub>in</sub> − <span class="m">V</span><sub>1</sub></span><span><span class="m">R</span><sub>d</sub></span></span> − <span class="frac"><span><span class="m">V</span><sub>1</sub> − <span class="m">V</span><sub>2</sub></span><span><span class="m">R</span><sub>w</sub></span></span></div>
+      <div class="eq">節點 2：<span class="hs"><span class="m">s</span></span><span class="m">C</span><sub>2</sub><span class="m">V</span><sub>2</sub> = <span class="frac"><span><span class="m">V</span><sub>1</sub> − <span class="m">V</span><sub>2</sub></span><span><span class="m">R</span><sub>w</sub></span></span></div>
+      <p class="note" style="margin:4px 0 0">沒有任何微分了，只剩<b>代數方程式</b>！這等同於直接把電容換成阻抗 1/(<span class="m">s</span><span class="m">C</span>)。</p>
+    </div>
+    <div>
+      <h3>③ 解代數方程式（移項、代入）</h3>
+      <div class="eq">由節點 2：<span class="m">V</span><sub>1</sub> − <span class="m">V</span><sub>2</sub> = <span class="hs"><span class="m">s</span></span><span class="m">R</span><sub>w</sub><span class="m">C</span><sub>2</sub><span class="m">V</span><sub>2</sub>　⇒　<span class="m">V</span><sub>1</sub> = (1 + <span class="hs"><span class="m">s</span></span><span class="m">R</span><sub>w</sub><span class="m">C</span><sub>2</sub>) <span class="m">V</span><sub>2</sub></div>
+      <div class="eq">節點 1 兩邊乘 <span class="m">R</span><sub>d</sub>：<span class="m">V</span><sub>in</sub> = (1 + <span class="hs"><span class="m">s</span></span><span class="m">R</span><sub>d</sub><span class="m">C</span><sub>1</sub>) <span class="m">V</span><sub>1</sub> + <span class="frac"><span><span class="m">R</span><sub>d</sub></span><span><span class="m">R</span><sub>w</sub></span></span>(<span class="m">V</span><sub>1</sub> − <span class="m">V</span><sub>2</sub>)</div><div class="eq">用節點 2 的結果 <span class="frac"><span><span class="m">R</span><sub>d</sub></span><span><span class="m">R</span><sub>w</sub></span></span>(<span class="m">V</span><sub>1</sub> − <span class="m">V</span><sub>2</sub>) = <span class="hs"><span class="m">s</span></span><span class="m">R</span><sub>d</sub><span class="m">C</span><sub>2</sub><span class="m">V</span><sub>2</sub>：<br><span class="m">V</span><sub>in</sub> = (1 + <span class="hs"><span class="m">s</span></span><span class="m">R</span><sub>d</sub><span class="m">C</span><sub>1</sub>) <span class="m">V</span><sub>1</sub> + <span class="hs"><span class="m">s</span></span><span class="m">R</span><sub>d</sub><span class="m">C</span><sub>2</sub><span class="m">V</span><sub>2</sub></div>
+      <div class="eq">代入 <span class="m">V</span><sub>1</sub>：<span class="m">V</span><sub>in</sub> = [ (1 + <span class="hs"><span class="m">s</span></span><span class="m">R</span><sub>d</sub><span class="m">C</span><sub>1</sub>)(1 + <span class="hs"><span class="m">s</span></span><span class="m">R</span><sub>w</sub><span class="m">C</span><sub>2</sub>) + <span class="hs"><span class="m">s</span></span><span class="m">R</span><sub>d</sub><span class="m">C</span><sub>2</sub> ] <span class="m">V</span><sub>2</sub></div>
+      <div class="eq">展開：<span class="m">V</span><sub>in</sub> = [ 1 + <span class="hs"><span class="m">s</span></span>(<span class="m">R</span><sub>d</sub><span class="m">C</span><sub>1</sub> + <span class="m">R</span><sub>d</sub><span class="m">C</span><sub>2</sub> + <span class="m">R</span><sub>w</sub><span class="m">C</span><sub>2</sub>) + <span class="hs"><span class="m">s</span></span><sup>2</sup><span class="m">R</span><sub>d</sub><span class="m">C</span><sub>1</sub>·<span class="m">R</span><sub>w</sub><span class="m">C</span><sub>2</sub> ] <span class="m">V</span><sub>2</sub></div>
+    </div>
+    <div>
+      <h3>④ 得到轉移函數 <span class="m">H</span>(<span class="m">s</span>)</h3>
+      <div class="eq" style="text-align:center"><span class="m">H</span>(<span class="m">s</span>) = <span class="frac"><span><span class="m">V</span><sub>2</sub></span><span><span class="m">V</span><sub>in</sub></span></span> = <span class="frac"><span>1</span><span>1 + <span class="m">a</span><span class="hs"><span class="m">s</span></span> + <span class="m">b</span><span class="hs"><span class="m">s</span></span><sup>2</sup></span></span></div>
+      <div class="eq"><span class="m">a</span> = <span class="m">R</span><sub>d</sub>(<span class="m">C</span><sub>1</sub> + <span class="m">C</span><sub>2</sub>) + <span class="m">R</span><sub>w</sub><span class="m">C</span><sub>2</sub><br>　= <span id="pa"></span></div>
+      <div class="eq"><span class="m">b</span> = <span class="m">R</span><sub>d</sub><span class="m">C</span><sub>1</sub> · <span class="m">R</span><sub>w</sub><span class="m">C</span><sub>2</sub><br>　= <span id="pb"></span></div>
+      <div class="eq" style="text-align:center"><span id="pH"></span></div>
+      <p class="note" style="margin:4px 0 0">反過來看，這等價於一條二階微分方程式：<span class="m">b</span> <span class="frac"><span><span class="m">d</span><sup>2</sup><span class="m">v</span><sub>2</sub></span><span><span class="m">dt</span><sup>2</sup></span></span> + <span class="m">a</span> <span class="frac"><span><span class="m">d</span><span class="m">v</span><sub>2</sub></span><span><span class="m">dt</span></span></span> + <span class="m">v</span><sub>2</sub> = <span class="m">v</span><sub>in</sub>。在 <span class="m">s</span> 域裡，它只是一個分數。</p>
+    </div>
+  </div>
+  <div class="two" style="margin-top:14px">
+    <div>
+      <div class="pipe">
+        <div><b class="t">⑤ 輸入 1 V 步階 → 1/<span class="m">s</span></b>，部分分式：<br><span id="pV"></span></div>
+        <div><b class="t">⑥ 查表反轉換</b>（<span class="frac"><span>1</span><span><span class="m">s</span>+<span class="m">p</span></span></span> ↔ <span class="m">e</span><sup>−<span class="m">pt</span></sup>）：<br><span id="pv"></span></div>
+        <div><b class="t">⑦ Elmore delay 是什麼？</b> 把 <span class="m">H</span>(<span class="m">s</span>) 展開：<span class="m">H</span>(<span class="m">s</span>) = 1 − <span class="m">a s</span> + …，<br>一階係數 <span class="m">a</span> 就是 Elmore delay ＝ <b id="pE"></b>（與第 2 節相同！）</div>
+      </div>
+    </div>
+    <div>
+      <canvas id="cv2" height="300"></canvas>
+      <div class="legend"><span><i class="dash"></i>只看總電容（一階 RC）</span><span><i style="background:var(--c1)"></i>π 模型（Laplace 解析解）</span><span><i style="background:var(--c2)"></i>分佈式導線（切 40 段數值模擬）</span></div>
+      <div class="stats">
+        <div><small>只看總電容 50%</small><b id="t50a"></b></div>
+        <div><small>π 模型 50%</small><b id="t50b" class="c1"></b></div>
+        <div><small>分佈式導線 50%</small><b id="t50c" class="c2"></b></div>
+      </div>
+    </div>
+  </div>
+  <div class="say" id="say2"></div>
+</section>
+
+<!-- 3 -->
+<section class="card">
+  <h2><span class="num">4</span><span>長度效應：導線延遲隨 <span class="m">L</span><sup>2</sup> 成長</span></h2>
+  <div class="ctl" style="margin-top:0">
+    <label>導線長度 <span class="m">L</span> = <b id="vL4"></b> mm（與第 2 節同步）<input type="range" id="sL4" min="0.5" max="10" step="0.1" value="5"></label>
+    <div class="row"><button id="bL1">1 mm</button><button id="bL2x">長度 × 2</button><button id="bLh">長度 ÷ 2</button></div>
+  </div>
+  <div class="scroll" style="margin-top:8px"><svg class="schem ic" id="chip4" viewBox="0 0 760 200" aria-label="晶片示意圖：導線長度隨滑桿變化"></svg></div>
+  <div class="two" style="margin-top:8px">
+    <div>
+      <p style="margin-top:0">導線電阻 <span class="m">R</span><sub>w</sub> = <span class="m">rL</span>，導線電容 <span class="m">C</span><sub>w</sub> = <span class="m">cL</span>，兩者都和長度成正比，所以導線本身的延遲</p>
+      <div class="def"><span class="frac"><span><span class="m">R</span><sub>w</sub><span class="m">C</span><sub>w</sub></span><span>2</span></span> = <span class="frac"><span><span class="m">rc</span></span><span>2</span></span><span class="m">L</span><sup>2</sup></div>
+      <table class="tb" id="tb3"></table>
+      <div class="say">1855 年 Kelvin 分析大西洋海底電報電纜，得到同樣的「平方定律」：電纜長一倍，訊號慢四倍。晶片上的長導線是同一個數學。</div>
+    </div>
+    <div>
+      <canvas id="cv3" height="300"></canvas>
+      <div class="legend"><span><i style="background:var(--c1)"></i>Elmore delay（總延遲）</span><span><i style="background:var(--c2)"></i>導線本身 <span class="m">R</span><sub>w</sub><span class="m">C</span><sub>w</sub>/2</span><span><i class="dash"></i>只看總電容</span></div>
+      <p class="cap">拖動上方的 <span class="m">L</span> 滑桿，圓點會沿著曲線移動</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="card">
+  <h2><span class="num">5</span><span>解法：插入中繼器（Repeater），找最佳段數</span></h2>
+  <p style="margin-top:0">把導線切成 <span class="m">k</span> 段，每段由一個相同的反相器重新驅動。每段的 Elmore delay 相加：</p>
+  <div class="def" style="font-size:1.05rem"><span class="m">T</span>(<span class="m">k</span>) = <span class="m">R</span><sub>d</sub><span class="m">C</span><sub>w</sub> + <span class="m">R</span><sub>w</sub><span class="m">C</span><sub>in</sub> + <span class="c3"><span class="m">k</span>·<span class="m">R</span><sub>d</sub><span class="m">C</span><sub>in</sub></span> + <span class="c2"><span class="frac"><span><span class="m">R</span><sub>w</sub><span class="m">C</span><sub>w</sub></span><span>2<span class="m">k</span></span></span></span>
+    <span class="note" style="font-size:.9rem">（<span class="c3">越多段越慢</span> vs. <span class="c2">越多段越快</span>）</span></div>
+  <div class="ctl">
+    <label>段數 <span class="m">k</span> = <b id="vK"></b><input type="range" id="sK" min="1" max="20" step="1" value="1"></label>
+    <label class="chk"><input type="checkbox" id="cTp"> 加入每個中繼器的固有延遲 <span class="m">t</span><sub>p</sub> = 15 ps</label>
+    <div class="row"><button id="bOpt" class="pri">跳到最佳 k</button><button id="bOne">回到 k = 1</button></div>
+  </div>
+  <div class="scroll" style="margin-top:10px"><svg class="schem" id="rep" viewBox="0 0 720 90" aria-label="中繼器示意圖"></svg></div>
+  <div class="two" style="margin-top:6px">
+    <div>
+      <div class="calc" id="calc4"></div>
+      <div class="stats">
+        <div><small>總延遲 <span class="m">T</span>(<span class="m">k</span>)</small><b id="st4a"></b></div>
+        <div><small>比不插快了</small><b id="st4b"></b></div>
+        <div><small>最佳段數 <span class="m">k</span><sub>opt</sub></small><b id="st4c" class="ok"></b></div>
+      </div>
+      <div class="say" id="say4"></div>
+    </div>
+    <div>
+      <canvas id="cv4" height="280"></canvas>
+      <div class="legend"><span><i style="background:var(--c1)"></i>總延遲 <span class="m">T</span>(<span class="m">k</span>)</span><span><i style="background:var(--c3)"></i>中繼器項 ∝ <span class="m">k</span></span><span><i style="background:var(--c2)"></i>導線項 ∝ 1/<span class="m">k</span></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="card">
+  <h2><span class="num">6</span><span>觀念小測驗</span></h2>
+  <div class="qgrid">
+    <div><div id="quiz"></div><div class="score" id="score"></div><button id="again" style="display:none">再做一次</button></div>
+    <div class="avwrap"><div class="bubble" id="bub2">來考考你！答對我會笑，答錯我會皺眉喔。</div><div class="av" id="av2"></div></div>
+  </div>
+</section>
+
+<footer>RC 導線延遲互動教學 ・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const r_=0.2, c_=0.2;            // Ω/µm, fF/µm
+const S={L:5,Rd:250,Cin:40,k:1,tp:false};
+const fmt=(x,d=0)=>x.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const ps=(R,C)=>R*C/1000;         // Ω × fF → ps
+
+function model(L,Rd,Cin){
+  const Rw=r_*L*1000, Cw=c_*L*1000;           // Ω, fF
+  const drv=ps(Rd,Cw+Cin), wire=ps(Rw,Cw/2+Cin);
+  return {Rw,Cw,drv,wire,T:drv+wire,lump:drv};
+}
+
+/* ---------- 1. 電路圖 + Elmore ---------- */
+function drawSchem(){
+  const m=model(S.L,S.Rd,S.Cin), ink=css('--ink'), mute=css('--mute'), c1=css('--c1'), c2=css('--c2'), w=css('--wire');
+  const cap=(x,y,lab,col)=>`<line x1="${x}" y1="${y}" x2="${x}" y2="${y+40}" stroke="${ink}" stroke-width="2"/>
+   <line x1="${x-18}" y1="${y+40}" x2="${x+18}" y2="${y+40}" stroke="${col}" stroke-width="4"/>
+   <line x1="${x-18}" y1="${y+50}" x2="${x+18}" y2="${y+50}" stroke="${col}" stroke-width="4"/>
+   <line x1="${x}" y1="${y+50}" x2="${x}" y2="${y+75}" stroke="${ink}" stroke-width="2"/>
+   <line x1="${x-12}" y1="${y+75}" x2="${x+12}" y2="${y+75}" stroke="${ink}" stroke-width="2"/>
+   <line x1="${x-7}" y1="${y+80}" x2="${x+7}" y2="${y+80}" stroke="${ink}" stroke-width="2"/>
+   <text x="${x+24}" y="${y+50}" fill="${ink}" font-size="14">${lab}</text>`;
+  const res=(x1,x2,y,lab,val,col)=>{const mid=(x1+x2)/2;let z=`M${x1} ${y}`;const n=6,seg=(x2-x1-30)/n;z+=` L${x1+15} ${y}`;
+    for(let i=0;i<n;i++)z+=` L${x1+15+seg*(i+.5)} ${y+(i%2?10:-10)}`;z+=` L${x2-15} ${y} L${x2} ${y}`;
+    return `<path d="${z}" fill="none" stroke="${col}" stroke-width="3" stroke-linejoin="round"/>
+    <text x="${mid}" y="${y-20}" text-anchor="middle" fill="${col}" font-size="15" font-weight="700">${lab}</text>
+    <text x="${mid}" y="${y+30}" text-anchor="middle" fill="${mute}" font-size="13">${val}</text>`};
+  const y=50;
+  $('schem').innerHTML=`
+   <rect x="300" y="8" width="300" height="190" rx="10" fill="none" stroke="${mute}" stroke-dasharray="6 5"/>
+   <text x="450" y="192" text-anchor="middle" fill="${mute}" font-size="13">導線（π 模型）L = ${fmt(S.L,1)} mm</text>
+   <text x="20" y="${y-18}" fill="${ink}" font-size="14">1 V 步階</text>
+   <circle cx="40" cy="${y}" r="5" fill="${ink}"/>
+   <line x1="40" y1="${y}" x2="90" y2="${y}" stroke="${ink}" stroke-width="2"/>
+   ${res(90,240,y,'R<tspan font-size="11" dy="4">d</tspan>',fmt(S.Rd)+' Ω',c1)}
+   <line x1="240" y1="${y}" x2="330" y2="${y}" stroke="${ink}" stroke-width="2"/>
+   <circle cx="330" cy="${y}" r="4" fill="${ink}"/>
+   ${cap(330,y,'C<tspan font-size="11" dy="4">w</tspan><tspan dy="-4">/2 = '+fmt(m.Cw/2)+' fF</tspan>',w)}
+   ${res(330,560,y,'R<tspan font-size="11" dy="4">w</tspan>',fmt(m.Rw)+' Ω',c2)}
+   <circle cx="560" cy="${y}" r="4" fill="${ink}"/>
+   ${cap(560,y,'C<tspan font-size="11" dy="4">w</tspan><tspan dy="-4">/2</tspan>',w)}
+   <line x1="560" y1="${y}" x2="650" y2="${y}" stroke="${ink}" stroke-width="2"/>
+   ${cap(650,y,'C<tspan font-size="11" dy="4">in</tspan><tspan dy="-4"> '+fmt(S.Cin)+'</tspan>',css('--c3'))}
+   <text x="662" y="${y-14}" fill="${ink}" font-size="14">接收閘</text>`;
+}
+function upd1(){
+  const m=model(S.L,S.Rd,S.Cin);
+  $('vL').textContent=fmt(S.L,1);$('vRd').textContent=fmt(S.Rd);$('vCin').textContent=fmt(S.Cin);
+  drawSchem();
+  $('calc1').innerHTML=
+   `<span class="c1"><span class="m">R</span><sub>d</sub> 要為<b>所有</b>電容充電</span>：${fmt(S.Rd)} Ω × (${fmt(m.Cw/2)} + ${fmt(m.Cw/2)} + ${fmt(S.Cin)}) fF = <b class="c1">${fmt(m.drv,1)} ps</b><br>`+
+   `<span class="c2"><span class="m">R</span><sub>w</sub> 只為<b>它後面</b>的電容充電</span>：${fmt(m.Rw)} Ω × (${fmt(m.Cw/2)} + ${fmt(S.Cin)}) fF = <b class="c2">${fmt(m.wire,1)} ps</b><br>`+
+   `<span class="m">T</span><sub>Elmore</sub> = ${fmt(m.drv,1)} + ${fmt(m.wire,1)} = <b>${fmt(m.T,1)} ps</b>`;
+  const pd=m.drv/m.T*100;
+  $('barD').style.flexBasis=pd+'%';$('barW').style.flexBasis=(100-pd)+'%';
+  $('barD').textContent=pd>12?fmt(pd)+'%':'';$('barW').textContent=(100-pd)>12?fmt(100-pd)+'%':'';
+  $('st1a').textContent=fmt(m.T,1)+' ps';
+  $('st1b').textContent=fmt(0.69*m.T,1)+' ps';
+  $('st1c').textContent=fmt(m.lump,1)+' ps';
+  $('st1d').textContent=fmt(m.T/m.lump,2)+' 倍';
+  const s=$('say1');
+  if(m.wire>m.drv){s.className='say warn';s.innerHTML=`導線項（${fmt(m.wire)} ps）比驅動器項（${fmt(m.drv)} ps）還大：<b>導線電阻才是延遲的主角</b>。把導線當成「一顆大電容」，會把延遲低估 ${fmt(m.T/m.lump,1)} 倍。`;}
+  else{s.className='say';s.innerHTML=`導線夠短時，驅動器項占多數，「一顆大電容」的估計還算可以（只低估 ${fmt((m.T/m.lump-1)*100)}%）。試著把 <span class="m">L</span> 拉長看看！`;}
+}
+
+/* ---------- 2. Laplace：π 模型解析解 + 分佈式模擬 ---------- */
+function piModel(m){
+  const C1=m.Cw/2, C2=m.Cw/2+S.Cin;
+  const a=m.T, b=ps(S.Rd,C1)*ps(m.Rw,C2);          // ps, ps²
+  const d=Math.sqrt(a*a-4*b);
+  const p1=(a-d)/(2*b), p2=(a+d)/(2*b);              // 1/ps, p1<p2
+  const A=p2/(p2-p1), B=p1/(p2-p1);
+  return {a,b,p1,p2,A,B,v:t=>1-A*Math.exp(-p1*t)+B*Math.exp(-p2*t)};
+}
+function distSim(m,tmax,n){
+  // N 段 π 梯形網路，隱式 Euler（三對角）
+  const N=40, K=N+1, g=N/m.Rw, gd=1/S.Rd, C=new Float64Array(K);
+  for(let i=0;i<K;i++)C[i]=m.Cw/N; C[0]=m.Cw/(2*N); C[K-1]=m.Cw/(2*N)+S.Cin;
+  const dt=tmax/n*1000;                   // ps → (Ω·fF 單位) ×1000
+  const lo=new Float64Array(K),di=new Float64Array(K),up=new Float64Array(K);
+  for(let i=0;i<K;i++){di[i]=C[i]/dt;if(i>0){di[i]+=g;lo[i]=-g;}if(i<K-1){di[i]+=g;up[i]=-g;}}
+  di[0]+=gd;
+  const v=new Float64Array(K), out=[0], cp=new Float64Array(K), dp=new Float64Array(K);
+  for(let s=1;s<=n;s++){
+    const rhs=new Float64Array(K);for(let i=0;i<K;i++)rhs[i]=C[i]/dt*v[i];rhs[0]+=gd*1;
+    cp[0]=up[0]/di[0];dp[0]=rhs[0]/di[0];
+    for(let i=1;i<K;i++){const den=di[i]-lo[i]*cp[i-1];cp[i]=up[i]/den;dp[i]=(rhs[i]-lo[i]*dp[i-1])/den;}
+    v[K-1]=dp[K-1];for(let i=K-2;i>=0;i--)v[i]=dp[i]-cp[i]*v[i+1];
+    out.push(v[K-1]);
+  }
+  return out;
+}
+const cross=(f,t1)=>{let lo=0,hi=t1;for(let i=0;i<60;i++){const mid=(lo+hi)/2;f(mid)<.5?lo=mid:hi=mid;}return (lo+hi)/2;};
+function fitCanvas(cv){cv.style.width='0px';const w=cv.parentElement.clientWidth;cv.style.width=w+'px';
+  if(!cv.dataset.h)cv.dataset.h=cv.getAttribute('height');const h=+cv.dataset.h,dpr=window.devicePixelRatio||1;cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';
+  const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);return {g,w,h};}
+function axes(g,w,h,P,xmax,ymax,xl,yl,xt,yt){
+  g.strokeStyle=css('--grid');g.lineWidth=1;g.fillStyle=css('--mute');g.font='12px system-ui';
+  const X=x=>P.l+(w-P.l-P.r)*x/xmax, Y=y=>h-P.b-(h-P.t-P.b)*y/ymax;
+  for(const x of xt){g.beginPath();g.moveTo(X(x),P.t);g.lineTo(X(x),h-P.b);g.stroke();g.textAlign='center';g.fillText(x,X(x),h-P.b+16);}
+  for(const y of yt){g.beginPath();g.moveTo(P.l,Y(y));g.lineTo(w-P.r,Y(y));g.stroke();g.textAlign='right';g.fillText(y,P.l-6,Y(y)+4);}
+  g.strokeStyle=css('--axis');g.beginPath();g.moveTo(P.l,P.t);g.lineTo(P.l,h-P.b);g.lineTo(w-P.r,h-P.b);g.stroke();
+  g.textAlign='center';g.fillText(xl,(P.l+w-P.r)/2,h-4);
+  g.save();g.translate(12,(P.t+h-P.b)/2);g.rotate(-Math.PI/2);g.fillText(yl,0,0);g.restore();
+  return {X,Y};
+}
+const nice=v=>{const p=10**Math.floor(Math.log10(v)),f=v/p;return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*p;};
+function ticks(max,n=5){const st=nice(max/n),a=[];for(let x=0;x<=max+1e-9;x+=st)a.push(+x.toFixed(6));return a;}
+
+function upd2(){
+  const m=model(S.L,S.Rd,S.Cin), P=piModel(m);
+  const f2=x=>x.toPrecision(3);
+  $('pH').innerHTML=`<span class="m">H</span>(<span class="m">s</span>) = <span class="frac"><span>1</span><span>1 + ${fmt(P.a,1)}<span class="m">s</span> + ${fmt(P.b)}<span class="m">s</span><sup>2</sup></span></span> <span class="note">（代入目前數值，<span class="m">s</span> 以 1/ps 為單位）</span>`;
+  drawNodes();
+  const C1n=m.Cw/2,C2n=m.Cw/2+S.Cin;
+  $('pa').innerHTML=`${fmt(S.Rd)} Ω × (${fmt(C1n)} + ${fmt(C2n)}) fF + ${fmt(m.Rw)} Ω × ${fmt(C2n)} fF = <b>${fmt(P.a,1)} ps</b>`;
+  $('pb').innerHTML=`(${fmt(ps(S.Rd,C1n),1)} ps)(${fmt(ps(m.Rw,C2n),1)} ps) = <b>${fmt(P.b)} ps<sup>2</sup></b>`;
+  $('pV').innerHTML=`<span class="m">V</span>(<span class="m">s</span>) = <span class="frac"><span><span class="m">H</span>(<span class="m">s</span>)</span><span><span class="m">s</span></span></span> = <span class="frac"><span>1</span><span><span class="m">s</span></span></span> − <span class="frac"><span>${f2(P.A)}</span><span><span class="m">s</span> + 1/${fmt(1/P.p1)}</span></span> + <span class="frac"><span>${f2(P.B)}</span><span><span class="m">s</span> + 1/${fmt(1/P.p2)}</span></span>`;
+  $('pv').innerHTML=`<span class="m">v</span>(<span class="m">t</span>) = 1 − ${f2(P.A)}<span class="m">e</span><sup>−<span class="m">t</span>/${fmt(1/P.p1)}</sup> + ${f2(P.B)}<span class="m">e</span><sup>−<span class="m">t</span>/${fmt(1/P.p2)}</sup> <span class="note">（<span class="m">t</span> 單位 ps；兩個時間常數 ${fmt(1/P.p1)} ps 與 ${fmt(1/P.p2)} ps）</span>`;
+  $('pE').textContent=fmt(P.a,1)+' ps';
+  const tmax=Math.max(2.6*m.T,10), n=600, sim=distSim(m,tmax,n), dts=tmax/n;
+  const vs=t=>{const i=t/dts,j=Math.floor(i);if(j>=n)return sim[n];return sim[j]+(sim[j+1]-sim[j])*(i-j);};
+  const vl=t=>1-Math.exp(-t/m.lump);
+  const ta=cross(vl,tmax), tb=cross(P.v,tmax), tc=cross(vs,tmax);
+  $('t50a').textContent=fmt(ta,1)+' ps';$('t50b').textContent=fmt(tb,1)+' ps';$('t50c').textContent=fmt(tc,1)+' ps';
+  $('say2').innerHTML=`π 模型的 Laplace 解析解（${fmt(tb)} ps）和真正的分佈式導線（${fmt(tc)} ps）只差 ${fmt(Math.abs(tb-tc)/tc*100,1)}%；只看總電容卻得到 ${fmt(ta)} ps，差了 ${fmt(tc/ta,1)} 倍。用 0.69 × Elmore 估計是 ${fmt(.69*m.T)} ps，紙筆就能算到數量級正確。`;
+  const {g,w,h}=fitCanvas($('cv2')), Pd={l:48,r:12,t:12,b:40};
+  const xt=ticks(tmax);
+  const {X,Y}=axes(g,w,h,Pd,tmax,1.05,'時間 t（ps）','接收端電壓 v(t)（V）',xt,[0,.25,.5,.75,1]);
+  g.setLineDash([4,4]);g.strokeStyle=css('--axis');g.beginPath();g.moveTo(X(0),Y(.5));g.lineTo(X(tmax),Y(.5));g.stroke();
+  const plot=(f,col,dash,lw=2.5)=>{g.setLineDash(dash);g.strokeStyle=col;g.lineWidth=lw;g.beginPath();for(let i=0;i<=300;i++){const t=tmax*i/300;i?g.lineTo(X(t),Y(f(t))):g.moveTo(X(t),Y(f(t)));}g.stroke();g.setLineDash([]);};
+  plot(vl,css('--axis'),[6,5],2);plot(vs,css('--c2'),[],3.5);plot(P.v,css('--c1'),[],2.2);
+  for(const [t,col] of [[ta,css('--axis')],[tb,css('--c1')],[tc,css('--c2')]]){g.fillStyle=col;g.beginPath();g.arc(X(t),Y(.5),4.5,0,7);g.fill();}
+  g.fillStyle=css('--mute');g.textAlign='left';g.fillText('50%',X(0)+4,Y(.5)-5);
+}
+
+/* ---------- 3. L² ---------- */
+function upd3(){
+  drawChip4();
+  const Lmax=10, mm=model(Lmax,S.Rd,S.Cin);
+  const ymax=3000, OV=mm.T>ymax;
+  const {g,w,h}=fitCanvas($('cv3')), Pd={l:52,r:12,t:12,b:40};
+  const {X,Y}=axes(g,w,h,Pd,Lmax,ymax,'導線長度 L（mm）','延遲（ps）',[0,2,4,6,8,10],ticks(ymax,6));g.save();g.beginPath();g.rect(Pd.l,Pd.t-2,w-Pd.l-Pd.r,h-Pd.t-Pd.b+2);g.clip();
+  const plot=(f,col,dash,lw)=>{g.setLineDash(dash);g.strokeStyle=col;g.lineWidth=lw;g.beginPath();for(let i=0;i<=200;i++){const L=Lmax*i/200,y=f(L);i?g.lineTo(X(L),Y(y)):g.moveTo(X(L),Y(y));}g.stroke();g.setLineDash([]);};
+  plot(L=>model(L,S.Rd,S.Cin).lump,css('--axis'),[6,5],2);
+  plot(L=>{const m=model(L,S.Rd,S.Cin);return ps(m.Rw,m.Cw/2);},css('--c2'),[],2.5);
+  plot(L=>model(L,S.Rd,S.Cin).T,css('--c1'),[],2.5);
+  const m=model(S.L,S.Rd,S.Cin), wt=ps(m.Rw,m.Cw/2);
+  g.fillStyle=css('--c1');g.beginPath();g.arc(X(S.L),Y(m.T),6,0,7);g.fill();
+  g.fillStyle=css('--c2');g.beginPath();g.arc(X(S.L),Y(wt),6,0,7);g.fill();g.restore();if(OV){g.fillStyle=css('--mute');g.textAlign='right';g.font='12px system-ui';g.fillText('↑ 曲線超出 3000 ps',w-Pd.r-4,Pd.t+14);}
+  const rows=[[1],[S.L/2],[S.L],[S.L*2]].filter((r,i,a)=>r[0]<=20&&a.findIndex(q=>Math.abs(q[0]-r[0])<1e-9)===i).sort((a,b)=>a[0]-b[0]);
+  let t='<tr><th>長度 L</th><th>R<sub>w</sub></th><th>C<sub>w</sub></th><th>導線本身 R<sub>w</sub>C<sub>w</sub>/2</th><th>與 1 mm 相比</th></tr>';
+  for(const [L] of rows){const q=model(L,S.Rd,S.Cin),wv=ps(q.Rw,q.Cw/2);
+    t+=`<tr class="${Math.abs(L-S.L)<1e-9?'hl':''}"><td>${fmt(L,L%1?2:0)} mm</td><td>${fmt(q.Rw)} Ω</td><td>${fmt(q.Cw)} fF</td><td>${fmt(wv,1)} ps</td><td>× ${fmt(wv/ps(200,100),wv/20<10?2:1)}</td></tr>`;}
+  $('tb3').innerHTML=t;
+}
+
+/* ---------- 4. Repeater ---------- */
+function Tk(k,m,tp){return ps(S.Rd,m.Cw)+ps(m.Rw,S.Cin)+k*ps(S.Rd,S.Cin)+ps(m.Rw,m.Cw)/(2*k)+(tp?15*k:0);}
+function kopt(m,tp){return Math.sqrt(ps(m.Rw,m.Cw)/(2*(ps(S.Rd,S.Cin)+(tp?15:0))));}
+function bestInt(m,tp){let b=1;for(let k=2;k<=60;k++)if(Tk(k,m,tp)<Tk(b,m,tp))b=k;return b;}
+function upd4(){
+  const m=model(S.L,S.Rd,S.Cin), k=S.k, tp=S.tp;
+  $('vK').textContent=k;
+  const T=Tk(k,m,tp), T1=Tk(1,m,tp), ko=kopt(m,tp), kb=bestInt(m,tp);
+  const fixed=ps(S.Rd,m.Cw)+ps(m.Rw,S.Cin), rep=k*ps(S.Rd,S.Cin)+(tp?15*k:0), wire=ps(m.Rw,m.Cw)/(2*k);
+  $('calc4').innerHTML=`固定項：${fmt(fixed,1)} ps<br><span class="c3">中繼器項：${k} × ${fmt(ps(S.Rd,S.Cin)+(tp?15:0),1)} = ${fmt(rep,1)} ps</span><br><span class="c2">導線項：${fmt(ps(m.Rw,m.Cw),0)} / (2 × ${k}) = ${fmt(wire,1)} ps</span><br><b>T(${k}) = ${fmt(T,1)} ps</b>`;
+  $('st4a').textContent=fmt(T,1)+' ps';
+  $('st4b').textContent=k===1?'—':(T<T1?fmt((1-T/T1)*100,0)+'%':'變慢了');
+  $('st4c').textContent=`≈ ${fmt(ko,2)} → ${kb}`;
+  const s=$('say4');
+  if(k===1){s.className='say';s.innerHTML=`還沒插中繼器。對 <span class="m">k</span> 微分並令導數為 0：<span class="m">k</span><sub>opt</sub> = √( <span class="m">R</span><sub>w</sub><span class="m">C</span><sub>w</sub> / 2(<span class="m">R</span><sub>d</sub><span class="m">C</span><sub>in</sub>${tp?' + t<sub>p</sub>':''}) ) ≈ ${fmt(ko,2)}。拖動滑桿試試看！`;}
+  else if(k===kb){s.className='say';s.innerHTML=`🎯 這就是最佳段數！延遲從 ${fmt(T1)} ps 降到 ${fmt(T)} ps。此時中繼器項 ≈ 導線項（${fmt(rep)} vs. ${fmt(wire)} ps）——兩項相等正是極值條件。`;}
+  else if(k>kb){s.className='say warn';s.innerHTML=`插太多了！中繼器項（∝ <span class="m">k</span>）已經超過導線項省下的時間，總延遲又開始上升。`;}
+  else{s.className='say';s.innerHTML=`還可以再多插幾個：導線項（${fmt(wire)} ps）仍大於中繼器項（${fmt(rep)} ps）。`;}
+  // SVG
+  const ink=css('--ink'),wc=css('--wire'),c1=css('--c1'),x0=30,x1=700,y=45;let z='';
+  z+=`<line x1="${x0}" y1="${y}" x2="${x1}" y2="${y}" stroke="${wc}" stroke-width="5" stroke-linecap="round"/>`;
+  for(let i=0;i<k;i++){const x=x0+(x1-x0)*i/k+ (i?0:0);const sz=Math.max(8,Math.min(16,140/k));
+    z+=`<polygon points="${x-2},${y-sz} ${x-2},${y+sz} ${x+sz*1.5},${y}" fill="${c1}" stroke="${ink}" stroke-width="1.2"/>`;}
+  z+=`<rect x="${x1-4}" y="${y-14}" width="14" height="28" rx="3" fill="${css('--c3')}"/>`;
+  z+=`<text x="${(x0+x1)/2}" y="82" text-anchor="middle" fill="${css('--mute')}" font-size="13">${fmt(S.L,1)} mm 導線切成 ${k} 段，每段 ${fmt(S.L/k,2)} mm</text>`;
+  $('rep').innerHTML=z;
+  // chart
+  const K=20, ys=[];for(let i=1;i<=K;i++)ys.push(Tk(i,m,tp));
+  const ymax=3000, OV=Math.max(...ys,ps(m.Rw,m.Cw)/2)>ymax;
+  const {g,w,h}=fitCanvas($('cv4')), Pd={l:52,r:12,t:12,b:40};
+  const {X,Y}=axes(g,w,h,Pd,K,ymax,'段數 k','延遲（ps）',[0,5,10,15,20],ticks(ymax,6));g.save();g.beginPath();g.rect(Pd.l,Pd.t-2,w-Pd.l-Pd.r,h-Pd.t-Pd.b+2);g.clip();
+  const line=(f,col,lw)=>{g.strokeStyle=col;g.lineWidth=lw;g.beginPath();for(let i=0;i<=190;i++){const x=1+(K-1)*i/190,yv=f(x);i?g.lineTo(X(x),Y(yv)):g.moveTo(X(x),Y(yv));}g.stroke();};
+  line(x=>x*ps(S.Rd,S.Cin)+(tp?15*x:0),css('--c3'),2);
+  line(x=>ps(m.Rw,m.Cw)/(2*x),css('--c2'),2);
+  line(x=>Tk(x,m,tp),css('--c1'),2.5);
+  for(let i=1;i<=K;i++){g.fillStyle=i===kb?css('--ok'):css('--c1');g.beginPath();g.arc(X(i),Y(Math.min(ys[i-1],ymax)),i===k?7:3,0,7);g.fill();
+    if(i===k){g.strokeStyle=css('--ink');g.lineWidth=2;g.stroke();}}
+  g.restore();if(OV){g.fillStyle=css('--mute');g.textAlign='right';g.font='12px system-ui';g.fillText('↑ 曲線超出 3000 ps',w-Pd.r-4,Pd.t+14);}
+}
+
+
+/* ---------- 1. 反向器－長導線－反向器 逐步化簡 ---------- */
+const G={
+ ln:(x1,y1,x2,y2,c,w=2)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`,
+ tx:(x,y,t,c,sz=14,a='middle',fw=400)=>`<text x="${x}" y="${y}" fill="${c}" font-size="${sz}" text-anchor="${a}" font-weight="${fw}">${t}</text>`,
+ dot:(x,y,c)=>`<circle cx="${x}" cy="${y}" r="3.5" fill="${c}"/>`,
+ res:(x1,x2,y,c,w=3,n=6,amp=9)=>{const sg=(x2-x1-16)/n;let z=`M${x1} ${y} L${x1+8} ${y}`;for(let i=0;i<n;i++)z+=` L${x1+8+sg*(i+.5)} ${y+(i%2?amp:-amp)}`;z+=` L${x2-8} ${y} L${x2} ${y}`;return `<path d="${z}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linejoin="round"/>`;},
+ gnd:(x,y,c)=>`<line x1="${x-11}" y1="${y}" x2="${x+11}" y2="${y}" stroke="${c}" stroke-width="2"/><line x1="${x-6}" y1="${y+5}" x2="${x+6}" y2="${y+5}" stroke="${c}" stroke-width="2"/><line x1="${x-2}" y1="${y+10}" x2="${x+2}" y2="${y+10}" stroke="${c}" stroke-width="2"/>`,
+ cap:(x,y,c,ink,pw=16,h=70)=>{const m=y+h*.45;return G.ln(x,y,x,m-4,ink)+G.ln(x-pw,m-4,x+pw,m-4,c,4)+G.ln(x-pw,m+4,x+pw,m+4,c,4)+G.ln(x,m+4,x,y+h,ink)+G.gnd(x,y+h,ink);},
+ inv:(x,y,c,ink)=>`<polygon points="${x},${y-24} ${x},${y+24} ${x+40},${y}" fill="${c}" fill-opacity=".18" stroke="${c}" stroke-width="2.5" stroke-linejoin="round"/><circle cx="${x+45}" cy="${y}" r="5" fill="var(--card)" stroke="${c}" stroke-width="2.5"/>`
+};
+const IC_STEPS=4; let icK=0, icTimer=null;
+function icDraw(){
+  const ink=css('--ink'),mu=css('--mute'),c1=css('--c1'),c2=css('--c2'),c3=css('--c3'),wc=css('--wire'),ok=css('--ok');
+  const m=model(S.L,S.Rd,S.Cin), y=118; let z='';
+  if(icK===0){
+    z+=`<rect x="8" y="8" width="744" height="232" rx="14" fill="none" stroke="${mu}" stroke-dasharray="7 6"/>`+G.tx(22,30,'晶片（俯視示意）',mu,13,'start');
+    z+=G.tx(36,y+5,'A',ink,16,'middle',700)+G.ln(48,y,90,y,ink);
+    z+=G.inv(90,y,c1,ink)+G.tx(112,y+52,'反向器 1',c1,14,'middle',700)+G.tx(112,y+70,'（驅動端）',mu,12);
+    const d=`M140 ${y} H230 V60 H540 V${y} H610`;
+    z+=`<path d="${d}" fill="none" stroke="${wc}" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"/>`;
+    z+=`<path class="flow" pathLength="100" d="${d}" fill="none" stroke="${c1}" stroke-width="3" stroke-linejoin="round"/>`;
+    z+=G.tx(385,48,`長導線 L = ${fmt(S.L,1)} mm`,wc,15,'middle',700);
+    z+=G.tx(385,96,'（金屬導線本身有電阻，也和周圍形成電容）',mu,12);
+    z+=G.inv(610,y,c3,ink)+G.tx(632,y+52,'反向器 2',c3,14,'middle',700)+G.tx(632,y+70,'（接收端）',mu,12);
+    z+=G.ln(660,y,705,y,ink)+G.tx(718,y+5,'Y',ink,16,'middle',700);
+  } else if(icK===1){
+    // CMOS 反向器 1
+    const X=180;
+    z+=G.ln(X-40,28,X+40,28,ink)+G.tx(X+46,32,'V<tspan font-size="10" dy="3">DD</tspan>',ink,13,'start');
+    z+=G.ln(X,28,X,52,ok,3)+G.ln(X,52,X,86,ok,6)+G.ln(X,86,X,y,ok,3);
+    z+=G.ln(X-12,54,X-12,84,ink)+`<circle cx="${X-18}" cy="69" r="4.5" fill="var(--card)" stroke="${ink}" stroke-width="2"/>`+G.ln(X-22,69,X-50,69,ink);
+    z+=G.tx(X+12,62,'PMOS',ok,12,'start',700)+G.tx(X+12,78,'導通 ≈ 電阻 R<tspan font-size="10" dy="3">d</tspan>',ok,12,'start');
+    z+=G.ln(X,y,X,150,mu,2)+G.ln(X,150,X,182,mu,5)+G.ln(X,182,X,200,mu,2)+G.gnd(X,200,mu);
+    z+=G.ln(X-12,152,X-12,180,mu)+G.ln(X-12,166,X-50,166,mu)+G.tx(X+12,170,'NMOS 關閉',mu,12,'start');
+    z+=G.ln(X-50,69,X-50,166,ink)+G.ln(X-150,y,X-50,y,ink)+G.dot(X-50,y,ink)+G.tx(X-128,y-12,'A：1 → 0',ink,13,'middle',700);
+    z+=`<rect x="${X-68}" y="16" width="190" height="204" rx="10" fill="none" stroke="${c1}" stroke-dasharray="5 4"/>`+G.tx(X+27,238,'反向器 1',c1,13,'middle',700);
+    z+=G.dot(X,y,ink);
+    z+=`<line x1="${X}" y1="${y}" x2="560" y2="${y}" stroke="${wc}" stroke-width="7" stroke-linecap="round"/>`+G.tx(380,y-16,`長導線 ${fmt(S.L,1)} mm`,wc,14,'middle',700);
+    z+=G.dot(560,y,ink)+G.cap(560,y,c3,ink,18,80)+G.tx(586,y+44,'閘極電容 C<tspan font-size="10" dy="3">in</tspan>',c3,13,'start',700);
+    z+=`<rect x="520" y="70" width="210" height="150" rx="10" fill="none" stroke="${c3}" stroke-dasharray="5 4"/>`+G.tx(625,92,'反向器 2 的輸入',c3,13,'middle',700);
+    z+=G.tx(660,y+70,'（PMOS＋NMOS 的閘極）',mu,11);
+  } else if(icK===2){
+    z+=G.tx(40,y-30,'1 V',ink,13)+G.tx(40,y-14,'步階',ink,13)+G.dot(40,y,ink)+G.ln(40,y,70,y,ink);
+    z+=G.res(70,170,y,c1)+G.tx(120,y-18,'R<tspan font-size="10" dy="3">d</tspan>',c1,15,'middle',700)+G.tx(120,y+28,'反向器 1',mu,12);
+    const N=5,x0=190,x1=590,sg=(x1-x0)/N;
+    z+=G.ln(170,y,x0,y,ink);
+    for(let i=0;i<N;i++){const a=x0+sg*i,b=a+sg;z+=G.res(a+6,b-6,y,c2,2.5,4,6)+G.ln(a,y,a+6,y,ink)+G.ln(b-6,y,b,y,ink)+G.dot(b,y,ink)+G.cap(b,y,wc,ink,10,62);}
+    z+=G.cap(x0,y,wc,ink,10,62)+G.dot(x0,y,ink);
+    z+=`<path d="M${x0} 52 V44 H${x1} V52" fill="none" stroke="${mu}" stroke-width="1.5"/>`+G.tx((x0+x1)/2,36,`長導線 = 很多小段：每段 rΔx 與 cΔx（共 R<tspan font-size="10" dy="3">w</tspan><tspan dy="-3"> = ${fmt(m.Rw)} Ω、C</tspan><tspan font-size="10" dy="3">w</tspan><tspan dy="-3"> = ${fmt(m.Cw)} fF）</tspan>`,wc,13,'middle',700);
+    z+=G.ln(x1,y,670,y,ink)+G.dot(670,y,ink)+G.cap(670,y,c3,ink,16,62)+G.tx(692,y+30,'C<tspan font-size="10" dy="3">in</tspan>',c3,15,'start',700)+G.tx(700,y+50,'反向器 2',mu,12,'start');
+  } else {
+    z+=G.tx(40,y-30,'1 V',ink,13)+G.tx(40,y-14,'步階',ink,13)+G.dot(40,y,ink)+G.ln(40,y,70,y,ink);
+    z+=G.res(70,200,y,c1)+G.tx(135,y-18,`R<tspan font-size="10" dy="3">d</tspan><tspan dy="-3"> = ${fmt(S.Rd)} Ω</tspan>`,c1,14,'middle',700);
+    z+=G.ln(200,y,250,y,ink)+G.dot(250,y,ink)+G.cap(250,y,wc,ink,16,70)+G.tx(272,y+40,`C<tspan font-size="10" dy="3">w</tspan><tspan dy="-3">/2 = ${fmt(m.Cw/2)} fF</tspan>`,wc,13,'start');
+    z+=G.res(250,480,y,c2)+G.tx(365,y-18,`R<tspan font-size="10" dy="3">w</tspan><tspan dy="-3"> = ${fmt(m.Rw)} Ω</tspan>`,c2,14,'middle',700);
+    z+=G.dot(480,y,ink)+G.cap(480,y,wc,ink,16,70)+G.tx(502,y+40,`C<tspan font-size="10" dy="3">w</tspan><tspan dy="-3">/2</tspan>`,wc,13,'start');
+    z+=G.ln(480,y,640,y,ink)+G.dot(640,y,ink)+G.cap(640,y,c3,ink,16,70)+G.tx(662,y+40,`C<tspan font-size="10" dy="3">in</tspan><tspan dy="-3"> = ${fmt(S.Cin)} fF</tspan>`,c3,13,'start');
+    z+=`<rect x="232" y="62" width="300" height="156" rx="10" fill="none" stroke="${mu}" stroke-dasharray="6 5"/>`+G.tx(382,236,'π 模型（整條導線縮成一段）',mu,13);
+  }
+  $('icSvg').innerHTML=`<g class="fade">${z}</g>`;
+  const SAY=[
+   `<b>① 實體連線</b>：反向器 1 的輸出經過 ${fmt(S.L,1)} mm 長的金屬導線，接到反向器 2 的輸入。藍色亮光代表訊號沿著導線傳過去——它跑得並不快！`,
+   `<b>② 電晶體層級</b>：輸入 A 由 1 變 0 時，反向器 1 的 PMOS 導通、NMOS 關閉。導通的 PMOS 就像一個電阻 <span class="m">R</span><sub>d</sub>（${fmt(S.Rd)} Ω），從 V<sub>DD</sub> 對後面的負載充電。反向器 2 的輸入其實是兩顆電晶體的閘極，對電路來說就是一個電容 <span class="m">C</span><sub>in</sub>（${fmt(S.Cin)} fF）。`,
+   `<b>③ 分佈式 RC</b>：長導線每一小段都有一點電阻、也對地有一點電容，所以它是一串連續的 RC，而不是一顆電容。總共 <span class="m">R</span><sub>w</sub> = ${fmt(m.Rw)} Ω、<span class="m">C</span><sub>w</sub> = ${fmt(m.Cw)} fF。`,
+   `<b>④ π 模型</b>：把整條導線縮成「C<sub>w</sub>/2 － R<sub>w</sub> － C<sub>w</sub>/2」。這就是下一節用來算 Elmore delay 的電路：驅動器 → π 模型 → 接收端電容。`
+  ];
+  $('icSay').innerHTML=SAY[icK];
+  $('icCount').textContent=`步驟 ${icK+1} / ${IC_STEPS}`;
+  $('icBar').style.width=((icK+1)/IC_STEPS*100)+'%';
+  $('icPrev').disabled=icK===0;$('icNext').disabled=icK===IC_STEPS-1;
+}
+function icStop(){clearInterval(icTimer);icTimer=null;$('icPlay').textContent='▶ 自動播放';}
+$('icNext').onclick=()=>{icStop();if(icK<IC_STEPS-1){icK++;icDraw();}};
+$('icPrev').onclick=()=>{icStop();if(icK>0){icK--;icDraw();}};
+$('icReset').onclick=()=>{icStop();icK=0;icDraw();};
+$('icPlay').onclick=()=>{if(icTimer){icStop();return;}if(icK===IC_STEPS-1)icK=0;icDraw();$('icPlay').textContent='⏸ 暫停';
+  icTimer=setInterval(()=>{if(icK<IC_STEPS-1){icK++;icDraw();}else icStop();},2600);};
+
+
+function drawNodes(){
+  const ink=css('--ink'),mu=css('--mute'),c1=css('--c1'),c2=css('--c2'),c3=css('--c3'),wc=css('--wire'),y=48;
+  let z=G.tx(26,y-14,'v<tspan font-size="10" dy="3">in</tspan>',ink,15,'middle',700)+G.dot(26,y,ink)+G.ln(26,y,50,y,ink);
+  z+=G.res(50,160,y,c1,2.5)+G.tx(105,y-16,'R<tspan font-size="10" dy="3">d</tspan>',c1,15,'middle',700);
+  z+=G.ln(160,y,190,y,ink)+G.dot(190,y,ink)+G.tx(190,y-14,'v₁',ink,15,'middle',700)+G.cap(190,y,wc,ink,14,72)+G.tx(210,y+40,'C₁ = C<tspan font-size="10" dy="3">w</tspan><tspan dy="-3">/2</tspan>',wc,13,'start');
+  z+=G.res(190,340,y,c2,2.5)+G.tx(265,y-16,'R<tspan font-size="10" dy="3">w</tspan>',c2,15,'middle',700);
+  z+=G.dot(340,y,ink)+G.tx(340,y-14,'v₂',ink,15,'middle',700)+G.cap(340,y,c3,ink,14,72)+G.tx(360,y+40,'C₂ = C<tspan font-size="10" dy="3">w</tspan><tspan dy="-3">/2 + C</tspan><tspan font-size="10" dy="3">in</tspan>',c3,13,'start');
+  z+=G.tx(392,y+4,'→ 接收端',mu,12,'start');
+  $('nodeSvg').innerHTML=z;
+}
+
+function drawChip4(){
+  const ink=css('--ink'),mu=css('--mute'),c1=css('--c1'),c2=css('--c2'),c3=css('--c3'),wc=css('--wire');
+  const m=model(S.L,S.Rd,S.Cin), y=96, x0=96, px=56, x1=x0+px*S.L, wt=ps(m.Rw,m.Cw/2), wmax=ps(r_*10000,c_*10000)/2;
+  $('vL4').textContent=fmt(S.L,1); $('sL4').value=S.L;
+  let z=`<rect x="8" y="8" width="744" height="184" rx="14" fill="none" stroke="${mu}" stroke-dasharray="7 6"/>`+G.tx(22,30,'晶片（俯視示意）',mu,13,'start');
+  z+=G.tx(744,30,`導線本身 R<tspan font-size="10" dy="3">w</tspan><tspan dy="-3">C</tspan><tspan font-size="10" dy="3">w</tspan><tspan dy="-3">/2 = ${fmt(wt,1)} ps　Elmore = ${fmt(m.T,1)} ps</tspan>`,ink,13,'end',700);
+  z+=G.tx(24,y+5,'A',ink,16,'middle',700)+G.ln(34,y,48,y,ink)+G.inv(48,y,c1,ink)+G.tx(70,y+46,'反向器 1',c1,13,'middle',700);
+  z+=`<line x1="${x0}" y1="${y}" x2="${x1}" y2="${y}" stroke="${wc}" stroke-width="7" stroke-linecap="round"/>`;
+  const dur=(0.6+3.4*wt/wmax).toFixed(2);
+  z+=`<line class="flow" pathLength="100" x1="${x0}" y1="${y}" x2="${x1}" y2="${y}" stroke="${c1}" stroke-width="3" style="animation-duration:${dur}s"/>`;
+  z+=G.tx((x0+x1)/2,y-16,`L = ${fmt(S.L,1)} mm`,wc,15,'middle',700);
+  z+=G.inv(x1,y,c3,ink)+G.tx(x1+22,y+46,'反向器 2',c3,13,'middle',700)+G.ln(x1+50,y,x1+64,y,ink)+G.tx(x1+76,y+5,'Y',ink,16,'middle',700);
+  const ya=158; z+=G.ln(x0,ya,x0+px*10,ya,mu,1.5);
+  for(let k=0;k<=10;k++){const x=x0+px*k;z+=G.ln(x,ya-(k%2?3:6),x,ya+(k%2?3:6),mu,1.5);if(k%2===0)z+=G.tx(x,ya+20,k,mu,12);}
+  z+=G.tx(x0+px*10+12,ya+20,'mm',mu,12,'start');
+  z+=`<rect x="${x0}" y="${ya-4}" width="${px*S.L}" height="8" rx="3" fill="${wc}" fill-opacity=".35"/>`;
+  $('chip4').innerHTML=z;
+}
+$('sL4').oninput=e=>{S.L=+e.target.value;$('sL').value=S.L;all();};
+const setL=v=>{S.L=Math.min(10,Math.max(.5,Math.round(v*10)/10));$('sL').value=S.L;all();};
+$('bL1').onclick=()=>setL(1);$('bL2x').onclick=()=>setL(S.L*2);$('bLh').onclick=()=>setL(S.L/2);
+/* ---------- 全部更新 ---------- */
+function all(){icDraw();upd1();upd2();upd3();upd4();}
+$('sL').oninput=e=>{S.L=+e.target.value;all();};
+$('sRd').oninput=e=>{S.Rd=+e.target.value;all();};
+$('sCin').oninput=e=>{S.Cin=+e.target.value;all();};
+$('sK').oninput=e=>{S.k=+e.target.value;upd4();};
+$('cTp').onchange=e=>{S.tp=e.target.checked;upd4();};
+$('bOpt').onclick=()=>{S.k=bestInt(model(S.L,S.Rd,S.Cin),S.tp);$('sK').value=S.k;upd4();};
+$('bOne').onclick=()=>{S.k=1;$('sK').value=1;upd4();};
+let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(all,120);});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',all);
+
+/* ---------- Laplace 老師 ---------- */
+const LAPLACE_SVG=`<svg viewBox="0 0 200 230" aria-label="Laplace 老師動畫">
+ <g class="bodyg">
+  <path d="M10 232 Q16 176 100 164 Q184 176 190 232 Z" fill="#34485a"/>
+  <path d="M58 170 Q46 198 42 232 L58 232 Q61 200 72 175 Z" fill="#e9a73c"/>
+  <path d="M142 170 Q154 198 158 232 L142 232 Q139 200 128 175 Z" fill="#e9a73c"/>
+  <path d="M80 172 L120 172 L114 232 L86 232 Z" fill="#9fbad6"/>
+  <rect x="85" y="130" width="30" height="36" rx="10" fill="#ecc8b2"/>
+  <path d="M70 144 Q100 170 130 144 L137 168 Q100 190 63 168 Z" fill="#34485a" stroke="#d6aa3c" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M73 158 q4 -6 8 0 M119 158 q4 -6 8 0 M79 170 q4 -5 8 0 M113 170 q4 -5 8 0" stroke="#d6aa3c" stroke-width="2" fill="none"/>
+  <path d="M86 146 Q100 156 114 146 Q126 174 116 206 Q108 214 100 208 Q92 214 84 206 Q74 174 86 146 Z" fill="#fbfaf5" stroke="#d3cec2" stroke-width="1.5"/>
+  <path d="M84 166 Q92 160 100 166 Q108 172 116 166 M82 182 Q91 176 100 182 Q109 188 118 182 M85 198 Q92 193 100 198 Q108 203 115 198" stroke="#d3cec2" stroke-width="1.5" fill="none"/>
+  <rect x="127" y="190" width="9" height="10" fill="#c0392b"/>
+  <path d="M131.5 200 l2.6 5.2 5.7 .8 -4.1 4 1 5.7 -5.2 -2.7 -5.1 2.7 1 -5.7 -4.2 -4 5.8 -.8 Z" fill="#fff" stroke="#d6aa3c" stroke-width="1.3"/>
+  <ellipse cx="69" cy="106" rx="6" ry="10" fill="#ecc8b2"/><ellipse cx="131" cy="106" rx="6" ry="10" fill="#ecc8b2"/>
+  <path d="M62 120 Q46 62 100 44 Q154 62 138 120 Q132 126 127 118 L127 82 Q100 68 73 82 L73 118 Q68 126 62 120 Z" fill="#e6e2d9"/>
+  <ellipse cx="100" cy="104" rx="31" ry="41" fill="#f3d6c4"/>
+  <ellipse class="blush" cx="81" cy="120" rx="7" ry="4.5" fill="#f08080"/>
+  <ellipse class="blush" cx="119" cy="120" rx="7" ry="4.5" fill="#f08080"/>
+  <path d="M70 93 Q62 50 100 43 Q138 50 130 93 Q126 75 114 69 Q100 64 86 69 Q74 75 70 93 Z" fill="#f4f1ea" stroke="#d7d0c3" stroke-width="1.2"/>
+  <path d="M82 60 Q92 55 100 60 M118 60 Q108 55 100 60 M78 70 Q86 64 94 66 M122 70 Q114 64 106 66" stroke="#d0c9bb" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+  <g class="hairL"><path d="M72 84 Q54 84 53 101 Q52 119 67 124 Q74 120 72 112 Q61 110 62 101 Q63 92 74 92 Z" fill="#f2eee6" stroke="#d2cbbf" stroke-width="1.3"/>
+   <path d="M58 100 Q63 95 68 99 M58 112 Q63 107 68 111" stroke="#cfc7b9" stroke-width="1.4" fill="none" stroke-linecap="round"/></g>
+  <g class="hairR"><path d="M128 84 Q146 84 147 101 Q148 119 133 124 Q126 120 128 112 Q139 110 138 101 Q137 92 126 92 Z" fill="#f2eee6" stroke="#d2cbbf" stroke-width="1.3"/>
+   <path d="M142 100 Q137 95 132 99 M142 112 Q137 107 132 111" stroke="#cfc7b9" stroke-width="1.4" fill="none" stroke-linecap="round"/></g>
+  <path class="brow browL" d="M77 87 Q85 82 94 86" stroke="#5b4a3e" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+  <path class="brow browR" d="M106 86 Q115 82 123 87" stroke="#5b4a3e" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+  <g class="eyes"><ellipse cx="86" cy="98" rx="4.4" ry="3.4" fill="#fff"/><ellipse cx="114" cy="98" rx="4.4" ry="3.4" fill="#fff"/>
+   <circle cx="86.5" cy="98.3" r="2.6" fill="#3a2e26"/><circle cx="114.5" cy="98.3" r="2.6" fill="#3a2e26"/>
+   <circle cx="87.4" cy="97.3" r=".9" fill="#fff"/><circle cx="115.4" cy="97.3" r=".9" fill="#fff"/></g>
+  <path d="M81 94 Q86 92 91 94 M109 94 Q114 92 119 94" stroke="#b98d76" stroke-width="1.2" fill="none"/>
+  <path d="M100 102 Q96 118 98 123 Q103 126 108 122" stroke="#c9967a" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <path d="M89 122 Q86 128 88 133 M111 122 Q114 128 112 133" stroke="#ddb29a" stroke-width="1.3" fill="none"/>
+  <path class="mo n" d="M90 132 Q100 136 110 131" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path class="mo s" d="M88 129 Q100 143 112 129 Q100 134 88 129 Z" fill="#9b3a2c" stroke="#8a4a3a" stroke-width="1.5" stroke-linejoin="round"/>
+  <path class="mo f" d="M90 136 Q100 128 110 136" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path class="sweat" d="M138 74 Q143 84 138 88 Q133 84 138 74 Z" fill="#7cc3f0"/>
+  <text class="spark" x="30" y="44" font-size="18" fill="#f0b400">✦</text>
+  <text class="spark" x="160" y="40" font-size="14" fill="#f0b400">✦</text>
+  <text class="spark" x="170" y="96" font-size="11" fill="#f0b400">✦</text>
+ </g></svg>`;
+function makeAvatar(el,bubble){
+  el.innerHTML=LAPLACE_SVG; let tm=null;
+  function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
+  return {mood(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
+    if(m==='smile'){el.classList.add('smile');restart('hop');}
+    if(m==='frown'){el.classList.add('frown');restart('shake');}
+    if(text!==undefined){bubble.innerHTML=text;bubble.className='bubble'+(m==='smile'?' good':m==='frown'?' bad':'');}
+    if(!hold) tm=setTimeout(()=>{el.classList.remove('smile','frown');bubble.className='bubble';},3200);}};
+}
+var AV1=makeAvatar($('av1'),$('bub1')), AV2=makeAvatar($('av2'),$('bub2'));
+const QUOTES=[
+ '我是 Pierre-Simon Laplace（1749–1827），法國數學家，後人稱我「法國的牛頓」。',
+ '我花了二十多年寫五卷《天體力學》，用微分方程研究太陽系的穩定性。',
+ '1785 年我在軍校當考官，考過一位 16 歲的砲兵學員——他後來成了拿破崙皇帝！',
+ '1799 年拿破崙請我當內政部長，可惜大約六週就被換掉了。他說我把「無窮小的精神」帶進了行政。',
+ '你們用的轉換，和我 1812 年在《機率的解析理論》裡用的積分有關；後來 Heaviside 的運算微積分，讓工程師真正愛上了它。',
+ '1855 年 Kelvin 分析大西洋海底電纜，發現延遲和長度的平方成正比——和你們晶片上的長導線是同一個數學！'
+];
+let qi=0;$('av1').onclick=()=>AV1.mood('smile',QUOTES[qi++%QUOTES.length]);
+
+/* ---------- 小測驗 ---------- */
+const QZ=[
+ {q:'為什麼把長導線當成「一顆大電容」（只算 R<sub>d</sub>C<sub>total</sub>）會嚴重低估延遲？',
+  o:['忽略了導線本身的電阻：遠端的電容要經過導線電阻才能充電','電容在高頻時會變大','驅動器的電阻其實比較小','接收閘的電容被算了兩次'],a:0,
+  e:'長導線的 R<sub>w</sub> 常常比 R<sub>d</sub> 還大，遠端電容充電時要多經過 R<sub>w</sub>，這一項正是「一顆大電容」漏掉的。',h:'看第 2 節：橘色那一段是誰造成的？'},
+ {q:'π 模型把導線的總電容 C<sub>w</sub> 怎麼放？',
+  o:['電阻兩端各放 C<sub>w</sub>/2','全部放在電阻後面','全部放在電阻前面','放在電阻中間'],a:0,
+  e:'兩端各 C<sub>w</sub>/2，這樣導線本身的 Elmore delay 剛好是 R<sub>w</sub>C<sub>w</sub>/2，和真正的分佈式導線一致。',h:'名字叫 π，想想 π 的兩隻腳。'},
+ {q:'導線長度變成原來的 2 倍，導線本身的延遲 R<sub>w</sub>C<sub>w</sub>/2 變成幾倍？',
+  o:['4 倍','2 倍','√2 倍','不變'],a:0,
+  e:'R<sub>w</sub> 和 C<sub>w</sub> 都和長度成正比，相乘就是 L<sup>2</sup>：長 2 倍、慢 4 倍。',h:'R 變幾倍？C 變幾倍？兩個相乘。'},
+ {q:'從 Laplace 轉換的角度看，Elmore delay 是什麼？',
+  o:['轉移函數 H(s) 展開成 1 − a s + … 時，一次項的係數 a','H(s) 的最大值','H(s) 在 s = 1 的值','反轉換後 v(t) 的最大斜率'],a:0,
+  e:'Elmore delay 就是 H(s) 的一階矩（取負號）。它只用到展開式的第一個係數，所以計算很快。',h:'看第 3 節的步驟 ⑦。'},
+ {q:'Laplace 轉換分析 RC 電路最大的好處是什麼？',
+  o:['電容變成 1/(sC)，微分方程變成代數方程','可以讓電阻消失','可以直接得到電路的功耗','只能用在數位電路'],a:0,
+  e:'i = C dv/dt 經過 Laplace 轉換變成 I = sC·V：電路就成了代數方程，解完再查表反轉換。',h:'微分在 s 域裡變成什麼運算？'},
+ {q:'長導線插入越多中繼器（repeater）一定越快嗎？',
+  o:['不一定：導線項 ∝ 1/k 會變小，但中繼器項 ∝ k 會變大，有一個最佳 k','一定越快，越多越好','一定越慢，不要插','和段數無關'],a:0,
+  e:'T(k) 一項隨 k 下降、一項隨 k 上升，對 k 微分令導數為 0 就得到最佳段數。',h:'看第 5 節的紫色線和橘色線。'},
+ {q:'一階 RC 電路的 50% 延遲約是 0.69 RC。0.69 是從哪裡來的？',
+  o:['ln 2：解 1 − e<sup>−t/RC</sup> = 0.5','1/√2','e 的倒數','經驗常數，沒有推導'],a:0,
+  e:'1 − e<sup>−t/RC</sup> = 1/2 ⇒ t = RC · ln 2 ≈ 0.69 RC。',h:'把 v(t) = 0.5 代進去解 t。'}
+];
+const PRAISE=['C\'est parfait！完全正確！','Très bien！觀念很清楚！','答對了！你已經抓到重點。','漂亮！這就是 Laplace 的精神。'];
+let ans=0,good=0,streak=0;
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function buildQuiz(){
+  ans=0;good=0;streak=0;$('score').textContent='';$('again').style.display='none';
+  const box=$('quiz');box.innerHTML='';
+  QZ.forEach((z,qi)=>{
+    const d=document.createElement('div');d.className='q';
+    d.innerHTML=`<p>${qi+1}. ${z.q}</p><div class="opts"></div><div class="exp"></div>`;
+    const opts=d.querySelector('.opts'), exp=d.querySelector('.exp');
+    shuffle(z.o.map((t,i)=>i)).forEach(i=>{
+      const b=document.createElement('button');b.innerHTML=z.o[i];
+      b.onclick=()=>{
+        [...opts.children].forEach(x=>x.disabled=true);
+        const ok=i===z.a;
+        b.classList.add(ok?'right':'wrong');
+        if(!ok)[...opts.children].find(x=>x.dataset.k==z.a).classList.add('right');
+        exp.innerHTML=(ok?'<span class="ok">✔ 正確！</span>':'<span class="bad">✘ 再想想：</span>')+z.e;exp.classList.add('show');
+        ans++;if(ok){good++;streak++;AV2.mood('smile',streak>=3?`連對 ${streak} 題！Magnifique！`:PRAISE[Math.floor(Math.random()*PRAISE.length)]);}
+        else{streak=0;AV2.mood('frown',z.h);}
+        $('score').textContent=`得分：${good} / ${QZ.length}`;
+        if(ans===QZ.length){$('again').style.display='inline-block';
+          setTimeout(()=>{const r=good/QZ.length;
+            AV2.mood(r===1?'smile':r>=.6?'':'frown',r===1?'全對！你已經可以幫晶片做時序估算了！':r>=.6?'很不錯！錯的題目回去看看對應的小節。':'建議回到第 1～3 節再玩一次滑桿，觀念會更清楚。',true);},3300);}
+      };
+      b.dataset.k=i;opts.appendChild(b);
+    });
+    box.appendChild(d);
+  });
+}
+$('again').onclick=()=>{buildQuiz();AV2.mood('','新的一輪！選項順序換過了喔。');};
+
+buildQuiz();all();
+</script>
+</body>
+</html>
