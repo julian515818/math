@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>脈衝、階躍、頻率響應</title>
+<style>
+:root{--bg:#f7f6f2;--card:#fff;--ink:#1d2330;--mute:#667085;--line:#e3e1da;--ok:#1f9d6b;--bad:#d6334f;--acc:#2f6fd6;--out:#e07a1f;--axis:#98a2b3;--soft:#f1f0eb}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;--acc:#6ea3ff;--out:#ffa24d;--axis:#5d6678;--soft:#252a36}}
+:root[data-theme="dark"]{--bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;--acc:#6ea3ff;--out:#ffa24d;--axis:#5d6678;--soft:#252a36}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.65}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.7rem}
+header p{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:20px}
+.card h2{margin:0 0 12px;font-size:1.25rem;display:flex;align-items:center;gap:10px}
+.num{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:var(--acc);color:#fff;font-size:1rem;flex:none}
+.tbl{overflow-x:auto;margin:10px 0}
+table{border-collapse:collapse;min-width:640px;width:100%;font-size:.95rem}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{color:var(--mute);font-weight:600}
+.key{background:var(--soft);border-left:4px solid var(--acc);padding:10px 14px;margin:12px 0;border-radius:0}
+.row{display:flex;align-items:center;gap:10px;margin:8px 0}
+.row label{color:var(--mute);min-width:84px}
+.row input{flex:1;min-width:0}
+.row b{min-width:70px;text-align:right}
+.plots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:8px}
+.plots>div{min-width:0}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:center}
+.two>*{min-width:0}
+.cap{font-size:.9rem;color:var(--mute);margin:0 0 6px}
+.read{font-family:Consolas,monospace;font-size:.92rem;background:var(--soft);padding:8px 12px;border-radius:8px;margin-top:10px}
+canvas{width:100%;display:block;border:1px solid var(--line);border-radius:8px}
+button{font:inherit;font-size:.92rem;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);cursor:pointer}
+button:hover{border-color:var(--mute)}
+.in{color:var(--acc);font-weight:600}.out{color:var(--out);font-weight:600}
+.q{border-top:1px solid var(--line);padding:12px 0}
+.q p{margin:0 0 8px;font-weight:600}
+.opts{display:grid;gap:6px}
+.opts button{text-align:left}
+.opts button.right{border-color:var(--ok);color:var(--ok)}
+.opts button.wrong{border-color:var(--bad);color:var(--bad)}
+.ex{margin-top:6px;font-size:.92rem}
+svg.rc{width:100%;max-width:340px;display:block;margin:auto}
+@media (max-width:760px){.plots,.two{grid-template-columns:minmax(0,1fr)}}
+footer{text-align:center;color:var(--mute);font-size:.85rem;margin-top:28px}
+</style><style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem}.pu-badge .pu-t b{font-size:1.05rem}.pu-badge .pu-t span{color:var(--mute)}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+</style>
+</head><body><div class="wrap">
+<header class="pu-hd"><div class="pu-hd-main"><h1>脈衝、階躍、頻率響應</h1><p>工程數學 ・ 互動教學：用三種測試輸入認識同一個系統 H(s)</p></div><div class="pu-badge"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div></header>
+
+<div class="card">
+<h2><span class="num">0</span>同一個系統，三種「測試方法」</h2>
+<p style="margin:0">要了解一個系統，可以給它不同的測試輸入，再看輸出。三種響應都來自同一個轉移函數 H(s)，只是問的問題不同。</p>
+<div class="tbl"><table>
+<tr><th>響應</th><th>給系統什麼輸入？</th><th>看出什麼？</th><th>與 H(s) 的關係</th></tr>
+<tr><td>脈衝響應 h(t)</td><td>單位脈衝 δ(t)，瞬間「敲一下」</td><td>敲擊後輸出如何衰減、振盪或增長</td><td>h(t) = L⁻¹{H(s)}</td></tr>
+<tr><td>階躍響應 y<sub>step</sub>(t)</td><td>單位階躍 u(t)，從 0 跳到 1 並維持</td><td>多快接近新值，有沒有過衝或振盪</td><td>y<sub>step</sub>(t) = L⁻¹{H(s)/s}</td></tr>
+<tr><td>頻率響應 H(jω)</td><td>逐一輸入不同頻率的正弦波</td><td>穩態下各頻率的振幅倍率與相位偏移</td><td>取 s = jω（虛軸須在收斂域內）</td></tr>
+</table></div>
+<div class="two">
+<div>
+<p style="margin:0 0 6px">以下都用 <b>RC 低通電路</b> 示範，輸出取電容電壓：</p>
+<p class="read" style="margin:0">H(s) = 1 / (τs + 1)，τ = RC<br>極點 s = −1/τ = <span id="pole"></span></p>
+<div class="row"><label>時間常數 τ</label><input class="tau" type="range" min="0.3" max="2" step="0.1" value="1"><b class="tauv"></b></div>
+<p class="cap" style="margin:0">τ 在每一節都會同步，可隨時回來調整。</p>
+</div>
+<svg class="rc" viewBox="0 0 340 150" fill="none" stroke="currentColor" stroke-width="2" aria-label="RC 低通電路">
+<circle cx="40" cy="75" r="18"/><text x="40" y="80" text-anchor="middle" fill="currentColor" stroke="none" font-size="14">~</text>
+<path d="M40 57V25H90l6-10 12 20 12-20 12 20 12-20 6 10H230V60M214 60h32M214 72h32M230 72V125H40V93M230 25H290M230 125H290"/>
+<text x="120" y="12" fill="currentColor" stroke="none" font-size="13" text-anchor="middle">R</text>
+<text x="256" y="70" fill="currentColor" stroke="none" font-size="13">C</text>
+<text x="8" y="45" fill="currentColor" stroke="none" font-size="12">輸入</text>
+<text x="292" y="80" fill="currentColor" stroke="none" font-size="12">輸出</text>
+<circle cx="290" cy="25" r="3" fill="currentColor"/><circle cx="290" cy="125" r="3" fill="currentColor"/>
+</svg>
+</div>
+</div>
+
+<div class="card">
+<h2><span class="num">1</span>脈衝響應 h(t)：敲一下，看餘韻</h2>
+<p style="margin:0">輸入 <span class="in">δ(t)</span> 時間極短但面積為 1。因為 L{δ(t)} = 1，輸出 Y(s) = H(s)，所以 <span class="out">h(t) = (1/τ)e<sup>−t/τ</sup></span>。對 RC 電路來說，就是電容瞬間被充一點電後，再慢慢放電。</p>
+<div class="row" style="margin-top:12px"><button id="hit">敲一下 ▶</button><span class="cap" style="margin:0">把 τ 調小再敲：峰值變高、衰減變快，但面積永遠是 1</span></div>
+<div class="plots">
+<div><p class="cap">輸入 δ(t)</p><canvas id="c1a" data-h="220"></canvas></div>
+<div><p class="cap">輸出 h(t)</p><canvas id="c1b" data-h="220"></canvas></div>
+</div>
+<div class="read" id="r1"></div>
+<div class="key">一句話：脈衝響應是系統的「指紋」。任何輸入的輸出都可以寫成 y(t) = x(t) ∗ h(t)。</div>
+</div>
+
+<div class="card">
+<h2><span class="num">2</span>階躍響應：突然接上電源，看充電</h2>
+<p style="margin:0">輸入 <span class="in">u(t)</span> 的拉氏轉換是 1/s，所以 Y(s) = H(s)/s。除以 s 等於在時域積分，因此 <span class="out">y<sub>step</sub>(t) = ∫₀ᵗ h(τ′)dτ′ = 1 − e<sup>−t/τ</sup></span>，也就是脈衝響應曲線下的累積面積。</p>
+<div class="row"><label>觀察時間 t</label><input id="t2" type="range" min="0" max="10" step="0.05" value="1"><b id="t2v"></b></div>
+<div class="row"><button id="chg">充電動畫 ▶</button><label style="min-width:0">τ</label><input class="tau" type="range" min="0.3" max="2" step="0.1" value="1"><b class="tauv"></b></div>
+<div class="plots">
+<div><p class="cap">h(t) 與 0 到 t 的面積</p><canvas id="c2a" data-h="220"></canvas></div>
+<div><p class="cap">階躍響應 y<sub>step</sub>(t)</p><canvas id="c2b" data-h="220"></canvas></div>
+</div>
+<div class="read" id="r2"></div>
+<div class="key">一句話：階躍響應看「多快到達新值」。RC 電路經過 τ 約到 63%，經過 5τ 約到 99%，而且不會過衝。</div>
+</div>
+
+<div class="card">
+<h2><span class="num">3</span>頻率響應 H(jω)：輸入正弦波，看振幅與相位</h2>
+<p style="margin:0">輸入 <span class="in">sin(ωt)</span>，暫態消失後輸出仍是同頻率的正弦波：<span class="out">|H(jω)| sin(ωt + ∠H(jω))</span>。RC 電路的 |H(jω)| = 1/√(1+(ωτ)²)，相位 = −arctan(ωτ)。</p>
+<div class="row"><label>輸入頻率 ω</label><input id="w3" type="range" min="-1.3" max="1.7" step="0.01" value="0"><b id="w3v"></b></div>
+<div class="row"><label>時間常數 τ</label><input class="tau" type="range" min="0.3" max="2" step="0.1" value="1"><b class="tauv"></b></div>
+<div class="plots">
+<div><p class="cap"><span class="in">輸入</span> 與 <span class="out">輸出</span>（穩態）</p><canvas id="c3a" data-h="220"></canvas></div>
+<div><p class="cap">振幅倍率 |H(jω)|（橫軸為對數刻度）</p><canvas id="c3b" data-h="220"></canvas></div>
+</div>
+<div class="read" id="r3"></div>
+<div class="key">一句話：頻率響應看「哪些頻率通得過」。RC 是低通：低頻幾乎全通過，ω = 1/τ 時剩 0.707 倍、相位落後 45°，頻率愈高衰減愈多。前提是系統穩定，暫態才會消失、留下穩態正弦。</div>
+</div>
+
+<div class="card">
+<h2><span class="num">4</span>觀念小測驗</h2>
+<div id="quiz"></div>
+<p id="score" style="font-weight:600;margin:10px 0 0"></p>
+<button id="again" style="display:none;margin-top:8px">再做一次</button>
+</div>
+
+<footer>脈衝、階躍、頻率響應互動教學 ・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setup(c){const r=window.devicePixelRatio||1;c.style.width='';const w=c.clientWidth,h=+c.dataset.h;c.width=w*r;c.height=h*r;c.style.height=h+'px';const g=c.getContext('2d');g.setTransform(r,0,0,r,0,0);return [g,w,h];}
+function frame(c,x0,x1,y0,y1,o){o=o||{};const [g,w,h]=setup(c);const L=o.L||40,R=12,T=12,B=26;
+ const X=v=>L+(v-x0)/(x1-x0)*(w-L-R),Y=v=>T+(y1-v)/(y1-y0)*(h-T-B);
+ const mu=css('--mute');g.lineWidth=1;g.strokeStyle=css('--axis');g.beginPath();const yz=Y(Math.max(y0,Math.min(y1,0)));
+ g.moveTo(L,yz);g.lineTo(w-R,yz);g.moveTo(L,T);g.lineTo(L,h-B);g.stroke();
+ g.fillStyle=mu;g.font='12px sans-serif';g.textAlign='center';
+ (o.xt||[]).forEach(([v,s])=>g.fillText(s,X(v),h-B+16));
+ g.textAlign='right';(o.yt||[]).forEach(([v,s])=>g.fillText(s,L-5,Y(v)+4));
+ if(o.xl)g.fillText(o.xl,w-R,yz-6);g.textAlign='left';
+ return {g,w,h,X,Y};}
+function curve(F,f,a,b,col,lw,dash){const g=F.g;g.strokeStyle=col;g.lineWidth=lw||2.2;g.setLineDash(dash||[]);g.beginPath();
+ for(let i=0;i<=400;i++){const x=a+(b-a)*i/400;i?g.lineTo(F.X(x),F.Y(f(x))):g.moveTo(F.X(x),F.Y(f(x)));}g.stroke();g.setLineDash([]);}
+function area(F,f,a,b,col){if(b<=a)return;const g=F.g;g.fillStyle=col;g.globalAlpha=.22;g.beginPath();g.moveTo(F.X(a),F.Y(0));
+ for(let i=0;i<=200;i++){const x=a+(b-a)*i/200;g.lineTo(F.X(x),F.Y(f(x)));}g.lineTo(F.X(b),F.Y(0));g.closePath();g.fill();g.globalAlpha=1;}
+function dot(F,x,y,col){F.g.fillStyle=col;F.g.beginPath();F.g.arc(F.X(x),F.Y(y),4.5,0,7);F.g.fill();}
+function seg(F,x0,y0,x1,y1,col){const g=F.g;g.strokeStyle=col;g.lineWidth=1;g.setLineDash([4,4]);g.beginPath();g.moveTo(F.X(x0),F.Y(y0));g.lineTo(F.X(x1),F.Y(y1));g.stroke();g.setLineDash([]);}
+function txt(F,x,y,s,col,al){F.g.fillStyle=col;F.g.font='12px sans-serif';F.g.textAlign=al||'left';F.g.fillText(s,F.X(x),F.Y(y));F.g.textAlign='left';}
+let tau=1,p1=1,raf1=0,raf2=0,ph0=0;
+const XT=[[0,'0'],[2,'2'],[4,'4'],[6,'6'],[8,'8'],[10,'10']];
+const h=t=>Math.exp(-t/tau)/tau, ys=t=>1-Math.exp(-t/tau);
+function d0(){$('pole').textContent=(-1/tau).toFixed(2);document.querySelectorAll('.tauv').forEach(e=>e.textContent=tau.toFixed(1)+' s');}
+function d1(){const IN=css('--acc'),OUT=css('--out'),mu=css('--mute');
+ let F=frame($('c1a'),-1,5,0,1.25,{xt:[[0,'0']],xl:'t'});
+ const g=F.g,fl=p1<0.1;g.strokeStyle=IN;g.fillStyle=IN;g.lineWidth=fl?4:2.5;
+ g.beginPath();g.moveTo(F.X(0),F.Y(0));g.lineTo(F.X(0),F.Y(1));g.stroke();
+ g.beginPath();g.moveTo(F.X(0),F.Y(1.12));g.lineTo(F.X(0)-6,F.Y(1));g.lineTo(F.X(0)+6,F.Y(1));g.closePath();g.fill();
+ txt(F,0.25,0.9,'δ(t)：寬度→0、面積 = 1',IN);
+ F=frame($('c1b'),0,10,0,3.6,{xt:XT,yt:[[0,'0'],[1,'1'],[2,'2'],[3,'3']],xl:'t (s)'});
+ const te=10*p1;area(F,h,0,te,OUT);curve(F,h,0,te,OUT);
+ if(p1>=1){seg(F,tau,0,tau,h(tau),mu);dot(F,tau,h(tau),OUT);txt(F,tau+0.2,h(tau)+0.15,'t = τ：剩 36.8%',mu);}
+ else dot(F,te,h(te),OUT);
+ $('r1').textContent=`h(0) = 1/τ = ${(1/tau).toFixed(2)}；t = τ 時 h = 0.368/τ = ${(0.368/tau).toFixed(2)}；曲線下面積 = 1`;}
+function d2(){const IN=css('--acc'),OUT=css('--out'),mu=css('--mute'),t=+$('t2').value,y=ys(t);
+ $('t2v').textContent=t.toFixed(2)+' s';
+ let F=frame($('c2a'),0,10,0,3.6,{xt:XT,yt:[[0,'0'],[1,'1'],[2,'2'],[3,'3']],xl:'t (s)'});
+ area(F,h,0,t,OUT);curve(F,h,0,10,OUT);seg(F,t,0,t,3.4,mu);txt(F,t+0.15,3.1,'面積 = '+y.toFixed(3),OUT);
+ F=frame($('c2b'),0,10,0,1.2,{xt:XT,yt:[[0,'0'],[0.632,'0.63'],[1,'1']],xl:'t (s)'});
+ curve(F,x=>1,0,10,IN,1.6,[6,4]);txt(F,9.9,1.06,'輸入 u(t) = 1',IN,'right');
+ seg(F,0,0.632,tau,0.632,mu);seg(F,tau,0,tau,0.632,mu);txt(F,tau+0.15,0.5,'τ',mu);
+ if(5*tau<=10){seg(F,5*tau,0,5*tau,ys(5*tau),mu);txt(F,5*tau+0.15,0.3,'5τ',mu);}
+ curve(F,ys,0,10,OUT);dot(F,t,y,OUT);
+ $('r2').textContent=`t = ${t.toFixed(2)} s = ${(t/tau).toFixed(2)}τ：y_step = 1 − e^(−t/τ) = ${y.toFixed(3)}，已充到最終值的 ${(y*100).toFixed(1)}%`;}
+function d3(){const IN=css('--acc'),OUT=css('--out'),mu=css('--mute'),lw=+$('w3').value,w=10**lw,wt=w*tau,M=1/Math.sqrt(1+wt*wt),ph=-Math.atan(wt);
+ $('w3v').textContent=w<1?w.toFixed(2):w.toFixed(1);
+ let F=frame($('c3a'),0,3,-1.2,1.2,{xt:[[0,'0'],[1,'1'],[2,'2'],[3,'3 個週期']],yt:[[1,'1'],[0,'0'],[-1,'−1']]});
+ curve(F,x=>Math.sin(2*Math.PI*(x-ph0)),0,3,IN,1.8);curve(F,x=>M*Math.sin(2*Math.PI*(x-ph0)+ph),0,3,OUT,2.4);
+ seg(F,0,M,3,M,mu);seg(F,0,-M,3,-M,mu);
+ F=frame($('c3b'),-1.3,1.7,0,1.1,{xt:[[-1,'0.1'],[0,'1'],[1,'10']],yt:[[0,'0'],[0.707,'0.707'],[1,'1']],xl:'ω'});
+ const lc=Math.log10(1/tau);seg(F,lc,0,lc,1.05,mu);txt(F,lc+0.05,1.0,'ω = 1/τ',mu);seg(F,-1.3,0.707,lc,0.707,mu);
+ curve(F,v=>1/Math.sqrt(1+(10**v*tau)**2),-1.3,1.7,OUT);dot(F,lw,M,OUT);
+ $('r3').textContent=`ω = ${w<1?w.toFixed(2):w.toFixed(1)} rad/s，ωτ = ${wt.toFixed(2)}：|H| = ${M.toFixed(3)}（${(20*Math.log10(M)).toFixed(1)} dB），相位 = ${(ph*180/Math.PI).toFixed(1)}°`;}
+function all(){d0();d1();d2();d3();}
+document.querySelectorAll('.tau').forEach(el=>el.oninput=()=>{tau=+el.value;document.querySelectorAll('.tau').forEach(e=>e.value=tau);all();});
+$('t2').oninput=d2;$('w3').oninput=d3;
+$('hit').onclick=()=>{cancelAnimationFrame(raf1);const t0=performance.now();const st=n=>{p1=Math.min(1,(n-t0)/2000);d1();if(p1<1)raf1=requestAnimationFrame(st);};raf1=requestAnimationFrame(st);};
+$('chg').onclick=()=>{cancelAnimationFrame(raf2);const t0=performance.now();const st=n=>{const k=Math.min(1,(n-t0)/4000);$('t2').value=10*k;d2();if(k<1)raf2=requestAnimationFrame(st);};raf2=requestAnimationFrame(st);};
+let last=0;function loop(n){if(n-last>40){ph0=(ph0+0.012)%1;d3();last=n;}requestAnimationFrame(loop);}
+window.addEventListener('resize',all);matchMedia('(prefers-color-scheme: dark)').addEventListener('change',all);
+const Q=[
+{q:'要得到脈衝響應 h(t)，應該給系統什麼輸入？',o:['單位脈衝 δ(t)','單位階躍 u(t)','固定頻率的正弦波','任意隨機雜訊'],e:'δ(t) 的拉氏轉換是 1，所以輸出正好是 H(s) 本身，即 h(t) = L⁻¹{H(s)}。'},
+{q:'階躍響應和脈衝響應有什麼關係？',o:['階躍響應是脈衝響應從 0 到 t 的積分','階躍響應是脈衝響應的微分','兩者相乘等於 1','兩者沒有關係'],e:'u(t) 的拉氏轉換是 1/s，除以 s 就是在時域積分：y_step(t) = ∫₀ᵗ h(τ′)dτ′。'},
+{q:'RC 電路接上 1V 後，經過一個時間常數 τ，電容電壓約為多少？',o:['約 0.63 V','約 0.37 V','約 0.5 V','約 0.99 V'],e:'y = 1 − e⁻¹ ≈ 0.632；經過 5τ 才約 0.99。'},
+{q:'RC 低通電路在 ω = 1/τ 時，頻率響應是？',o:['振幅 0.707 倍、相位落後 45°','振幅 1 倍、相位不變','振幅 0.5 倍、相位落後 90°','振幅 0 倍、相位落後 180°'],e:'ωτ = 1 時 |H| = 1/√2 ≈ 0.707（−3 dB），相位 = −arctan(1) = −45°。'},
+{q:'把 τ（RC）變大，會發生什麼事？',o:['充電變慢，能通過的頻率也變低','充電變快，能通過的頻率變高','充電變慢，能通過的頻率變高','只影響頻率響應，不影響時域'],e:'同一個極點 −1/τ 同時決定時域快慢與截止頻率 1/τ：τ 大，極點靠近虛軸，反應慢、頻寬窄。'},
+{q:'為什麼頻率響應要求虛軸在收斂域內（系統穩定）？',o:['穩定時暫態會消失，才留得下穩態正弦','因為 jω 一定是極點','因為正弦波的拉氏轉換不存在','不穩定的系統頻率響應比較準'],e:'不穩定系統的暫態會越來越大，永遠不會只剩同頻率的正弦，H(jω) 就失去「穩態倍率」的意義。'}];
+function quiz(){const box=$('quiz');box.innerHTML='';let done=0,sc=0;$('score').textContent='';$('again').style.display='none';
+ Q.forEach((z,i)=>{const d=document.createElement('div');d.className='q';d.innerHTML=`<p>${i+1}. ${z.q}</p><div class="opts"></div><div class="ex"></div>`;
+  const ops=z.o.map((t,k)=>({t,k})).sort(()=>Math.random()-0.5),od=d.querySelector('.opts');
+  ops.forEach(op=>{const b=document.createElement('button');b.textContent=op.t;b.onclick=()=>{if(d.dataset.lock)return;d.dataset.lock=1;
+   od.querySelectorAll('button').forEach((bb,j)=>{if(ops[j].k===0)bb.classList.add('right');});
+   const ok=op.k===0;if(!ok)b.classList.add('wrong');else sc++;done++;
+   const ex=d.querySelector('.ex');ex.style.color=ok?'var(--ok)':'var(--bad)';ex.textContent=(ok?'✔ 正確！':'✘ ')+z.e;
+   if(done===Q.length){$('score').textContent=`得分：${sc} / ${Q.length}`;$('again').style.display='';}};od.appendChild(b);});
+  box.appendChild(d);});}
+$('again').onclick=quiz;
+all();quiz();requestAnimationFrame(loop);
+</script></body></html>

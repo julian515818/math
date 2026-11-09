@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>轉移函數 H(s)（一）RC 電路</title>
+<style>
+:root{
+  --bg:#f7f6f2;--card:#fff;--ink:#1d2330;--mute:#667085;--line:#e3e1da;--ok:#1f9d6b;--bad:#d6334f;
+  --grid:#eceae4;--axis:#9aa0ab;--accent:#2f6fdb;--tint:#eaf1fc;
+  --c1:#2f6fdb;--c2:#e07a1f;--c3:#8b45d6;--warn:#c98a00;--wire:#b0752e;--code:#f2f0ea;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+    --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+    --c1:#6c9dff;--c2:#ffa552;--c3:#b98bff;--warn:#ffd166;--wire:#e0a560;--code:#232836;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--bad:#ff6f86;
+  --grid:#262b36;--axis:#5c6475;--accent:#6c9dff;--tint:#1b2436;
+  --c1:#6c9dff;--c2:#ffa552;--c3:#b98bff;--warn:#ffd166;--wire:#e0a560;--code:#232836;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.9rem}
+header p{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:18px}
+.card h2{margin:0 0 12px;font-size:1.22rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:.9rem;flex:none}
+h3{margin:4px 0 6px;font-size:1.05rem}
+p{margin:6px 0}
+.m{font-family:"Times New Roman","Cambria Math",serif;font-style:italic}
+.def{font-size:1.15rem;text-align:center;padding:12px;border-radius:10px;background:var(--tint);line-height:2.1;overflow-x:auto}
+.note{color:var(--mute);font-size:.92rem}
+.c1{color:var(--c1)}.c2{color:var(--c2)}.c3{color:var(--c3)}.ok{color:var(--ok)}.bad{color:var(--bad)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.two>*,.three>*{min-width:0}
+@media (max-width:860px){.two,.three{grid-template-columns:minmax(0,1fr)}}
+.frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;font-size:.92em;line-height:1.15;margin:0 2px}
+.frac>span:first-child{border-bottom:1.5px solid currentColor;padding:0 3px}
+.frac>span:last-child{padding:0 3px}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px 18px;margin:6px 0 4px}
+.ctl label{display:flex;flex-direction:column;font-size:.95rem}
+.ctl input[type=range]{width:100%;accent-color:var(--accent)}
+.box{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--card)}
+.face{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--tint)}
+.face b{display:block}
+canvas{display:block;width:100%;border-radius:10px}
+.cap{font-size:.88rem;color:var(--mute);margin:4px 2px 0}
+.calc{background:var(--code);border-radius:10px;padding:10px 12px;font-size:.95rem;line-height:1.9;overflow-x:auto;margin-top:8px}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:8px}
+.kv div{background:var(--tint);border-radius:10px;padding:6px 10px;font-size:.9rem}
+.kv b{font-size:1.05rem;display:block}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:9px;padding:6px 14px;font:inherit;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0}
+.scroll{overflow-x:auto}
+.schem{min-width:680px;width:100%;display:block}
+.icnote{margin-top:18px;border-radius:14px;padding:16px 20px;border:2px solid var(--accent);background:linear-gradient(135deg,var(--tint),var(--card))}
+.icnote h2{margin:0 0 8px;font-size:1.2rem;display:flex;gap:10px;align-items:center}
+.icnote .lead{font-size:1.08rem;font-weight:700;color:var(--accent);margin:4px 0 10px}
+.icnote ul{margin:6px 0 4px;padding-left:1.3em}.icnote li{margin:3px 0}
+.say{background:var(--tint);border-left:4px solid var(--accent);border-radius:8px;padding:8px 12px;margin-top:10px}
+/* quiz */
+.q{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px}
+.q .qt{font-weight:600;margin-bottom:8px}
+.opt{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:9px;padding:7px 12px;margin:5px 0;font:inherit;cursor:pointer}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,transparent)}
+.opt.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,transparent)}
+.opt:disabled{cursor:default}
+.ex{margin-top:6px;font-size:.93rem}
+.score{font-size:1.15rem;font-weight:700;margin:8px 0}
+footer{text-align:center;color:var(--mute);font-size:.9rem;margin-top:26px}
+/* avatar */
+.avwrap{position:relative;display:flex;flex-direction:column;align-items:center}
+.av{width:100%;max-width:220px;cursor:pointer;user-select:none}
+.av svg{width:100%;display:block;overflow:visible;background:none}
+.av .bodyg{animation:bob 3.2s ease-in-out infinite;transform-origin:100px 200px}
+.av .eyes{animation:blink 4.6s infinite;transform-box:fill-box;transform-origin:center}
+.av .hairL{animation:sway 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:top center}
+.av .hairR{animation:sway 3.2s ease-in-out infinite reverse;transform-box:fill-box;transform-origin:top center}
+.av .brow{transition:transform .3s;transform-box:fill-box}
+.av .browL{transform-origin:right center}.av .browR{transform-origin:left center}
+.av .mo{opacity:0;transition:opacity .25s}.av .mo.n{opacity:1}
+.av .blush,.av .sweat,.av .spark{opacity:0;transition:opacity .3s}
+.av.smile .mo.n,.av.frown .mo.n{opacity:0}
+.av.smile .mo.s{opacity:1}.av.frown .mo.f{opacity:1}
+.av.smile .blush{opacity:.55}.av.smile .spark{opacity:1}.av.frown .sweat{opacity:.9}
+.av.smile .brow{transform:translateY(-3px)}
+.av.frown .browL{transform:rotate(14deg) translateY(2px)}.av.frown .browR{transform:rotate(-14deg) translateY(2px)}
+.av.hop svg{animation:hop .7s ease}
+.av.shake svg{animation:shake .55s ease}
+.av .spark{animation:twinkle 1s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}
+@keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+@keyframes twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.bubble{position:relative;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-size:.95rem;margin-bottom:10px;min-height:2.6em;max-width:260px;text-align:center;transition:border-color .3s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:8px solid transparent;border-top-color:var(--line);border-bottom:0}
+.bubble.good{border-color:var(--ok)}.bubble.good::after{border-top-color:var(--ok)}
+.bubble.bad{border-color:var(--bad)}.bubble.bad::after{border-top-color:var(--bad)}
+.intro{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:center}
+.intro>*,.qgrid>*{min-width:0}
+.intro .avwrap{flex-direction:row;gap:10px}.intro .bubble{flex:1;margin:0}.intro .bubble::after{display:none}.intro .av{width:125px;flex:none}
+.qgrid{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:18px;align-items:start}
+.qgrid .avwrap{position:sticky;top:12px}
+@media (max-width:860px){.intro,.qgrid{grid-template-columns:minmax(0,1fr)}.intro .avwrap{flex-direction:column}.intro .bubble{margin-bottom:10px}.intro .bubble::after{display:block}.intro .av,.qgrid .av{width:auto;max-width:140px}.qgrid .avwrap{position:static;order:-1}}
+</style>
+<style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line,#e3e1da);border-radius:12px;background:var(--card,var(--surface,#fff));color:var(--ink,#1d2330);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+.pu-badge img{width:58px;height:58px;display:block}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem;text-align:left}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute,var(--muted,#667085))}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="pu-hd">
+  <div class="pu-hd-main">
+  <h1>轉移函數 H(s)（一）RC 電路</h1>
+  <p>工程數學 ・ 互動教學：用一階 RC 電路看懂 H(s) 的極點、步階響應與頻率響應</p>
+</div>
+  <div class="pu-badge"><img alt="靜宜大學校徽" src="data:image/webp;base64,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"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div>
+</header>
+
+<!-- 0 -->
+<section class="card">
+  <h2><span class="num">0</span><span>一句話：H(s) 是系統的「身分證」，與輸入無關</span></h2>
+  <div class="intro">
+    <div>
+      <div class="def"><span class="m">H</span>(<span class="m">s</span>) = <span class="frac"><span><span class="m">Y</span>(<span class="m">s</span>)</span><span><span class="m">X</span>(<span class="m">s</span>)</span></span>　（初始條件全為 0）　⟹　<span class="m">Y</span>(<span class="m">s</span>) = <span class="m">H</span>(<span class="m">s</span>)·<span class="m">X</span>(<span class="m">s</span>)</div>
+      <p>同一個 <span class="m">H</span>(<span class="m">s</span>) 有三張臉，它們是同一件事的不同看法：</p>
+      <div class="three">
+        <div class="face"><b class="c1">① 時域：脈衝響應 h(t)</b>H(s) = ℒ{h(t)}；輸出 y = h ∗ x（卷積，從 0 積到 t）。</div>
+        <div class="face"><b class="c2">② s 平面：極點與零點</b>極點位置決定穩定性、衰減快慢、會不會振盪。</div>
+        <div class="face"><b class="c3">③ 頻域：H(jω)</b>|H(jω)| 是正弦的放大倍數，∠H(jω) 是相位偏移。</div>
+      </div>
+      <p class="note">本頁用最簡單的一階 RC 電路看懂這三張臉：第 1 節看極點與步階響應，第 2 節看正弦輸入與 |H(jω)|。下一頁〈（二）CMOS 長導線〉再把同樣的觀念推廣到 N 階系統。</p>
+    </div>
+    <div class="avwrap"><div class="bubble" id="bub1">Bonjour！我是 Laplace。點我聽故事！</div><div class="av" id="av1"></div></div>
+  </div>
+</section>
+
+<!-- 1 -->
+<section class="card">
+  <h2><span class="num">1</span><span>RC 電路：從微分方程到 H(s)，再看極點與步階響應</span></h2>
+  <div class="two">
+    <div>
+      <div class="scroll"><svg class="schem" style="min-width:420px" viewBox="0 0 460 170" id="rcSvg" aria-label="RC 低通電路"></svg></div>
+      <div class="calc">
+        KVL：<span class="m">RC</span> <span class="frac"><span><span class="m">dy</span></span><span><span class="m">dt</span></span></span> + <span class="m">y</span> = <span class="m">x</span>
+        →　取 ℒ（<span class="m">y</span>(0⁻)=0）：<span class="m">RCs Y</span> + <span class="m">Y</span> = <span class="m">X</span><br>
+        → <span class="m">H</span>(<span class="m">s</span>) = <span class="frac"><span>1</span><span>1 + <span class="m">sRC</span></span></span> = <span class="frac"><span>1</span><span>1 + <span class="m">s</span>τ</span></span>，　τ = <span class="m">RC</span> = <b id="rcTau"></b>
+      </div>
+      <div class="ctl">
+        <label>電阻 <span><span class="m">R</span> = <b id="vR"></b> kΩ</span><input type="range" id="sR" min="1" max="10" step="0.1" value="2.2"></label>
+        <label>電容 <span><span class="m">C</span> = <b id="vC"></b> µF</span><input type="range" id="sC" min="10" max="100" step="1" value="22"></label>
+      </div>
+      <div class="kv">
+        <div>極點 <span class="m">p</span> = −1/τ<b id="kP"></b></div>
+        <div>直流增益 <span class="m">H</span>(0)<b>1（輸出最後等於輸入）</b></div>
+        <div>−3 dB 頻寬 <span class="m">f</span><sub>c</sub> = 1/(2πτ)<b id="kF"></b></div>
+      </div>
+    </div>
+    <div>
+      <canvas id="cvPole1" data-h="170"></canvas>
+      <p class="cap">s 平面：極點 × 在左半平面 ⇒ 穩定。R 或 C 變大，極點往原點靠近 ⇒ 衰減變慢。</p>
+      <canvas id="cvStep1" data-h="210"></canvas>
+      <p class="cap">單位步階響應 <span class="m">y</span>(<span class="m">t</span>) = 1 − <span class="m">e</span><sup>−<span class="m">t</span>/τ</sup>：在 <span class="m">t</span> = τ 時到達 63.2%，約 5τ 後幾乎到底。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="card">
+  <h2><span class="num">2</span><span>正弦輸入：為什麼 |H(jω)| 就是放大倍數？</span></h2>
+  <div class="two">
+    <div>
+      <div class="calc">
+        輸入 <span class="m">e<sup>jωt</sup></span>：<span class="m">y</span>(<span class="m">t</span>) = ∫<sub>0</sub><sup><span class="m">t</span></sup> <span class="m">h</span>(τ)<span class="m">e</span><sup><span class="m">j</span>ω(<span class="m">t</span>−τ)</sup><span class="m">d</span>τ
+        → <span class="m">e<sup>jωt</sup></span> · ∫<sub>0</sub><sup>∞</sup> <span class="m">h</span>(τ)<span class="m">e</span><sup>−<span class="m">j</span>ωτ</sup><span class="m">d</span>τ = <span class="m">H</span>(<span class="m">j</span>ω)·<span class="m">e<sup>jωt</sup></span><br>
+        取實部：sin ω<span class="m">t</span>　→　|<span class="m">H</span>(<span class="m">j</span>ω)| sin(ω<span class="m">t</span> + ∠<span class="m">H</span>(<span class="m">j</span>ω))　（穩態，暫態消失之後）
+      </div>
+      <div class="ctl">
+        <label>輸入頻率（以 1/τ 為單位） <span>ωτ = <b id="vW"></b></span><input type="range" id="sW" min="-1" max="1" step="0.01" value="0"></label>
+      </div>
+      <div class="row"><button class="btn pri" id="bPlay">⏸ 暫停動畫</button><button class="btn" id="bW1">ωτ = 0.1</button><button class="btn" id="bW2">ωτ = 1</button><button class="btn" id="bW3">ωτ = 10</button></div>
+      <div class="kv">
+        <div><span class="m">H</span>(<span class="m">j</span>ω) = 1/(1 + <span class="m">j</span>ωτ)<b id="kHj"></b></div>
+        <div>放大倍數 |<span class="m">H</span>|<b id="kMag"></b></div>
+        <div>相位 ∠<span class="m">H</span><b id="kPh"></b></div>
+      </div>
+      <div class="say" id="sinSay"></div>
+    </div>
+    <div>
+      <canvas id="cvSin" data-h="220"></canvas>
+      <p class="cap"><span class="c1">藍：輸入 sin ωt</span>　<span class="c2">橘：輸出</span>（從靜止開始，含暫態）。<span class="c2">虛線</span>為振幅 ±|H|。</p>
+      <canvas id="cvBode1" data-h="190"></canvas>
+      <p class="cap">Bode 圖：上 |H(jω)|（dB），下 ∠H(jω)。圓點是目前的 ωτ。</p>
+    </div>
+  </div>
+</section>
+
+<!-- IC 設計提醒 -->
+<section class="icnote">
+  <h2><span>🔧</span><span>給未來的 IC 設計師</span></h2>
+  <p class="lead">Laplace 轉換和轉移函數不只是考試題目，而是你將來進入 IC 設計領域時天天會遇到的語言。</p>
+  <p>這一頁的一階 RC 電路，就是數位 IC 裡「一個邏輯閘」的模型：導通的電晶體是 R，下一級的閘極電容加上導線電容是 C。</p>
+  <ul>
+    <li><b>閘延遲</b>：t<sub>50</sub> ≈ 0.69 RC、上升時間 ≈ 2.2 RC，是 RC 延遲模型、邏輯努力（logical effort）與 FO4 延遲的出發點。</li>
+    <li><b>功耗</b>：每次充放電消耗 C·V<sub>DD</sub><sup>2</sup> 的能量，動態功耗 P ∝ C V<sup>2</sup> f；同一顆 C 同時決定速度與功耗。</li>
+    <li><b>頻寬</b>：上升時間 t<sub>r</sub> ≈ 0.35 / f<sub>−3dB</sub>，是訊號完整性、時脈、PLL 與高速 I/O 設計的基本換算。</li>
+  </ul>
+  <p class="note">下一頁〈（二）CMOS 長導線〉會把一個 RC 擴充成一整條導線，看它如何決定晶片的最高時脈。</p>
+</section>
+
+<!-- 3 -->
+<section class="card">
+  <h2><span class="num">3</span><span>觀念小測驗</span></h2>
+  <div class="qgrid">
+    <div id="quiz"></div>
+    <div class="avwrap"><div class="bubble" id="bub2">來考考你！答對我會笑，答錯我會皺眉喔。</div><div class="av" id="av2"></div></div>
+  </div>
+</section>
+
+<footer>轉移函數 H(s)（一）RC 電路互動教學 ・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmt=(v,d)=>{if(d===undefined){const a=Math.abs(v);d=a>=100?0:a>=10?1:a>=1?2:3;}return v.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});};
+const sup=n=>String(n).split('').map(ch=>'⁰¹²³⁴⁵⁶⁷⁸⁹'['0123456789'.indexOf(ch)]).join('');
+function sci(v){ if(v===0)return '0'; const e=Math.floor(Math.log10(Math.abs(v))); if(e>=-2&&e<5)return fmt(v); const m=v/10**e; return fmt(m,2)+'×10'+(e<0?'⁻':'')+sup(Math.abs(e)); }
+
+/* ---------- 簡易繪圖器 ---------- */
+const tk=v=>{const t=+(+v).toPrecision(6);return Math.abs(t)>=1000?t.toLocaleString('en-US'):String(t).replace('-','−');};
+function prep(cv){
+  cv.style.width='0px'; const pe=cv.parentElement, ps=getComputedStyle(pe);
+  const w=Math.max(200,pe.clientWidth-parseFloat(ps.paddingLeft)-parseFloat(ps.paddingRight)); cv.style.width=w+'px';
+  const h=+cv.dataset.h, r=window.devicePixelRatio||1;
+  cv.width=w*r; cv.height=h*r; cv.style.height=h+'px';
+  const g=cv.getContext('2d'); g.setTransform(r,0,0,r,0,0); g.clearRect(0,0,w,h);
+  return {g,w,h};
+}
+function niceTicks(a,b,n){ const span=b-a, raw=span/n, p=10**Math.floor(Math.log10(raw)), f=raw/p;
+  const st=(f<1.5?1:f<3?2:f<7?5:10)*p; const out=[]; for(let v=Math.ceil(a/st)*st;v<=b+st*1e-9;v+=st)out.push(+v.toPrecision(12)); return out; }
+function axes(o){ // o:{cv,x:[a,b],y:[a,b],logx,pad,xlab,ylab,xfmt,yfmt,yt}
+  const {g,w,h}=prep(o.cv), P=Object.assign({l:46,r:12,t:12,b:30},o.pad||{});
+  const X0=P.l,X1=w-P.r,Y0=h-P.b,Y1=P.t;
+  const lx=v=>Math.log10(v);
+  const sx=v=>o.logx? X0+(lx(v)-lx(o.x[0]))/(lx(o.x[1])-lx(o.x[0]))*(X1-X0) : X0+(v-o.x[0])/(o.x[1]-o.x[0])*(X1-X0);
+  const sy=v=>Y0-(v-o.y[0])/(o.y[1]-o.y[0])*(Y0-Y1);
+  g.font='12px "Noto Sans TC",system-ui,sans-serif'; g.lineWidth=1;
+  const xt=o.logx? (()=>{const t=[];for(let e=Math.ceil(lx(o.x[0]));e<=Math.floor(lx(o.x[1]));e++)t.push(10**e);return t;})() : niceTicks(o.x[0],o.x[1],o.xn||6);
+  const yt=o.yt||niceTicks(o.y[0],o.y[1],o.yn||4);
+  g.strokeStyle=css('--grid'); g.fillStyle=css('--mute');
+  xt.forEach(v=>{const X=sx(v);g.beginPath();g.moveTo(X,Y0);g.lineTo(X,Y1);g.stroke();g.textAlign='center';g.fillText(o.xfmt?o.xfmt(v):tk(v),X,Y0+15);});
+  yt.forEach(v=>{const Y=sy(v);g.beginPath();g.moveTo(X0,Y);g.lineTo(X1,Y);g.stroke();g.textAlign='right';g.fillText(o.yfmt?o.yfmt(v):tk(v),X0-5,Y+4);});
+  g.strokeStyle=css('--axis'); g.strokeRect(X0,Y1,X1-X0,Y0-Y1);
+  g.fillStyle=css('--mute'); g.textAlign='right'; if(o.xlab)g.fillText(o.xlab,X1,Y0+28);
+  g.textAlign='left'; if(o.ylab)g.fillText(o.ylab,X0+4,Y1+13);
+  const line=(pts,col,wd,dash)=>{g.save();g.beginPath();g.rect(X0,Y1,X1-X0,Y0-Y1);g.clip();g.strokeStyle=col;g.lineWidth=wd||2;g.setLineDash(dash||[]);g.beginPath();pts.forEach((p,i)=>{const X=sx(p[0]),Y=sy(p[1]);i?g.lineTo(X,Y):g.moveTo(X,Y);});g.stroke();g.restore();};
+  const dot=(x,y,col,r)=>{g.fillStyle=col;g.beginPath();g.arc(sx(x),sy(y),r||5,0,7);g.fill();};
+  const text=(s,x,y,col,al,dy)=>{g.fillStyle=col||css('--ink');g.textAlign=al||'left';g.fillText(s,sx(x),sy(y)+(dy||0));};
+  return {g,w,h,sx,sy,line,dot,text,X0,X1,Y0,Y1};
+}
+
+/* ---------- 第 1 節：RC ---------- */
+function rcSchem(){
+  const ink=css('--ink'),mute=css('--mute'),c1=css('--c1'),c2=css('--c2');
+  const zig=(x0,x1,y)=>{let d=`M${x0} ${y} L${x0+10} ${y}`;const n=6,st=(x1-x0-20)/n;for(let i=0;i<n;i++)d+=` L${x0+10+st*(i+.5)} ${y+(i%2?8:-8)}`;d+=` L${x1-10} ${y} L${x1} ${y}`;return d;};
+  $('rcSvg').innerHTML=`
+  <g stroke="${ink}" stroke-width="2" fill="none">
+   <circle cx="60" cy="95" r="22"/><path d="M48 95 q6 -12 12 0 t12 0" stroke="${c1}"/>
+   <path d="M60 73 V40 H140"/><path d="${zig(140,230,40)}" stroke="${c2}"/><path d="M230 40 H330 V80"/>
+   <path d="M312 80 H348 M312 92 H348" stroke-width="3"/><path d="M330 92 V140 M60 117 V140 H420"/>
+   <path d="M330 40 H420" />
+  </g>
+  <circle cx="420" cy="40" r="4" fill="${ink}"/><circle cx="420" cy="140" r="4" fill="${ink}"/>
+  <text x="2" y="100" fill="${c1}" font-size="15" font-style="italic">x(t)</text>
+  <text x="170" y="22" fill="${c2}" font-size="15">R</text>
+  <text x="356" y="92" fill="${ink}" font-size="15">C</text>
+  <text x="400" y="94" fill="${c2}" font-size="15" font-style="italic">y(t)</text>
+  <text x="404" y="62" fill="${mute}" font-size="13">+</text><text x="404" y="128" fill="${mute}" font-size="13">−</text>
+  <text x="232" y="165" fill="${mute}" font-size="12">輸出取電容電壓</text>`;
+}
+function drawRC(){
+  const R=+$('sR').value, C=+$('sC').value, tau=R*C; // ms
+  $('vR').textContent=fmt(R,1); $('vC').textContent=fmt(C,0);
+  $('rcTau').textContent=fmt(tau,1)+' ms';
+  const p=-1000/tau; $('kP').textContent=fmt(p,2)+' s⁻¹'; $('kF').textContent=fmt(1000/(2*Math.PI*tau),2)+' Hz';
+  rcSchem();
+  // s-plane
+  const A=axes({cv:$('cvPole1'),x:[-110,20],y:[-30,30],xlab:'σ（s⁻¹）',ylab:'jω',yt:[-20,0,20],pad:{b:32}});
+  A.g.fillStyle=css('--bad');A.g.globalAlpha=.08;A.g.fillRect(A.sx(0),A.Y1,A.X1-A.sx(0),A.Y0-A.Y1);A.g.globalAlpha=1;
+  A.line([[0,-30],[0,30]],css('--axis'),1.2);
+  A.text('不穩定區',8,22,css('--bad'));
+  const X=A.sx(p),Y=A.sy(0),k=7; A.g.strokeStyle=css('--c2');A.g.lineWidth=3;A.g.beginPath();A.g.moveTo(X-k,Y-k);A.g.lineTo(X+k,Y+k);A.g.moveTo(X+k,Y-k);A.g.lineTo(X-k,Y+k);A.g.stroke();
+  A.text('p = '+fmt(p,1),p,0,css('--c2'),'center',-12);
+  // step
+  const T=1500, B=axes({cv:$('cvStep1'),x:[0,T],y:[0,1.1],xlab:'t（ms）',ylab:'y(t)',yt:[0,.5,.632,1]});
+  const pts=[];for(let i=0;i<=400;i++){const t=T*i/400;pts.push([t,1-Math.exp(-t/tau)]);}
+  B.line([[0,1],[T,1]],css('--axis'),1,[4,4]); B.line(pts,css('--c2'),2.5);
+  if(tau<=T){B.line([[tau,0],[tau,.632]],css('--c3'),1.5,[4,3]); B.dot(tau,.632,css('--c3'),4.5); B.text('τ',tau,0,css('--c3'),'center',-6);}
+}
+['sR','sC'].forEach(id=>$(id).addEventListener('input',drawRC));
+
+/* ---------- 第 2 節：正弦 ---------- */
+let playing=true, phase0=0, lastT=0;
+function wt(){return 10**(+$('sW').value);}
+function sinInfo(){
+  const w=wt(), mag=1/Math.sqrt(1+w*w), ph=-Math.atan(w);
+  $('vW').textContent=fmt(w,2);
+  $('kHj').textContent=fmt(1/(1+w*w),3)+' − j'+fmt(w/(1+w*w),3);
+  $('kMag').textContent=fmt(mag,3)+'（'+fmt(20*Math.log10(mag),1)+' dB）';
+  $('kPh').textContent=fmt(ph*180/Math.PI,1)+'°';
+  let msg;
+  if(w<0.3) msg='頻率很低（ωτ ≪ 1）：電容來得及充放電，輸出幾乎跟著輸入，|H| ≈ 1、相位幾乎不落後。';
+  else if(w<3) msg='ωτ ≈ 1 附近是轉角頻率：ωτ = 1 時 |H| = 1/√2 ≈ 0.707（−3 dB），相位剛好落後 45°。';
+  else msg='頻率很高（ωτ ≫ 1）：電容來不及充電，輸出被壓得很小，|H| ≈ 1/(ωτ)，相位趨近落後 90°。';
+  $('sinSay').innerHTML=msg+'　注意輸出一開始有<b>暫態</b>（∝ e<sup>−t/τ</sup>），因為極點在左半平面，它會消失，剩下的才是 |H| 倍的穩態正弦。';
+  return {w,mag,ph};
+}
+function drawSin(){
+  const {w,mag,ph}=sinInfo();
+  const T=Math.max(6,2.5*2*Math.PI/w);
+  const A=axes({cv:$('cvSin'),x:[0,T],y:[-1.15,1.15],xlab:'t / τ',ylab:'訊號',yt:[-1,-.5,0,.5,1]});
+  const xi=[],yo=[];
+  for(let i=0;i<=600;i++){const t=T*i/600; xi.push([t,Math.sin(w*t)]); yo.push([t,mag*(Math.sin(w*t+ph)-Math.sin(ph)*Math.exp(-t))]);}
+  A.line([[0,mag],[T,mag]],css('--c2'),1,[5,4]); A.line([[0,-mag],[T,-mag]],css('--c2'),1,[5,4]);
+  A.line(xi,css('--c1'),2); A.line(yo,css('--c2'),2.5);
+  const tc=(phase0%1)*T; A.dot(tc,Math.sin(w*tc),css('--c1'),4.5); A.dot(tc,mag*(Math.sin(w*tc+ph)-Math.sin(ph)*Math.exp(-tc)),css('--c2'),4.5);
+  // bode
+  const cv=$('cvBode1'); const {g,w:W,h:H}=prep(cv);
+  const half=(H-8)/2;
+  const drawPanel=(top,yr,yt,fn,lab,yfmt,last)=>{
+    const P={l:46,r:12};const X0=P.l,X1=W-P.r,Y1=top+6,Y0=top+half-(last?22:6);
+    const sx=v=>X0+(Math.log10(v)+2)/4*(X1-X0), sy=v=>Y0-(v-yr[0])/(yr[1]-yr[0])*(Y0-Y1);
+    g.font='12px "Noto Sans TC",system-ui,sans-serif';g.strokeStyle=css('--grid');g.fillStyle=css('--mute');g.lineWidth=1;
+    [0.01,0.1,1,10,100].forEach(v=>{const X=sx(v);g.beginPath();g.moveTo(X,Y0);g.lineTo(X,Y1);g.stroke();if(last){g.textAlign='center';g.fillText(fmt(v,v<1?2:0),X,Y0+15);}});
+    yt.forEach(v=>{const Y=sy(v);g.beginPath();g.moveTo(X0,Y);g.lineTo(X1,Y);g.stroke();g.textAlign='right';g.fillText(yfmt(v),X0-5,Y+4);});
+    g.strokeStyle=css('--axis');g.strokeRect(X0,Y1,X1-X0,Y0-Y1);
+    g.textAlign='left';g.fillText(lab,X0+4,Y1+13); if(last){g.textAlign='right';g.fillText('ωτ（對數）',X1,Y0+28);}
+    g.strokeStyle=css('--c2');g.lineWidth=2.3;g.beginPath();for(let i=0;i<=300;i++){const v=10**(-2+4*i/300),X=sx(v),Y=sy(fn(v));i?g.lineTo(X,Y):g.moveTo(X,Y);}g.stroke();
+    g.fillStyle=css('--c1');g.beginPath();g.arc(sx(w),sy(fn(w)),5,0,7);g.fill();
+  };
+  drawPanel(0,[-42,4],[-40,-20,0],v=>-10*Math.log10(1+v*v),'|H|（dB）',v=>v,false);
+  drawPanel(half,[-95,5],[-90,-45,0],v=>-Math.atan(v)*180/Math.PI,'∠H（°）',v=>v+'°',true);
+}
+function anim(ts){ if(playing){ if(lastT)phase0+=(ts-lastT)/5200; lastT=ts; drawSinOnlyWave(); } else lastT=0; requestAnimationFrame(anim); }
+let sinCache=null;
+function drawSinOnlyWave(){ drawSin(); }
+$('sW').addEventListener('input',drawSin);
+$('bPlay').onclick=()=>{playing=!playing;$('bPlay').textContent=playing?'⏸ 暫停動畫':'▶ 播放動畫';if(!playing)drawSin();};
+$('bW1').onclick=()=>{$('sW').value=-1;drawSin();};
+$('bW2').onclick=()=>{$('sW').value=0;drawSin();};
+$('bW3').onclick=()=>{$('sW').value=1;drawSin();};
+
+/* ---------- Laplace 老師 ---------- */
+const LAPLACE_SVG=`<svg viewBox="0 0 200 230" aria-label="Laplace 老師動畫">
+ <g class="bodyg">
+  <path d="M10 232 Q16 176 100 164 Q184 176 190 232 Z" fill="#34485a"/>
+  <path d="M58 170 Q46 198 42 232 L58 232 Q61 200 72 175 Z" fill="#e9a73c"/>
+  <path d="M142 170 Q154 198 158 232 L142 232 Q139 200 128 175 Z" fill="#e9a73c"/>
+  <path d="M80 172 L120 172 L114 232 L86 232 Z" fill="#9fbad6"/>
+  <rect x="85" y="130" width="30" height="36" rx="10" fill="#ecc8b2"/>
+  <path d="M70 144 Q100 170 130 144 L137 168 Q100 190 63 168 Z" fill="#34485a" stroke="#d6aa3c" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M73 158 q4 -6 8 0 M119 158 q4 -6 8 0 M79 170 q4 -5 8 0 M113 170 q4 -5 8 0" stroke="#d6aa3c" stroke-width="2" fill="none"/>
+  <path d="M86 146 Q100 156 114 146 Q126 174 116 206 Q108 214 100 208 Q92 214 84 206 Q74 174 86 146 Z" fill="#fbfaf5" stroke="#d3cec2" stroke-width="1.5"/>
+  <path d="M84 166 Q92 160 100 166 Q108 172 116 166 M82 182 Q91 176 100 182 Q109 188 118 182 M85 198 Q92 193 100 198 Q108 203 115 198" stroke="#d3cec2" stroke-width="1.5" fill="none"/>
+  <rect x="127" y="190" width="9" height="10" fill="#c0392b"/>
+  <path d="M131.5 200 l2.6 5.2 5.7 .8 -4.1 4 1 5.7 -5.2 -2.7 -5.1 2.7 1 -5.7 -4.2 -4 5.8 -.8 Z" fill="#fff" stroke="#d6aa3c" stroke-width="1.3"/>
+  <ellipse cx="69" cy="106" rx="6" ry="10" fill="#ecc8b2"/><ellipse cx="131" cy="106" rx="6" ry="10" fill="#ecc8b2"/>
+  <path d="M62 120 Q46 62 100 44 Q154 62 138 120 Q132 126 127 118 L127 82 Q100 68 73 82 L73 118 Q68 126 62 120 Z" fill="#e6e2d9"/>
+  <ellipse cx="100" cy="104" rx="31" ry="41" fill="#f3d6c4"/>
+  <ellipse class="blush" cx="81" cy="120" rx="7" ry="4.5" fill="#f08080"/>
+  <ellipse class="blush" cx="119" cy="120" rx="7" ry="4.5" fill="#f08080"/>
+  <path d="M70 93 Q62 50 100 43 Q138 50 130 93 Q126 75 114 69 Q100 64 86 69 Q74 75 70 93 Z" fill="#f4f1ea" stroke="#d7d0c3" stroke-width="1.2"/>
+  <path d="M82 60 Q92 55 100 60 M118 60 Q108 55 100 60 M78 70 Q86 64 94 66 M122 70 Q114 64 106 66" stroke="#d0c9bb" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+  <g class="hairL"><path d="M72 84 Q54 84 53 101 Q52 119 67 124 Q74 120 72 112 Q61 110 62 101 Q63 92 74 92 Z" fill="#f2eee6" stroke="#d2cbbf" stroke-width="1.3"/>
+   <path d="M58 100 Q63 95 68 99 M58 112 Q63 107 68 111" stroke="#cfc7b9" stroke-width="1.4" fill="none" stroke-linecap="round"/></g>
+  <g class="hairR"><path d="M128 84 Q146 84 147 101 Q148 119 133 124 Q126 120 128 112 Q139 110 138 101 Q137 92 126 92 Z" fill="#f2eee6" stroke="#d2cbbf" stroke-width="1.3"/>
+   <path d="M142 100 Q137 95 132 99 M142 112 Q137 107 132 111" stroke="#cfc7b9" stroke-width="1.4" fill="none" stroke-linecap="round"/></g>
+  <path class="brow browL" d="M77 87 Q85 82 94 86" stroke="#5b4a3e" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+  <path class="brow browR" d="M106 86 Q115 82 123 87" stroke="#5b4a3e" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+  <g class="eyes"><ellipse cx="86" cy="98" rx="4.4" ry="3.4" fill="#fff"/><ellipse cx="114" cy="98" rx="4.4" ry="3.4" fill="#fff"/>
+   <circle cx="86.5" cy="98.3" r="2.6" fill="#3a2e26"/><circle cx="114.5" cy="98.3" r="2.6" fill="#3a2e26"/>
+   <circle cx="87.4" cy="97.3" r=".9" fill="#fff"/><circle cx="115.4" cy="97.3" r=".9" fill="#fff"/></g>
+  <path d="M81 94 Q86 92 91 94 M109 94 Q114 92 119 94" stroke="#b98d76" stroke-width="1.2" fill="none"/>
+  <path d="M100 102 Q96 118 98 123 Q103 126 108 122" stroke="#c9967a" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <path d="M89 122 Q86 128 88 133 M111 122 Q114 128 112 133" stroke="#ddb29a" stroke-width="1.3" fill="none"/>
+  <path class="mo n" d="M90 132 Q100 136 110 131" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path class="mo s" d="M88 129 Q100 143 112 129 Q100 134 88 129 Z" fill="#9b3a2c" stroke="#8a4a3a" stroke-width="1.5" stroke-linejoin="round"/>
+  <path class="mo f" d="M90 136 Q100 128 110 136" stroke="#8a4a3a" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path class="sweat" d="M138 74 Q143 84 138 88 Q133 84 138 74 Z" fill="#7cc3f0"/>
+  <text class="spark" x="30" y="44" font-size="18" fill="#f0b400">✦</text>
+  <text class="spark" x="160" y="40" font-size="14" fill="#f0b400">✦</text>
+  <text class="spark" x="170" y="96" font-size="11" fill="#f0b400">✦</text>
+ </g></svg>`;
+function makeAvatar(el,bubble){
+  el.innerHTML=LAPLACE_SVG; let tm=null;
+  function restart(c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);}
+  return {mood(m,text,hold){clearTimeout(tm);el.classList.remove('smile','frown','hop','shake');
+    if(m==='smile'){el.classList.add('smile');restart('hop');}
+    if(m==='frown'){el.classList.add('frown');restart('shake');}
+    if(text!==undefined){bubble.innerHTML=text;bubble.className='bubble'+(m==='smile'?' good':m==='frown'?' bad':'');}
+    if(!hold) tm=setTimeout(()=>{el.classList.remove('smile','frown');bubble.className='bubble';},3200);}};
+}
+var AV1=makeAvatar($('av1'),$('bub1')), AV2=makeAvatar($('av2'),$('bub2'));
+const QUOTES=[
+ '我是 Pierre-Simon Laplace（1749–1827），法國數學家，後人稱我「法國的牛頓」。',
+ '我花了二十多年寫五卷《天體力學》，用微分方程研究太陽系的穩定性。',
+ '1785 年我在軍校當考官，考過一位 16 歲的砲兵學員——他後來成了拿破崙皇帝！',
+ '1799 年拿破崙請我當內政部長，可惜大約六週就被換掉了。他說我把「無窮小的精神」帶進了行政。',
+ '你們用的轉換，和我 1812 年在《機率的解析理論》裡用的積分有關；後來 Heaviside 的運算微積分，讓工程師真正愛上了它。',
+ '1855 年 Kelvin 分析大西洋海底電纜，發現延遲和長度的平方成正比——和你們晶片上的長導線是同一個數學！'
+];
+let qi=0;$('av1').onclick=()=>AV1.mood('smile',QUOTES[qi++%QUOTES.length]);
+
+/* ---------- 小測驗 ---------- */
+const QZ=[
+ {q:'RC 低通 H(s) = 1/(1+sRC)，輸入正弦的頻率 ω = 1/RC 時，穩態輸出會如何？',o:['振幅約 0.707 倍，相位落後 45°','振幅 0.5 倍，相位落後 90°','振幅 1 倍，相位不變','振幅約 0.707 倍，相位超前 45°'],a:0,
+  e:'H(j/RC) = 1/(1+j)：|H| = 1/√2 ≈ 0.707，∠H = −45°。',h:'把 s = jω = j/RC 代入，算 1/(1+j) 的大小與角度。'},
+ {q:'RC 電路中 C 不變、R 加倍，極點會怎麼移動？',o:['往原點靠近（距離變一半），響應變慢','遠離原點，響應變快','跑到右半平面，系統不穩定','位置不變，只改變直流增益'],a:0,
+  e:'p = −1/(RC)，R 加倍 ⇒ |p| 減半，時間常數 τ 加倍。',h:'極點 p = −1/(RC)，τ = RC 變大代表什麼？'},
+ {q:'定義轉移函數時，為什麼要令初始條件全為零？',o:['H(s) 只描述系統對輸入的反應（零狀態響應）','因為真實電路的初始條件一定是零','為了讓拉氏積分收斂','否則 H(s) 會變成負數'],a:0,
+  e:'初始條件產生的是「零輸入響應」，屬於初始狀態，不是系統對輸入的特性。',h:'f(0⁻) 那一項來自初始狀態，而不是輸入。'},
+ {q:'RC 低通在 ωτ = 10 時，穩態輸出的振幅約為輸入的幾倍？',o:['約 0.1 倍（−20 dB）','約 0.5 倍','約 0.9 倍','約 10 倍'],a:0,
+  e:'|H| = 1/√(1+100) ≈ 0.0995；高頻時 |H| ≈ 1/(ωτ)，每高 10 倍頻率就再小 10 倍。',h:'高頻時 |H(jω)| ≈ 1/(ωτ)，代入 ωτ = 10。'},
+ {q:'正弦剛加上時，輸出為什麼不是立刻變成 |H| 倍的正弦？',o:['還有暫態 e^(−t/τ)，要等它衰減掉才是穩態','因為 H(s) 在 t = 0 時等於零','因為電容會讓頻率改變','因為輸出本來就永遠不會是正弦'],a:0,
+  e:'輸出 = 穩態正弦 + 暫態；極點在左半平面，暫態 ∝ e<sup>−t/τ</sup> 會衰減，之後才剩下 |H| 倍、相移 ∠H 的正弦。',h:'看第 2 節的橘色曲線，一開始和後來有什麼不同？'},
+ {q:'RC 低通的直流增益 H(0) = 1，代表什麼？',o:['輸入定電壓（步階），最後輸出會等於輸入','輸出永遠等於輸入','系統對所有頻率都不衰減','時間常數 τ = 1'],a:0,
+  e:'H(0) 是 s → 0（直流）時的增益；由終值定理，單位步階輸入的最終輸出 = H(0) = 1。',h:'把 s = 0 代入 H(s)，想想 s = 0 對應的是什麼樣的輸入。'}
+];
+const PRAISE=['Très bien！完全正確！','漂亮！你抓到極點的意義了。','正確！H(s) 在你手上很聽話。','對！這就是轉移函數的精神。'];
+let qState;
+function buildQuiz(){
+  qState={done:0,score:0,streak:0};
+  const box=$('quiz'); box.innerHTML='';
+  QZ.forEach((z,qi2)=>{
+    const d=document.createElement('div');d.className='q';
+    d.innerHTML=`<div class="qt">${qi2+1}. ${z.q}</div>`;
+    const idx=z.o.map((_,i)=>i).sort(()=>Math.random()-.5);
+    const ex=document.createElement('div');ex.className='ex';
+    idx.forEach(i=>{const b=document.createElement('button');b.className='opt';b.textContent=z.o[i];
+      b.onclick=()=>{
+        d.querySelectorAll('.opt').forEach(x=>x.disabled=true);
+        const ok=i===z.a; qState.done++;
+        d.querySelectorAll('.opt').forEach(x=>{if(x.textContent===z.o[z.a])x.classList.add('right');});
+        if(!ok)b.classList.add('wrong');
+        ex.innerHTML=ok?`<span class="ok">✔ 正確！</span>${z.e}`:`<span class="bad">✘ 再想想：</span>${z.e}`;
+        if(ok){qState.score++;qState.streak++;AV2.mood('smile',qState.streak>=3?`連對 ${qState.streak} 題！Magnifique！`:PRAISE[Math.floor(Math.random()*PRAISE.length)]);}
+        else{qState.streak=0;AV2.mood('frown','提示：'+z.h);}
+        if(qState.done===QZ.length)finish();
+      };d.appendChild(b);});
+    d.appendChild(ex);box.appendChild(d);
+  });
+}
+function finish(){
+  const s=qState.score,n=QZ.length;
+  const r=document.createElement('div');
+  r.innerHTML=`<div class="score">得分：${s} / ${n}</div><button class="btn pri" id="again">再做一次</button>`;
+  $('quiz').appendChild(r);
+  $('again').onclick=()=>{buildQuiz();AV2.mood('','新的一輪！選項順序換過了喔。');window.scrollTo({top:$('quiz').getBoundingClientRect().top+scrollY-80,behavior:'smooth'});};
+  setTimeout(()=>{
+    if(s===n)AV2.mood('smile','全對！你已經能從 H(s) 讀出穩定性、速度與頻寬了。',true);
+    else if(s>=n-2)AV2.mood('smile','很不錯！答錯的題目，回到對應的小節再玩一下滑桿。',true);
+    else AV2.mood('frown','建議回到第 1、2 節，再玩一下滑桿，看極點和 |H(jω)| 怎麼變。',true);
+  },3300);
+}
+
+/* ---------- 啟動 ---------- */
+function drawAll(){drawRC();drawSin();}
+let rT=null; window.addEventListener('resize',()=>{clearTimeout(rT);rT=setTimeout(drawAll,120);});
+if(window.matchMedia)matchMedia('(prefers-color-scheme: dark)').addEventListener('change',drawAll);
+drawAll(); buildQuiz(); requestAnimationFrame(anim);
+</script>
+</body>
+</html>

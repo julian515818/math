@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>H(s) 極點位置與脈衝響應</title>
+<style>
+:root{--bg:#f7f6f2;--card:#fff;--ink:#1d2330;--mute:#667085;--line:#e3e1da;--ok:#1f9d6b;--warn:#b7791f;--bad:#d6334f;--okbg:#e3f5ec;--warnbg:#fbf0dc;--badbg:#fbe5e9;--axis:#98a2b3;--env:#b0b7c3;--acc:#2f6fd6}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--warn:#f0b450;--bad:#ff6f86;--okbg:#173a2c;--warnbg:#3d2f14;--badbg:#42202a;--axis:#5d6678;--env:#6b7385;--acc:#6ea3ff}}
+:root[data-theme="dark"]{--bg:#15181f;--card:#1d212b;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2e3441;--ok:#4fd19d;--warn:#f0b450;--bad:#ff6f86;--okbg:#173a2c;--warnbg:#3d2f14;--badbg:#42202a;--axis:#5d6678;--env:#6b7385;--acc:#6ea3ff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.6}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 16px 60px}
+header h1{margin:0 0 4px;font-size:1.7rem}
+header p{margin:0;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:20px}
+.card h2{margin:0 0 12px;font-size:1.25rem;display:flex;align-items:center;gap:10px}
+.num{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:var(--acc);color:#fff;font-size:1rem;flex:none}
+.card ul{margin:8px 0 14px;padding-left:1.3em}
+.card li{margin:4px 0}
+.hitrow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 10px}
+.pre{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:0 0 16px}
+button{font:inherit;font-size:.92rem;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);cursor:pointer}
+button:hover{border-color:var(--mute)}
+.row{display:flex;align-items:center;gap:10px;margin:0 0 10px}
+.row label{color:var(--mute);min-width:60px}
+.row input{flex:1;min-width:0}
+.row span{font-weight:600;min-width:48px;text-align:right}
+.stat{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:6px 0 14px}
+#st{padding:4px 14px;border-radius:8px;font-weight:600}
+#eq{font-family:Consolas,monospace;color:var(--mute)}
+.plots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.plots>div{min-width:0}
+.cap{font-size:.9rem;color:var(--mute);margin:0 0 6px}
+canvas{width:100%;display:block;border:1px solid var(--line);border-radius:8px;touch-action:none}
+@media (max-width:760px){.plots{grid-template-columns:minmax(0,1fr)}}
+footer{text-align:center;color:var(--mute);font-size:.85rem;margin-top:28px}
+</style><style id="pu-badge-style">
+.pu-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pu-hd-main{min-width:0;flex:1}
+.pu-badge{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink)}
+.pu-badge .pu-t{display:flex;flex-direction:column;line-height:1.35;font-size:.9rem}
+.pu-badge .pu-t b{font-size:1.05rem}
+.pu-badge .pu-t span{color:var(--mute)}
+@media (max-width:700px){.pu-hd{flex-direction:column-reverse}.pu-badge{align-self:flex-end}}
+</style>
+</head><body><div class="wrap">
+<header class="pu-hd"><div class="pu-hd-main"><h1>H(s) 極點位置與脈衝響應</h1><p>工程數學 ・ 互動教學：極點在 s 平面的位置如何決定系統的穩定性</p></div><div class="pu-badge"><div class="pu-t"><b>靜宜大學</b><span>晶片設計學士學位學程</span><span>劉志俊 老師</span></div></div></header>
+<div class="card">
+<h2><span class="num">0</span>什麼是脈衝響應（Impulse Response）h(t)</h2>
+<p style="margin:0">把一個「瞬間、面積為 1」的敲擊 δ(t) 送進系統，系統之後的輸出就叫脈衝響應 h(t)，就像敲一下鐘之後聽到的餘音。</p>
+<ul>
+<li>因為 L{δ(t)} = 1，所以 Y(s) = H(s)·1 = H(s)，也就是 h(t) = L⁻¹{H(s)}</li>
+<li>任何輸入的輸出都是 y(t) = x(t) ∗ h(t)（摺積），h(t) 完整描述了線性非時變（LTI）系統</li>
+<li>h(t) 衰減到 0 → 穩定；維持常數或等幅振盪 → 臨界穩定；越來越大 → 不穩定</li>
+</ul>
+<div class="hitrow"><button id="hit">敲一下 ▶</button><span class="cap" style="margin:0">系統的極點使用第 1 節的設定；鐘聲的餘音也會跟著 h(t) 衰減、持續或變大</span></div>
+<canvas id="an" data-h="190"></canvas>
+</div>
+<div class="card">
+<h2><span class="num">1</span>極點位置決定 h(t) 的形狀</h2>
+<div class="pre">
+<button data-p="-0.4,0">(a) 單極點 σ&lt;0</button>
+<button data-p="-0.3,2.5">(b) 共軛極點 σ&lt;0</button>
+<button data-p="0,0">(c) 單極點 σ=0</button>
+<button data-p="0,2.5">(d) 共軛極點 σ=0</button>
+<button data-p="0.2,0">(e) 單極點 σ&gt;0</button>
+<button data-p="0.2,2.5">(f) 共軛極點 σ&gt;0</button>
+</div>
+<div class="row"><label>σ 實部</label><input type="range" id="sg" min="-1" max="0.5" step="0.05" value="-0.3"><span id="sgo"></span></div>
+<div class="row"><label>ω 虛部</label><input type="range" id="om" min="0" max="4" step="0.1" value="2.5"><span id="omo"></span></div>
+<div class="stat"><span id="st"></span><span id="eq"></span></div>
+<div class="plots">
+<div><p class="cap">s 平面（可直接點按或拖曳極點）</p><canvas id="sp" data-h="260"></canvas></div>
+<div><p class="cap">脈衝響應 h(t)</p><canvas id="tr" data-h="260"></canvas></div>
+</div>
+</div>
+<footer>H(s) 極點位置與脈衝響應互動教學 ・ 單一 HTML 檔，可離線開啟</footer>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const sg=$('sg'),om=$('om'),sp=$('sp'),tr=$('tr'),an=$('an');
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setup(c){const r=window.devicePixelRatio||1;c.style.width='';const w=c.clientWidth,h=+c.dataset.h;c.width=w*r;c.height=h*r;c.style.height=h+'px';const x=c.getContext('2d');x.setTransform(r,0,0,r,0,0);return [x,w,h];}
+const S0=-1,S1=0.5,W=4.5,T=12,N=500;
+let prog=1;
+function kind(s){return s<-1e-9?'ok':Math.abs(s)<1e-9?'warn':'bad';}
+function resp(s,w){let ys=[],mx=1e-6;for(let i=0;i<=N;i++){const v=Math.exp(s*i/N*T)*Math.cos(w*i/N*T);ys.push(v);mx=Math.max(mx,Math.abs(v));}return [ys,mx];}
+function arrow(x,a,b,y){x.beginPath();x.moveTo(a,y);x.lineTo(b,y);x.stroke();x.beginPath();x.moveTo(b,y);x.lineTo(b-8,y-5);x.lineTo(b-8,y+5);x.closePath();x.fill();}
+function drawAn(){
+ const s=+sg.value,w=+om.value,col=css('--'+kind(s)),ax=css('--axis'),mu=css('--mute'),ink=css('--ink'),acc=css('--acc');
+ const [x,cw,ch]=setup(an);
+ const base=ch*0.62,i0=14,i1=cw*0.24,b0=cw*0.31,b1=cw*0.47,o0=cw*0.55,o1=cw-10,mid=ch/2;
+ x.lineWidth=1;x.strokeStyle=ax;x.beginPath();x.moveTo(i0,base);x.lineTo(i1,base);x.stroke();
+ const flash=prog<0.12;
+ x.strokeStyle=flash?acc:mu;x.fillStyle=flash?acc:mu;x.lineWidth=flash?3.5:2.5;
+ x.beginPath();x.moveTo(i0+16,base);x.lineTo(i0+16,ch*0.18);x.stroke();
+ x.beginPath();x.moveTo(i0+16,ch*0.14);x.lineTo(i0+10,ch*0.24);x.lineTo(i0+22,ch*0.24);x.closePath();x.fill();
+ x.font='14px sans-serif';x.fillStyle=mu;x.fillText('輸入 δ(t)',i0+26,ch*0.24);x.fillText('t',i1-10,base+16);
+ x.lineWidth=1.5;x.strokeStyle=mu;x.fillStyle=mu;arrow(x,i1+4,b0-2,mid);arrow(x,b1+2,o0-6,mid);
+ x.strokeStyle=ink;x.lineWidth=1.5;x.strokeRect(b0,ch*0.3,b1-b0,ch*0.4);
+ x.fillStyle=ink;x.font='16px sans-serif';x.textAlign='center';x.fillText('H(s)',(b0+b1)/2,mid+6);x.textAlign='left';
+ x.strokeStyle=ax;x.lineWidth=1;x.beginPath();x.moveTo(o0,mid);x.lineTo(o1,mid);x.moveTo(o0,10);x.lineTo(o0,ch-10);x.stroke();
+ x.fillStyle=mu;x.font='14px sans-serif';x.fillText('輸出 h(t)',o0+6,18);x.fillText('t',o1-10,mid+16);
+ const [ys,mx]=resp(s,w),n=Math.round(N*prog),tx=i=>o0+i/N*(o1-o0),ty=v=>mid-v/mx*(mid-22);
+ if(n>0){x.strokeStyle=col;x.lineWidth=2.2;x.beginPath();for(let i=0;i<=n;i++){i?x.lineTo(tx(i),ty(ys[i])):x.moveTo(tx(i),ty(ys[i]));}x.stroke();
+  x.fillStyle=col;x.beginPath();x.arc(tx(n),ty(ys[n]),4,0,7);x.fill();}
+}
+function draw(){
+ const s=+sg.value,w=+om.value;
+ $('sgo').textContent=s.toFixed(2);$('omo').textContent=w.toFixed(1);
+ const k=kind(s),lab={ok:'穩定（衰減）',warn:'臨界穩定',bad:'不穩定（發散）'}[k],col=css('--'+k);
+ $('st').textContent=lab;$('st').style.background='var(--'+k+'bg)';$('st').style.color=col;
+ $('eq').textContent=w>0?'h(t) = e^('+s.toFixed(2)+'t)·cos('+w.toFixed(1)+'t)':'h(t) = e^('+s.toFixed(2)+'t)';
+ const ax=css('--axis'),mu=css('--mute'),env=css('--env');
+ let [x,cw,ch]=setup(sp);
+ const X=v=>(v-S0)/(S1-S0)*cw,Y=v=>ch/2-v/W*(ch/2-12);
+ x.globalAlpha=.12;x.fillStyle=css('--ok');x.fillRect(0,0,X(0),ch);x.fillStyle=css('--bad');x.fillRect(X(0),0,cw-X(0),ch);x.globalAlpha=1;
+ x.strokeStyle=ax;x.lineWidth=1;x.beginPath();x.moveTo(0,ch/2);x.lineTo(cw,ch/2);x.moveTo(X(0),0);x.lineTo(X(0),ch);x.stroke();
+ x.fillStyle=mu;x.font='13px sans-serif';x.fillText('σ',cw-16,ch/2-6);x.fillText('jω',X(0)+6,16);
+ const nw=cw<480;x.fillText(nw?'穩定區':'左半平面：穩定',8,ch-10);x.fillText(nw?'不穩定區':'右半平面：不穩定',X(0)+6,ch-10);
+ const mk=(a,b)=>{x.strokeStyle=col;x.lineWidth=3;const px=X(a),py=Y(b);x.beginPath();x.moveTo(px-8,py-8);x.lineTo(px+8,py+8);x.moveTo(px+8,py-8);x.lineTo(px-8,py+8);x.stroke();};
+ mk(s,w);if(w>0)mk(s,-w);
+ [x,cw,ch]=setup(tr);
+ const [ys,mx]=resp(s,w),ty=v=>ch/2-v/mx*(ch/2-14),tx=i=>i/N*cw;
+ x.strokeStyle=ax;x.lineWidth=1;x.beginPath();x.moveTo(0,ch/2);x.lineTo(cw,ch/2);x.stroke();
+ x.fillStyle=mu;x.font='13px sans-serif';x.fillText('t',cw-12,ch/2-6);
+ if(w>0){x.setLineDash([4,4]);x.strokeStyle=env;for(const sgn of [1,-1]){x.beginPath();for(let i=0;i<=N;i++){const v=sgn*Math.exp(s*i/N*T);i?x.lineTo(tx(i),ty(v)):x.moveTo(tx(i),ty(v));}x.stroke();}x.setLineDash([]);}
+ x.strokeStyle=col;x.lineWidth=2.2;x.beginPath();ys.forEach((v,i)=>i?x.lineTo(tx(i),ty(v)):x.moveTo(tx(i),ty(v)));x.stroke();
+ drawAn();
+}
+function pick(e){const r=sp.getBoundingClientRect();let s=S0+(e.clientX-r.left)/r.width*(S1-S0),w=Math.abs((r.height/2-(e.clientY-r.top))/(r.height/2-12)*W);
+ s=Math.round(s/0.05)*0.05;if(Math.abs(s)<0.04)s=0;w=Math.round(w*10)/10;if(w<0.2)w=0;
+ sg.value=Math.max(S0,Math.min(S1,s));om.value=Math.min(4,w);draw();}
+let actx=null;
+function bell(){try{
+ actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();
+ const s=+sg.value,w=+om.value,D=2.6,now=actx.currentTime+0.02,K=128,env=new Float32Array(K);let mx=0;
+ for(let i=0;i<K;i++){env[i]=Math.exp(s*T*i/(K-1));mx=Math.max(mx,env[i]);}
+ for(let i=0;i<K;i++)env[i]=0.35*env[i]/mx;
+ const m=actx.createGain();m.gain.setValueAtTime(0,now);m.gain.linearRampToValueAtTime(env[0],now+0.004);
+ m.gain.setValueCurveAtTime(env,now+0.005,D);m.gain.linearRampToValueAtTime(0,now+D+0.12);m.connect(actx.destination);
+ const f0=w>0?262+w*66:196;
+ [[1,1],[2.76,.45],[5.4,.22],[8.93,.1]].forEach(([r,a],j)=>{const o=actx.createOscillator(),g=actx.createGain();
+  o.type='sine';o.frequency.value=f0*r;g.gain.setValueAtTime(a,now);if(j)g.gain.setTargetAtTime(0.0001,now,0.5/j);
+  o.connect(g);g.connect(m);o.start(now);o.stop(now+D+0.2);});
+}catch(e){}}
+let dn=false,raf=0;
+sp.addEventListener('pointerdown',e=>{dn=true;pick(e);});
+sp.addEventListener('pointermove',e=>{if(dn)pick(e);});
+window.addEventListener('pointerup',()=>dn=false);
+$('hit').onclick=()=>{bell();cancelAnimationFrame(raf);const t0=performance.now();const step=now=>{prog=Math.min(1,(now-t0)/2600);drawAn();if(prog<1)raf=requestAnimationFrame(step);};raf=requestAnimationFrame(step);};
+sg.oninput=draw;om.oninput=draw;
+document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{const [a,c]=b.dataset.p.split(',');sg.value=a;om.value=c;draw();});
+window.addEventListener('resize',draw);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',draw);
+draw();
+</script></body></html>
